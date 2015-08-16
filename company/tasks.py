@@ -161,7 +161,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {#"mkto" : [retrieveMktoActivities, retrieveMktoLeads,  retrieveMktoCampaigns], \
-                     "hspt" : [retrieveHsptLeads] #,retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], \
+#                     "hspt" : [retrieveHsptLeads] #,retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], \
 #                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts],  \
 #                     "bufr" : [retrieveBufrTwInteractions], \
 #                     "goog" : [retrieveGoogWebsiteTraffic], \
@@ -169,7 +169,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {#"mkto" : [saveMktoLeadsToMaster, saveMktoCampaignsToMaster, saveMktoActivitiesToMaster], \
-                    "hspt" : [saveHsptLeadsToMaster]#, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], \
+#                    "hspt" : [saveHsptLeadsToMaster]#, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], \
 #                     "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster],  \
 #                     "bufr" : [saveBufrTwInteractionsToMaster], \
 #                     "goog": [saveGoogleWebsiteTrafficToMaster], \
@@ -246,7 +246,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
                      #{'chart_name': 'contacts_distr', 'system_type': 'MA', 'chart_title':'Contacts Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'source_pie', 'system_type': 'MA', 'chart_title':'Source Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'revenue_source_pie', 'system_type': 'MA', 'chart_title':'Revenue by Source', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                     {'chart_name': 'facebook_leads', 'system_type': 'MA', 'chart_title':'Facebook Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'facebook_leads', 'system_type': 'MA', 'chart_title':'Facebook Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
                 ]

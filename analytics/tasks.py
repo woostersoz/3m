@@ -2792,7 +2792,7 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
             
             results_data = {}
             results_ids = {}
-            #find all leads who visited today from each subsource
+            #find all new leads who visited today from each subsource
             new_leads_by_subsource = {}
             for i in range(len(sources)):
                 source_count = 0
@@ -2862,7 +2862,7 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
                     
             continue
         
-            #find all leads who visited today from FB but not for the first time
+            #find all existing leads who visited today from each subsource
             querydict = {company_query: company_id, repeat_url_qry: 'facebook.com', repeat_visit_date_gte_qry: utc_day_start_epoch, repeat_visit_date_lte_qry: utc_day_end_epoch}
             #print 'time 3 is ' + str(time.time())
             #leads = Lead.objects(**querydict).only('leads__hspt__properties__hs_analytics_source')
