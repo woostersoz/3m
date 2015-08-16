@@ -1,0 +1,132 @@
+/**
+* Leads
+* @namespace mmm.leads.services
+*/
+(function () {
+  'use strict';
+
+  angular
+    .module('mmm.leads.services')
+    .factory('Leads', Leads);
+
+  Leads.$inject = ['$http'];
+
+  /**
+  * @namespace Leads
+  * @returns {Factory}
+  */
+  function Leads($http) {
+    var Leads = {
+      all: all,
+      //create: create,
+      get: get,
+      getAll: getAll,
+      cleanLeadsBeforeDisplay: cleanLeadsBeforeDisplay,
+      filterLeadsinTable: filterLeadsinTable,
+      getLeadsByFilter: getLeadsByFilter,
+      getLeadsByFilterDuration: getLeadsByFilterDuration
+      
+    };
+
+    return Leads;
+
+    ////////////////////
+
+    /**
+    * @name all
+    * @desc Get all Leads
+    * @returns {Promise}
+    * @memberOf mmm.Leads.services.Leads
+    */
+    function all(company) {
+      return $http.get('/api/v1/company/' + company + '/leads/');
+    }
+
+    /**
+     * @name get
+     * @desc Get all Leads
+     * @param {none}
+     * @returns {Promise}
+     * @memberOf mmm.Leads.services.Leads
+     */
+    function getAll() {
+      return $http.get('/api/v1/leads/');
+    }
+    
+    /**
+     * @name get
+     * @desc Get the Leads of a given user
+     * @param {string} username The username to get Leads for
+     * @returns {Promise}
+     * @memberOf mmm.Leads.services.Leads
+     */
+    function get(company, code) {
+      return $http.get('/api/v1/company/' + company + '/leads/' + code + '/');
+      //return $http.get('/api/v1/Leads/');
+    }
+    
+    function getLeadsByFilter(company, leadType, startDate, endDate, queryType) { // called from Analytics
+    	return $http.get('/api/v1/company/' + company + '/leads/filter/?lead_type=' + leadType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType);
+    }
+    
+    function getLeadsByFilterDuration(company, leadType, startDate, endDate, queryType) { // called from Analytics
+    	return $http.get('/api/v1/company/' + company + '/leads/filter/duration/?lead_type=' + leadType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType);
+    }
+    
+    function filterLeadsinTable(date, leadType) {
+    	toastr.info("fileter");
+    }
+    
+    function cleanLeadsBeforeDisplay(data) {
+    	var currRecord = '';
+    	var leads = [];
+		for (var i=0; i < data.data.length; i++)
+	    {
+		    currRecord = data.data[i].leads;
+		    if (currRecord['mkto'])
+		    {
+		    	for (var key in currRecord['mkto']) // convert first letter to lower case
+		    	{
+		    		currRecord['mkto'][key.ucfirst()] = currRecord['mkto'][key];	
+		    	}
+		    	currRecord['mkto']['sourceSystem'] = 'MKTO';
+		    	leads.push(currRecord['mkto']);
+		    }	
+		    else if (currRecord['sfdc'])
+		    {
+		    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+		    	leads.push(currRecord['sfdc']);
+		    }
+		    else if (currRecord['hspt'])
+		    {
+		    	currRecord['hspt']['sourceSystem'] = 'HSPT';
+		    	currRecord['hspt']['Email'] = currRecord['hspt']['email_address'];
+		    	currRecord['hspt']['FirstName'] = currRecord['hspt']['properties']['firstname'];
+		    	currRecord['hspt']['LastName'] = currRecord['hspt']['properties']['lastname'];
+		    	currRecord['hspt']['id'] = currRecord['hspt']['vid'];
+		    	// duration related fields below
+		    	if (currRecord['hspt']['properties']['SL']) 
+		    		currRecord['hspt']['SL'] = currRecord['hspt']['properties']['SL'];
+		    	if (currRecord['hspt']['properties']['LM']) 
+		    		currRecord['hspt']['LM'] = currRecord['hspt']['properties']['LM'];
+		    	if (currRecord['hspt']['properties']['MS']) 
+		    		currRecord['hspt']['MS'] = currRecord['hspt']['properties']['MS'];
+		    	if (currRecord['hspt']['properties']['SO']) 
+		    		currRecord['hspt']['SO'] = currRecord['hspt']['properties']['SO'];
+		    	if (currRecord['hspt']['properties']['OC']) 
+		    		currRecord['hspt']['OC'] = currRecord['hspt']['properties']['OC'];
+		    	if (currRecord['hspt']['properties']['last_stage']) 
+		    		currRecord['hspt']['last_stage'] = currRecord['hspt']['properties']['last_stage'];
+		    	if (currRecord['hspt']['properties']['days_in_this_stage']) 
+		    		currRecord['hspt']['days_in_this_stage'] = currRecord['hspt']['properties']['days_in_this_stage'];
+		    	leads.push(currRecord['hspt']);
+		    }
+		    else
+		    	toastr.error('Something fishy going on!');
+		    
+         }
+		return leads;
+    }
+    
+  }
+})();

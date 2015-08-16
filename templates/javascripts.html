@@ -1,0 +1,159 @@
+{% load compress %}
+{% load staticfiles %}
+
+{% compress js %}
+<!-- <script type="text/javascript" src="{% static 'bower_components/jquery/dist/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'bower_components/bootstrap/dist/js/bootstrap.js' %}"></script> -->
+
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery-migrate.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery-slimscroll/jquery.slimscroll.min.js' %}"></script> 
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery.blockui.min.js' %}"></script> -->
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery.cokie.min.js' %}"></script> -->
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/uniform/jquery.uniform.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/backstretch/jquery.backstretch.min.js' %}"></script>
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/morris/morris.min.js' %}"></script> -->
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/morris/raphael-min.js' %}"></script> -->
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/jquery.sparkline.min.js' %}"></script> -->
+<!-- <script type="text/javascript" src="{% static 'theme/assets/global/plugins/select2/select2.min.js' %}"></script> -->
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/datatables/media/js/jquery.dataTables.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/global/plugins/datatables/plugins/bootstrap/dataTables.bootstrap.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'theme/assets/global/scripts/metronic.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/admin/layout4/scripts/layout.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/admin/layout4/scripts/demo.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/admin/pages/scripts/index3.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/admin/pages/scripts/tasks.js' %}"></script>
+<script type="text/javascript" src="{% static 'theme/assets/admin/pages/scripts/inbox.js' %}"></script>
+<!-- <script type="text/javascript" src="{% static 'theme/assets/admin/pages/scripts/table-editable.js' %}"></script> -->
+
+<script type="text/javascript" src="{% static 'bower_components/bootstrap-material-design/dist/js/ripples.js' %}"></script>
+<script type="text/javascript" src="{% static 'bower_components/underscore/underscore.js' %}"></script>
+
+<!-- <script type="text/javascript" src="{% static 'bower_components/angular/angular.min.js' %}"></script> -->
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+<script type="text/javascript" src="{% static 'bower_components/angular-route/angular-route.js' %}"></script>
+<script type="text/javascript" src="{% static 'bower_components/angular-cookies/angular-cookies.js' %}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0-rc.2/angular-touch.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.13/angular-ui-router.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.min.js"></script>
+<script type="text/javascript" src="{% static 'bower_components/slick-carousel/slick/slick.js' %}"></script>
+<script type="text/javascript" src="{% static 'bower_components/angular-slick/dist/slick.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'bower_components/ngDialog/js/ngDialog.js' %}"></script>
+<!-- <script type="text/javascript" src="{% static 'lib/snackbarjs/snackbar.min.js' %}"></script>  -->
+<script type="text/javascript" src="{% static 'lib/angular-nvd3/d3.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/angular-nvd3/nv.d3.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/angular-nvd3/angular-nvd3.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/daterangepicker/moment.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/daterangepicker/moment-timezone.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/daterangepicker/daterangepicker.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/daterangepicker/angular-daterangepicker.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/angular-ui/ui-bootstrap-custom-tpls-0.13.0.min.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-bootstrap-switch/angular-bootstrap-switch.min.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-pagination/dirPagination.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-spinner/spin.min.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-spinner/angular-spinner.min.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-xeditable/angular-xeditable.min.js' %}"></script> 
+<script type="text/javascript" src="{% static 'lib/angular-fullscreen/angular-fullscreen.js' %}"></script> 
+
+<script type="text/javascript" src="{% static 'theme/assets/global/scripts/angular-datatables.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'djangular/js/django-angular.min.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'javascripts/mmm.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/mmm.config.js' %}"></script>
+<!-- <script type="text/javascript" src="{% static 'javascripts/mmm.routes.js' %}"></script> -->
+<script type="text/javascript" src="{% static 'javascripts/mmm.states.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/mmm.filters.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/authentication/authentication.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/authentication/services/authentication.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/authentication/controllers/register.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/authentication/controllers/login.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/authentication/directives/login.directive.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/layout/layout.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/layout/services/layout.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/layout/controllers/navbar.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/utils/utils.module.js' %}"></script> 
+<script type="text/javascript" src="{% static 'javascripts/utils/services/sticky.service.js' %}"></script> 
+<script type="text/javascript" src="{% static 'javascripts/utils/directives/sticky.directive.js' %}"></script> 
+<script type="text/javascript" src="{% static 'javascripts/layout/controllers/index.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/profiles/profiles.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/profiles/services/profile.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/profiles/controllers/profile.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/profiles/controllers/profile-settings.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/leads/leads.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/leads/services/leads.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/leads/controllers/leads.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/campaigns/campaigns.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/campaigns/services/campaigns.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/campaigns/controllers/campaigns.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/integrations.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/services/integrations.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/controllers/integrations.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/services/new-integration.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/controllers/new-integration.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/integrations/directives/new-integration.directive.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/company/company.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/company/services/company.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/company/controllers/company.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/analytics/analytics.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/analytics/services/analytics.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/analytics/services/analytics.charts.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/analytics/controllers/analytics.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/analytics/controllers/analytics-data.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/messages/messages.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/messages/services/messages.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/messages/controllers/messages.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/messages/directives/messages.directives.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/snapshots/snapshots.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/snapshots/services/snapshots.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/snapshots/controllers/snapshots.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/accounts/accounts.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/accounts/services/accounts.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/accounts/controllers/accounts.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/superadmin/superadmin.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/superadmin/services/superadmin.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/superadmin/controllers/superadmin.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/superadmin/directives/superadmin.directive.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/social/social.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/social/services/social.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/social/controllers/social.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/binders/binders.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/binders/services/binders.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/binders/services/page.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/binders/directives/binders.directives.js' %}"></script> 
+<script type="text/javascript" src="{% static 'javascripts/binders/controllers/binders.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/common/common.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/common/services/common.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/websites/websites.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/websites/services/websites.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/websites/controllers/websites.controller.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/dashboards/dashboards.module.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/dashboards/services/dashboards.service.js' %}"></script>
+<script type="text/javascript" src="{% static 'javascripts/dashboards/controllers/dashboards.controller.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'scripts/socket.io.js' %}"></script>
+<script type="text/javascript" src="{% static 'scripts/socket.js' %}"></script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-moment/0.9.0/angular-moment.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.5/angular-filter.min.js"></script>
+
+<!-- script type="text/javascript" src="{% static 'scripts/notifications.js' %}"></script -->
+{% endcompress %}
+
+<script>
+jQuery(document).ready(function() {    
+   Metronic.init(); // init metronic core componets
+   Layout.init(); // init layout
+   Demo.init(); // init demo features 
+   //Index.init(); // init index page
+   Tasks.initDashboardWidget(); // init tash dashboard widget 
+   //TableEditable.init();
+}); 
+
+</script>

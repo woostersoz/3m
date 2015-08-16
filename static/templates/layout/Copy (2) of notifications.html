@@ -1,0 +1,47 @@
+<div class="row" ng-show="$parent.notifications.all">
+	<div class="col-md-12">
+		<!-- BEGIN TABLE PORTLET-->
+		<div class="portlet light">
+			<div class="portlet-title">
+				<div class="caption">
+					<i class="fa fa-bell-o font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Notifications</span>
+				</div>
+				<div class="tools">
+					<a href="javascript:;" class="collapse"> </a> <a
+						href="#portlet-config" data-toggle="modal" class="config"> </a> <a
+						href="javascript:;" class="reload"> </a> <a href="javascript:;"
+						class="remove"> </a>
+				</div>
+			</div>
+			<div class="portlet-body">
+				<ul class="feeds">
+					<li ng-repeat="allNotification in $parent.notifications.all track by $index">
+						<div class="col1" ng-class="{'alert-info': allNotification.read == false}">
+							<div class="cont">
+								<div class="cont-col1">
+									<div class="label label-sm" ng-class="{'label-success': allNotification.success == true, 'label-danger': allNotification.success == false}" >
+										<i class="fa" ng-class="{'fa-check-circle': allNotification.success == true, 'fa-exclamation-circle': allNotification.success == false}"></i>
+									</div>
+								</div>
+								<div class="cont-col2">
+									<div class="desc">
+										 {{ allNotification.message }} 
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col2">
+							<div class="date">
+							<time title="{{ allNotification.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
+								 {{ allNotification.updated_date | amCalendar }}
+						    </time>
+							</div>
+						</div>
+					</li>
+			   </ul>
+			</div>
+		</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

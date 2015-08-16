@@ -1,0 +1,30 @@
+<div class="tab-pane active" id="new_tab">
+	<div class="note note-info">
+		<p ng-show="vm.newSystems.length">Configure your connections to systems that you use within your
+			company today</p>
+	    <p ng-hide="vm.newSystems.length">Looks like you have configured all possible systems!</p>
+	</div>
+	<div class="clearfix margin-bottom-20" ng-repeat="system in vm.newSystems">
+		<ul class="media-list">
+			<li class="media">
+				<div class="pull-right media-button">
+					<form name="integration_form">
+						<div class="form-group">
+							<a href="#" ng-click="addSystem(system)" class="btn green-jungle">
+								<span class="glyphicon glyphicon-plus"></span> Add
+							</a>
+						</div>
+					</form>
+				</div> 
+				<a class="pull-left vendor_logo" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ system.code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ system.name }}</h4>
+					<small class="text-muted">{{ system.description }}</small>
+				</div>
+			</li>
+		</ul>
+	</div>
+
+</div>

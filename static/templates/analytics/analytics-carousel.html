@@ -1,0 +1,10 @@
+<div style="margin-left:20px; margin-right:20px;">
+<slick lazy-load="ondemand" focus-on-select=true infinite=true slides-to-show=4 slides-to-scroll=4 init-onload=true data="charts">
+
+  <div ng-repeat="chart in charts" class="text-center">
+    <a ng-click="drawChart(chart.title, chart.name, chart.chart_type, chart.system_type, chart.filters, $event)"><img data-lazy="{{chart.src}}"></a>
+    <p class="small margin-top-5 "><strong>{{chart.title}}</strong></p>
+  </div>
+
+</slick>
+</div>

@@ -1,0 +1,58 @@
+<div class="col-md-12" >
+
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-headphones font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> {{roomName}} </span>
+      <p class="margin-top-10 italic small text-muted">{{roomDescription}}</p>
+    </div>    
+  </div>
+
+<div class="portlet-body">
+
+<div class="timeline">
+  <div class="timeline-item" ng-repeat="message in vm.messages">
+      <div class="timeline-badge">
+         <img class="timeline-badge-userpic" src="../static/theme/assets/admin/layout4/img/avatar9.jpg"/>
+      </div>
+      <div class="timeline-body">
+         <div class="timeline-body-arrow">
+         </div>
+         <div class="timeline-body-head">
+            <div class="timeline-body-head-caption">
+               <a href="#" class="timeline-body-title font-blue-madison">{{message.nickname}}</a>
+               <span class="timeline-body-time font-grey-cascade">{{message.updated_date | amCalendar}}</span>
+            </div>
+            <div class="timeline-body-head-actions"><span ng-show="message.snapshot"><a href="#" ng-click="showSnapshotFromMessage(message.snapshot.snapshot_html)" ><i class="fa fa-camera font-red-flamingo"></i></a></span></div>
+         </div>
+         <div class="timeline-body-content">
+            <span class="font-grey-gallery larger">{{message.message}}</span>
+         </div>
+      </div>
+  
+  </div>
+
+</div>
+
+<form role="form" class="room" name="form.roomForm" ng-submit="submitMessage(room)" novalidate>
+
+<p>
+      <div class="form-group">
+        <textarea class="form-control" id="room__message" ng-model="room.message" required />
+        <span id="user-typing" class="x-small muted-text"></span>
+      </div>
+      
+      
+</p>
+
+<div class="pull-right">
+<button type="submit" href="#" class="btn green-jungle" ng-disabled="form.roomForm.$invalid">Send Message</button>
+</div>
+
+<div class="clearfix">&nbsp;</div>
+</form>
+
+</div>
+
+</div>

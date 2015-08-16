@@ -1,0 +1,45 @@
+<div class="portlet light">
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-user font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> {{vm.profile.username}} - Edit Profile </span>
+    </div>    
+  </div>
+
+<div class="portlet-body">
+  <div class="" ng-show="vm.profile">
+    <form role="form" class="settings" ng-submit="vm.update()">
+      <div class="form-group">
+        <label for="settings__email">Email</label>
+        <input type="text" disabled class="form-control" id="settings__email" ng-model="vm.profile.email" placeholder="ex. john@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__password">New Password</label>
+        <input type="password" class="form-control" id="settings__password" ng-model="vm.profile.password" placeholder="ex. notgoogleplus" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__confirm-password">Confirm Password</label>
+        <input type="password" class="form-control" id="settings__confirm-password" ng-model="vm.profile.confirm_password" placeholder="ex. notgoogleplus" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__username">Username</label>
+        <input type="text" class="form-control" id="settings__username" ng-model="vm.profile.username" placeholder="ex. notgoogleplus" />
+        <input type="hidden" class="form-control" id="settings__username_old" ng-model="vm.profile.oldusername" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__timezone">Time zone</label>
+        <select class="form-control" name="timezone" id="settings__timezone" ng-model="vm.profile.timezone">
+           <option ng-repeat="tz in vm.timezones" value="{{ tz }}">{{ tz }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <button type="submit" class="btn green-jungle">Submit</button>
+        <button type="button" class="btn red-flamingo" ui-sref="/">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,47 @@
+.nav, .pagination, .carousel, .panel-title a {
+	cursor:pointer;
+}
+
+.no-posts-here, .no-symbols-here {
+  text-align: center;
+}
+
+.post, .symbol {}
+
+.post .post__meta, .symbol .symbol__meta {
+  font-weight: bold;
+  text-align: right;
+  padding-bottom: 19px;
+}
+
+.post .post__meta a:hover, .symbol .symbol__meta a:hover {
+  text-decoration: none;
+}
+
+.btn-add-new-post, .btn-add-new-symbol {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.child_row tr td:first-child {
+	padding-left:50px;
+	padding-bottom:10px;
+}
+
+.child_row tr td:last-child {
+	padding-left:150px;
+	padding-bottom:10px;
+}
+
+.child_row tr:last td {
+	padding-bottom:0px;
+}
+
+div.child_row_slider {
+	display:none;
+}
+
+.media-body, .media-button {
+	padding-top:5px;
+}

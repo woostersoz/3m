@@ -1,0 +1,79 @@
+<div class="row" ng-show="vm.leads.length">
+	<div class="col-md-12">
+		<!-- BEGIN TABLE PORTLET-->
+		<div class="portlet light">
+			<div class="portlet-title">
+				<div class="caption">
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Leads</span>
+				</div>
+				<div class="tools">
+					<a href="javascript:;" class="collapse"> </a> <a
+						href="#portlet-config" data-toggle="modal" class="config"> </a> <a
+						href="javascript:;" class="reload"> </a> <a href="javascript:;"
+						class="remove"> </a>
+				</div>
+			</div>
+			<div class="portlet-body">
+				<div class="table-toolbar" ng-hide="!vm.leads || !vm.leads.length" >
+					<div class="row">
+						<div class="col-md-12">
+							<div class="btn-group pull-right">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									Tools <i class="fa fa-angle-down"></i>
+								</button>
+								<ul class="dropdown-menu pull-right">
+									<li><a href="#"> Print </a></li>
+									<li><a href="#"> Save as PDF </a></li>
+									<li><a href="#"> Export to Excel </a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table ng-hide="!vm.leads || !vm.leads.length"  class="table table-striped table-hover table-bordered dataTable"
+					id="leads_table" datatable="ng" dt-options="vm.dtOptions" ng-cloak>
+					<thead>
+						<tr>
+							<th class="center">First Name</th>
+							<th class="center">Last Name</th>
+							<th class="center">Email</th>
+							<th class="center">Company</th>
+							<th class="center">Source</th>
+							<th class="center">System</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr ng-repeat="lead in vm.leads">
+							<td class="center">
+							{{ lead.FirstName }}
+							</td>
+							<td class="center">
+							{{ lead.LastName }}
+							</td>
+							<td class="center">
+							{{ lead.Email }}
+							</td>							
+							<td class="center">
+							{{ lead.Company }}</td>
+							<td class="center">
+							{{ lead.LeadSource }}
+							</td>
+							<td class="center">
+							{{ lead.sourceSystem }}
+							</td>
+						</tr>
+					</tbody>
+					<div ng-hide="vm.leads && vm.leads.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no leads available.</em>
+						</div>
+					</div>
+
+				</table>
+			</div>
+		</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

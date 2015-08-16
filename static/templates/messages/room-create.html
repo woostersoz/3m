@@ -1,0 +1,27 @@
+<div>
+<div class="modal-header">
+<h3>Create channel</h3>
+</div>
+
+<form role="form" class="room" name="form.newRoomForm" ng-submit="submitForm(newRoom)" novalidate>
+<div class="modal-body">
+<p>
+      <div class="form-group">
+        <label for="room__name">Name</label>
+        <input type="text" class="form-control" id="room__name" ng-model="newRoom.name" placeholder="A name for the channel" required />
+      </div>
+
+      <div class="form-group">
+        <label for="room__description">Description</label>
+        <input type="text" class="form-control" id="room__descsription" ng-model="newRoom.description" placeholder="Description for the channel" required />
+      </div>
+</p>
+</div>
+<div class="modal-footer">
+<button type="cancel" class="btn red-flamingo" ng-click="cancel()">Cancel</button>
+&nbsp;
+<button type="submit" href="#" class="btn green-jungle" ng-disabled="form.newRoomForm.$invalid">Create</button>
+
+</form>
+</div>
+</div>

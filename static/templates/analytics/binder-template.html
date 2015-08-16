@@ -1,0 +1,158 @@
+	<div class="portlet-title">
+		<div class="caption  col-md-6">
+			<i class="fa fa-file-image-o font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">New Binder Template</span>
+		</div>
+		<div class="col-md-6">
+			<div class="pull-right" style="margin-top: 3px">
+				<!-- ng-click="addRow()"   -->
+				<a href="" ng-click="saveBinderTemplate(binder_new)" role="button" id="save_binder" ng-disabled="binder_new.$invalid"
+					class="btn green-jungle"> Save
+				</a> <a href="" ng-click="cancelBinderTemplate(binder_new)" role="button"
+					id="cancel_binder" class="btn red-flamingo"> Cancel
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div ng-show="createBinder" class="animate-show-hide">
+
+<div class="row" style="margin-top:10px"> <!-- Main Toolbar -->
+		<form name="binder_new" novalidate role="form">
+			<div class="col-md-4 form-group ">
+				<input type="text" placeholder="Binder name" class="form-control"
+					style="width: 90%" ng-model="newBinder.name"
+					ng-required='createBinder' />
+			</div>
+			<div class="col-md-2 form-group"
+				style="padding-left: 0 !important; padding-right: 5px !important">
+				<select name="binder_frequency" class="form-control pull-right"
+					ng-options="frequency for frequency in frequencies track by frequency"
+					ng-model="newBinder.frequency" ng-required='createBinder'>
+					<option value="">Frequency</option>
+				</select>
+			</div>
+			<div class="col-md-2 form-group">
+				<input type="text" placeholder="Day of month" class="form-control"
+					ng-model="newBinder.frequency_day" ng-show='newBinder.frequency != "One Time" && newBinder.frequency != "Daily" && newBinder.frequency.length > 0' ng-required='newBinder.frequency != "One Time"' />
+			</div>
+			<div class="col-md-4 form-group">
+			    <a href="" ng-click="showEmailOptions" role="button" id="email_options" 
+					class="btn grey-steel pull-right"> Email Options
+				</a>
+			</div>
+			<div class="col-md-2 form-group hidden">
+				<select name="binder_orientation" class="pull-right form-control"
+					ng-options="orientation for orientation in orientations track by orientation"
+					ng-model="newBinder.orientation" ng-required='createBinder'>
+					<option value="">Orientation</option>
+				</select>
+			</div>
+
+
+		</form>
+     </div>
+     <hr style="margin-top:0px !important; margin-bottom:0px !important">
+     
+     <div class="row" style="margin-top:10px; margin-bottom:10px"> <!-- Secondary Toolbar -->
+        <div class="col-sm-6 chart-tools">
+			<a href="#" class="btn btn-sm blue-madison"
+				ng-click="createBinderPage('chart')" title="Add Chart Page">
+				Add Chart Page
+			</a>
+			<a href="#" class="btn btn-sm blue-madison"
+				ng-click="createBinderPage('text')" title="Add Text Page">
+				Add Text Page
+			</a>
+		</div>
+     </div>
+     
+     <div class="row"> <!--  Content Area -->
+       <div class="col-md-2" id="binder_left_bar"> <!--  Left bar -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title">
+            Pages
+            </div>
+            <div class="portlet-body">
+               <div binderpage page="page" ondelete="deleteBinderPage(id)" onshowcontent="showPageContent(page)" ng-repeat="page in pages">
+                <div class="portlet light subportlet binderPage" ng-class='{active: page.selected}'>
+			      <div class="portlet-title draggable">
+			        <div class="caption">
+			        
+			        </div>
+			        <div class="tools">
+			          <button type="button" class="close" ng-click="deleteBinderPage(page.id)">&times;</button>
+			        </div>
+			      </div>
+			      <div class="portlet-body" style="text-align:center">
+			        <div>{{ page.contentTitle }}</div>
+			        <a style="font-size: 0.5rem !important" href ng-click="showPageContent(page)">Content</a>
+			      </div>
+			    </div>
+			   </div>
+           </div>
+         </div>
+       </div>
+       <div class="col-md-7" id="binder_main_content"> <!--  Middle content area -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title" id="content-title">
+            Content
+            </div>
+            <div class="portlet-body center" id="content">
+              <div id="content-title">
+                 <a href="#" e-name="contentTitle" editable-text="currentPage.contentTitle">{{ currentPage.contentTitle }}</a>
+                 <div class="italic x-small" ng-show='!currentPage.chartType.title && currentPage.type == "chart"'>Select Chart Type on the right</div>
+                 <div class="italic x-small" ng-show='currentPage.chartType.title && currentPage.type == "chart"'>{{currentPage.chartType.title}} selected</div>
+              </div>
+              <div id="content-body">
+                 <!-- img id="content-body-image" src="static/images/analytics-bar.png" / -->
+                 <i class="fa fa-font fa-10x" ng-if="currentPage.type == 'text'" ></i>
+                 <i class="fa fa-bar-chart-o fa-10x" ng-if="currentPage.type == 'chart'" ></i>
+                 <div style="clear:both">&nbsp</div>
+                 <div class="pull-right x-small" id="content-page-number">{{currentPage.position}}</div>
+              </div>
+            </div>
+         </div>
+       </div>
+       <div class="col-md-3" id="binder_right_bar"> <!--  Right bar -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title">
+            Details
+            </div>
+            <div class="portlet-body">
+              <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'text'">
+		         <p>Entering a page title here is optional.</p><p>You can edit the title and other text in the actual binders.</p>
+	          </div>
+	          <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'chart'">
+		         <p>Choose the chart type below.</p><p>You can view the chart and annotate it in the actual binders.</p>
+	          </div>
+	          <div class="center" ng-show="currentPage.type == 'chart'">
+	            <select name="binder_chart_type" class="form-control" style="width:100% !important"
+					ng-options="chart.title for chart in charts track by chart.name"
+					ng-model="currentPage.chartType" ng-required="currentPage.type == 'chart'">
+					<option value="">Chart Type</option>
+				</select>
+				<div class="input-group pull-left binder-chart-filter">
+					<span class="input-group-addon"><span
+						class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+						date-range-picker class="form-control date-picker"
+						style="font-size: 0.7rem !important; width: 100% !important"
+						name="currentPage.chartFilters.groupDates.date" ng-model="currentPage.chartFilters.groupDates.date" options="opts"
+						placeholder="Select date range" />
+				</div>
+				<div style="clear:both">&nbsp</div>
+	          </div>
+            </div>
+         </div>
+       </div>
+       
+     </div>
+</div>
+			</div>	
+		</div>
+	</div>

@@ -1,0 +1,6 @@
+<symbols symbols="vm.symbols" ng-show="vm.symbols && vm.symbols.length"></symbols>
+<a class="btn btn-primary btn-fab btn-raised mdi-content-add btn-add-new-symbol"
+  href="javascript:void(0)"
+  ng-show="vm.isAuthenticated"
+  ng-dialog="/static/templates/symbols/new-symbol.html"
+  ng-dialog-controller="NewSymbolController as vm"></a>

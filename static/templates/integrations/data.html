@@ -1,0 +1,275 @@
+<div class="portlet light">
+
+	<div class="portlet-title">
+		<div class="caption">
+			<i class="fa fa-database font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Data Management</span>
+		</div>
+	</div>
+
+	<div class="portlet-body" style="font-size:80% !important">
+	    <div class="note note-info" style="line-height:25px">
+		  <p>Use this page to extract data from source systems and their meta-data (wherever relevant and available). <p>In the future, you can also delete the data from here</p></p>
+	    </div>
+		<div class="clearfix">
+		
+		    <div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-group"></i>Leads
+						</div>
+					</div>
+					<div class="portlet-body">
+						<form name="leads_form">
+							<ul class="media-list">
+							
+								<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+									<div class="pull-right media-button">		
+										<div class="form-group" ng-show="dataSelection == 'leads-' + system.code">
+											<a href="#" ng-click="meta(system.code, 'lead')" class="btn blue-madison">
+											Meta
+											</a>
+											<a href="#" ng-click="retrieve_leads_daily(system.code)" class="btn green-jungle">
+											Daily
+											</a>
+											<a href="#" ng-click="retrieve_leads(system.code)" class="btn red-flamingo">
+											Initial
+											</a>
+										</div>
+									</div> 
+									<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'leads-' + system.code" />
+								    <div class="media-body">
+										<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+										<p>&nbsp;</p>
+									</div>
+								</li>
+								
+							</ul>
+						  </form>
+					
+					</div>
+				</div>
+
+			</div>
+
+			
+			<!--  end of first col-md-6 -->
+
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-group"></i>Contacts
+						</div>
+					</div>
+					<div class="portlet-body">
+						<form name="contacts_form">
+							<ul class="media-list">
+							
+								<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+									<div class="pull-right media-button">		
+										<div class="form-group" ng-show="dataSelection == 'contacts-' + system.code">
+											<a href="#" ng-click="meta(system.code, 'contact')" class="btn blue-madison">
+											Meta
+											</a>
+											<a href="#" ng-click="retrieve_contacts_daily(system.code)" class="btn green-jungle">
+											Daily
+											</a>
+											<a href="#" ng-click="retrieve_contacts(system.code)" class="btn red-flamingo">
+											Initial
+											</a>
+										</div>
+									</div> 
+									<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'contacts-' + system.code" />
+								    <div class="media-body">
+										<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+										<p>&nbsp;</p>
+									</div>
+								</li>
+								
+							</ul>
+						  </form>
+					
+					</div>
+				</div>
+
+			</div>
+			
+			
+			<!--  end of second col-md-6 -->
+			
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-cubes"></i>Activities
+						</div>
+					</div>
+					<div class="portlet-body">
+						<form name="activities_form">
+							<ul class="media-list">
+							
+								<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+									<div class="pull-right media-button">		
+										<div class="form-group" ng-show="dataSelection == 'activities-' + system.code">
+											<a href="#" ng-click="meta(system.code, 'activity')" class="btn blue-madison">
+											Meta
+											</a>
+											<a href="#" ng-click="retrieve_activities_daily(system.code)" class="btn green-jungle">
+											Daily
+											</a>
+											<a href="#" ng-click="retrieve_activities(system.code)" class="btn red-flamingo">
+											Initial
+											</a>
+										</div>
+									</div> 
+									<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'activities-' + system.code" />
+								    <div class="media-body">
+										<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+										<p>&nbsp;</p>
+									</div>
+								</li>
+								
+							</ul>
+						  </form>
+					
+					</div>
+				</div>
+
+			</div>
+			
+			<!--  end of third col-md-6 -->
+			
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-dollar"></i>Opportunities
+						</div>
+					</div>
+					<div class="portlet-body">
+					  <form name="opportunities_form">
+						<ul class="media-list">
+						
+							<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+								<div class="pull-right media-button">		
+									<div class="form-group" ng-show="dataSelection == 'opportunities-' + system.code">
+										<a href="#" ng-click="meta(system.code, 'opportunity')" class="btn blue-madison">
+										Meta
+										</a>
+										<a href="#" ng-click="retrieve_opportunities_daily(system.code)" class="btn green-jungle">
+										Daily
+										</a>
+										<a href="#" ng-click="retrieve_opportunities(system.code)" class="btn red-flamingo">
+										Initial
+										</a>
+									</div>
+								</div> 
+								<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'opportunities-' + system.code" />
+							    <div class="media-body">
+									<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+									<p>&nbsp;</p>
+								</div>
+							</li>
+							
+						</ul>
+					  </form>
+					</div>
+				</div>
+
+			</div>
+			
+			<!--  end of fourth col-md-6 -->
+			
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-volume-up"></i>Campaigns
+						</div>
+					</div>
+					<div class="portlet-body">
+					  <form name="campaigns_form">
+						<ul class="media-list">
+						
+							<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+								<div class="pull-right media-button">		
+									<div class="form-group" ng-show="dataSelection == 'campaigns-' + system.code">
+										<a href="#" ng-click="meta(system.code, 'campaign')" class="btn blue-madison">
+										Meta
+										</a>
+										<a href="#" ng-click="retrieve_campaigns_daily(system.code)" class="btn green-jungle">
+										Daily
+										</a>
+										<a href="#" ng-click="retrieve_campaigns(system.code)" class="btn red-flamingo">
+										Initial
+										</a>
+									</div>
+								</div> 
+								<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'campaigns-' + system.code" />
+							    <div class="media-body">
+									<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+									<p>&nbsp;</p>
+								</div>
+							</li>
+							
+						</ul>
+					  </form>
+					</div>
+				</div>
+
+			</div>
+			
+			<!--  end of fifth col-md-6 -->
+			
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-bullseye"></i>Accounts
+						</div>
+					</div>
+					<div class="portlet-body">
+					  <form name="accounts_form">
+						<ul class="media-list">
+						
+							<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+								<div class="pull-right media-button">		
+									<div class="form-group" ng-show="dataSelection == 'accounts-' + system.code">
+										<a href="#" ng-click="meta(system.code, 'account')" class="btn blue-madison">
+										Meta
+										</a>
+										<a href="#" ng-click="retrieve_accounts_daily(system.code)" class="btn green-jungle">
+										Daily
+										</a>
+										<a href="#" ng-click="retrieve_accounts(system.code)" class="btn red-flamingo">
+										Initial
+										</a>
+									</div>
+								</div> 
+								<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'accounts-' + system.code" />
+							    <div class="media-body">
+									<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+									<p>&nbsp;</p>
+								</div>
+							</li>
+							
+						</ul>
+					  </form>
+					</div>
+				</div>
+
+			</div>
+			
+			<!--  end of sixth col-md-6 -->
+
+		</div>
+	</div>
+
+</div>

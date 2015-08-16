@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html ng-app="mmm">
+<head>
+  <title>Claritix</title>
+
+  <base href="/" />
+
+  {% include 'stylesheets.html' %}
+  {% load staticfiles %}
+  {% load tz %}
+  {% get_current_timezone as TIME_ZONE %}
+
+  <script type='text/javascript'>
+  var STATIC_URL = '{{STATIC_URL|escapejs}}';
+  function staticUrl(path) {  
+  	return STATIC_URL + path;
+  }
+  var timezone = '{{TIME_ZONE}}';
+  function getLocalTimezone() { 
+	  return timezone;
+  }
+  
+  </script>
+  <link href="{% static 'images/favicon.ico' %}" rel="icon" type="image/x-icon" />
+</head>
+
+<body ng-controller="IndexController as vm" class="page-header-fixed page-sidebar-closed-hide-logo " ng-class="parentObj.bodyClass">
+  
+ {% include 'navbar.html' %}
+
+  {% if user.is_authenticated and not user.is_superadmin%}
+  <div class="page-container">
+    
+	<!-- BEGIN SIDEBAR -->
+	<div class="page-sidebar-wrapper">
+		<div class="page-sidebar navbar-collapse collapse">
+			<ul class="page-sidebar-menu " data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
+				<li class="start">
+				    <a href="#">
+				    <i class="icon-calculator"></i>
+				    <span class="title">Dashboards</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+					    <li>
+					        <a href="/dashboards/funnel">
+					        Funnel
+					        </a>
+					    </li>
+					</ul>
+				</li>
+				<li>
+				    <a href="#">
+				    <i class="icon-bar-chart"></i>
+				    <span class="title">Analytics</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+					    <li>
+					        <a href="/analytics">
+					        Live
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/snapshots">
+					        Snapshots
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/binders">
+					        Binders
+					        </a>
+					    </li>
+				    </ul>
+				</li>
+				<li>
+				    <a href="/campaigns">
+				    <i class="icon-volume-2"></i>
+				    <span class="title">Campaigns</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="/accounts">
+				    <i class="icon-target"></i>
+				    <span class="title">Accounts</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+				        <li>
+					        <a href="/accounts">
+					        Accounts
+						    </a>
+					     </li>
+					     <li>
+					        <a href="/companies">
+					        Companies
+						    </a>
+					     </li>
+					     <li>
+					        <a href="/name">
+					        Matching Test
+						    </a>
+					     </li>
+					 </ul>
+				    </a>
+				</li>
+				<li>
+				    <a href="/leads">
+				    <i class="icon-users"></i>
+				    <span class="title">Leads</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="#">
+				    <i class="icon-badge"></i>
+				    <span class="title">Social</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+				        <li>
+					        <a href="/twitter">
+					        Twitter
+					        <span class="arrow"></span>
+						    </a>
+						    <ul class="sub-menu">
+						        <li>
+							        <a href="/tweets">
+							        Tweets
+							        </a>
+							    </li>
+							    <li>
+							        <a href="/twitter-master-list">
+							        Master List
+							        </a>
+							    </li>
+						    </ul>
+					    </li>
+					    <li>
+					        <a href="/">
+					        Facebook
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/">
+					        Instagram
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/">
+					        Pinterest
+					        </a>
+					    </li>
+				    </ul>
+					
+				</li>
+				<li>
+				    <a href="#">
+				    <i class="icon-settings"></i>
+				    <span class="title">Admin</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+				        <li>
+					        <a href="/users">
+					        Users
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/integrations">
+					        Integrations
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/data">
+					        Data Management
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/analytics-data">
+					        Analytics Data Management
+					        </a>
+					    </li>
+					    <li>
+						    <a href="#">
+						    <span class="title">Social</span>
+						    <span class="arrow"></span>
+						    </a>
+						    <ul class="sub-menu">
+						        <li>
+							        <a href="/twitter-admin">
+							        Twitter
+							        </a>
+							    </li>
+						    </ul>
+							
+						</li>
+				    </ul>
+					
+				</li>
+            </ul>
+			<!-- END SIDEBAR MENU -->
+		</div>
+	</div>
+	<!-- END SIDEBAR -->
+  {% endif %}
+  
+  {% if user.is_authenticated and user.is_superadmin%}
+  <div class="page-container">
+    
+	<!-- BEGIN SIDEBAR -->
+	<div class="page-sidebar-wrapper">
+		<div class="page-sidebar navbar-collapse collapse">
+			<ul class="page-sidebar-menu " data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
+				<li class="start">
+				    <a href="/dashboard">
+				    <i class="icon-home"></i>
+				    <span class="title">Dashboard</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="/mongonaut/authentication/Company/">
+				    <i class="icon-briefcase"></i>
+				    <span class="title">Companies</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="/mongonaut/authentication/CustomUser/">
+				    <i class="icon-users"></i>
+				    <span class="title">Users</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="/mongonaut/accounts/SuperAccount/">
+				    <i class="icon-target"></i>
+				    <span class="title">Accounts</span>
+				    </a>
+				</li>
+				 <li>
+				    <a href="#">
+				    <span class="title">Data</span>
+				    <span class="arrow"></span>
+				    </a>
+				    <ul class="sub-menu">
+				        <li>
+					        <a href="/superadmin-jobs">
+					        Jobs
+					        </a>
+					    </li>
+					    <li>
+					        <a href="/superadmin-logs">
+					        Logs
+					        </a>
+					    </li>
+				    </ul>
+					
+				</li>
+            </ul>
+			<!-- END SIDEBAR MENU -->
+		</div>
+	</div>
+	<!-- END SIDEBAR -->
+  {% endif %}
+  
+  {% if user.is_authenticated %}
+  <div class="page-content-wrapper">
+	<div class="page-content">
+  {% endif %}
+      <ui-view/>
+  {% if user.is_authenticated %}
+    </div>
+  </div>
+  </div> <!--  page container -->
+  {% endif %}
+
+  
+  {% include 'javascripts.html' %}
+
+</body>
+  
+</html>

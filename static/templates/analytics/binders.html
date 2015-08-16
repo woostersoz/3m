@@ -1,0 +1,230 @@
+<!--  dashboard -->
+<div class="portlet light" ng-hide="showBinder || showBinders || createBinder">
+
+	<div class="portlet-title">
+		<div class="caption  col-md-6">
+			<i class="fa fa-file-image-o font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Binder Templates
+				- Summary</span>
+		</div>
+		<div class="col-md-6"></div>
+	</div>
+
+	<div class="row list-separated">
+		<div class="col-md-2 col-sm-2 col-xs-3">
+			<div class="font-grey-mint font-sm">Total Templates</div>
+			<div class="uppercase font-hg font-blue-madison">{{ templateCount
+				}}</div>
+		</div>
+
+		<div class="col-md-4 col-sm-4 col-xs-6">
+			<div class="font-grey-mint font-sm">Latest Template</div>
+			<div class="uppercase font-hg font-blue-madison">{{
+				templateLastCreated | amCalendar }}</div>
+		</div>
+
+		<div class="col-md-2 col-sm-2 col-xs-3">
+			<div class="font-grey-mint font-sm">Total Binders</div>
+			<div class="uppercase font-hg font-blue-madison">{{
+				binderCount }}</div>
+		</div>
+		
+		<div class="col-md-4 col-sm-4 col-xs-6">
+			<div class="font-grey-mint font-sm">Latest Binder</div>
+			<div class="uppercase font-hg font-blue-madison">{{
+				binderLastCreated | amCalendar }}</div>
+		</div>
+
+	</div>
+
+</div>
+<!--  end of dashboard -->
+
+<div class="portlet light">
+
+    <!-- Section 1 - Default view of binder templates list -->
+	<div class="portlet-title" ng-hide="createBinder || showBinder || showBinders">
+		<div class="caption  col-md-6">
+			<i class="fa fa-file-image-o font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Binder Templates
+				- List</span>
+		</div>
+		<div class="col-md-6">
+			<div class="btn-group pull-right" style="margin-top: 3px">
+				<a href="" ng-click="createBinderFxn()" role="button"
+					id="add_binder" class="btn green-jungle" ng-hide="createBinder || showBinder || showBinders"> 
+					<span class="glyphicon glyphicon-plus"></span>
+					Add New
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important" ng-hide="createBinder || showBinder || showBinders">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div ng-show="createBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-template.html'"></ng-include>
+				</div>
+				<!-- div ng-show="showBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-show.html'"></ng-include>
+				</div -->
+
+                <table ng-hide="!binderTemplates || !binderTemplates.length || createBinder || showBinder || showBinders"  class="table table-striped table-hover table-bordered dataTable"
+					id="binder_templates_table" dt-options="vm.dtOptions" ng-cloak>
+					<thead>
+						<tr>
+							<th class="center">Name</th>
+							<th class="center">Created on</th>
+							<th class="center">Binders</th>
+							<th class="center">&nbsp;</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr ng-repeat="binderTemplate in binderTemplates">
+							<td class="center">
+							{{ binderTemplate.name }}
+							</td>
+							<td class="center">
+							<time title="{{ binderTemplate.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
+							{{ binderTemplate.updated_date | amCalendar }}
+							</time>
+							</td>
+							<td class="center">
+							<a href ng-click="getBinders(binderTemplate.id)">{{ binderTemplate.binder_count }}</a>
+							</td>
+							<td class="center">
+							<a class="btn btn-sm blue-steel" ng-click="editBinderTemplate(binderTemplate.id)" href="javascript:;">Edit</a>
+						    </td>
+						</tr>
+					</tbody>
+					<div ng-hide="binderTemplates && binderTemplates.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no binder templates available.</em>
+						</div>
+					</div>
+
+				</table>
+
+				<!--  end of first col-md-6 -->
+			</div>
+			<!--  clearfix end -->
+		</div>
+	</div>
+	
+	<!-- Section 2 - Add new template -->
+
+	<ng-include	src="'/static/templates/analytics/binder-template.html'" ng-show="createBinder"></ng-include>
+				
+	
+	<!-- Section 3 - Binders list -->
+	<div class="portlet-title" ng-show="showBinders">
+		<div class="caption  col-md-6">
+			<i class="fa fa-file-image-o font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Binders
+				- List</span>
+		</div>
+		<div class="col-md-6">
+			<div class="btn-group pull-right" style="margin-top: 3px">
+				<a href="" ng-click="getBinderTemplates()" role="button"
+					id="show_binder_templates" class="btn blue-madison" ng-show="showBinder || showBinders"> Back to Templates </i>
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important"  ng-show="showBinders">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div ng-show="createBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-template.html'"></ng-include>
+				</div>
+				<!-- div ng-show="showBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-show.html'"></ng-include>
+				</div -->
+				
+				<table ng-hide="!binders || !binders.length || createBinder || showBinder"  class="table table-striped table-hover table-bordered dataTable"
+					id="binders_table" dt-options="vm.dtOptions" ng-cloak>
+					<thead>
+						<tr>
+							<th class="center">Name</th>
+							<th class="center">Created on</th>
+							<th class="center"># Pages</th>
+							<th class="center">&nbsp;</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr ng-repeat="binder in binders">
+							<td class="center">
+							{{ binder.name }}
+							</td>
+							<td class="center">
+							<time title="{{ binder.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
+							{{ binder.updated_date | amCalendar }}
+							</time>
+							</td>
+							<td class="center">
+							{{ binder.pages.length }}</a>
+							</td>
+							<td class="center">
+							<a class="btn btn-sm blue-steel" ng-click="showBinderFxn(binder)" href="javascript:;">Details</a>
+						    </td>
+						</tr>
+					</tbody>
+					<div ng-hide="binders && binders.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no binders available.</em>
+						</div>
+					</div>
+
+				</table>
+
+
+				<!--  end of first col-md-6 -->
+			</div>
+			<!--  clearfix end -->
+		</div>
+	</div>
+	
+	<!-- Section 4 - View single binder -->
+	<div class="portlet-title" ng-show="showBinder">
+		<div class="caption  col-md-6">
+			<i class="fa fa-file-image-o font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Binder - Details</span>
+		</div>
+		<div class="col-md-6">
+			<div class="pull-right" style="margin-top: 3px">
+				<!-- ng-click="addRow()"   -->
+				<a href="" ng-click="saveBinder(binder_view)" role="button" id="save_binder" ng-disabled="binder_new.$invalid"
+					class="btn green-jungle"> Save</i>
+				</a> <a href="" ng-click="cancelBinderTemplate(binder_view)" role="button"
+					id="cancel_binder" class="btn red-flamingo"> Cancel</i>
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important" ng-show="showBinder">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div ng-show="showBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-show.html'"></ng-include>
+				</div>
+			</div>	
+		</div>
+	</div>
+
+</div>

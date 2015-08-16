@@ -1,0 +1,19 @@
+<div class="portlet light">
+  
+  <div class="portlet-title" ng-show="showCarousel"  class="animate-show-hide">
+    <div class="caption">
+      <i class="fa fa-bar-chart-o font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Analytics</span>
+    </div>    
+  </div>
+   
+  <div class="portlet-body">
+    <div class="clearfix">
+        <div style="margin-left:-20px; margin-right:-20px; border-bottom: 1px solid #eee;" ng-show="showCarousel"  class="animate-show-hide"><ng-include src="'/static/templates/analytics/analytics-listing.html'"></ng-include></div>
+		<div style="margin-left:-20px; margin-right:-20px;" ng-hide="showCarousel" ><ng-include src="'/static/templates/analytics/analytics-chart.html'"></ng-include></div>
+		<div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+		<div style="margin-left:-20px; margin-right:-20px" ng-show="showTweets" class="animate-show-hide"><ng-include src="'/static/templates/social/analytics-social.html'"></ng-include></div>
+	    <div style="margin-left:-20px; margin-right:-20px" ng-show="showWebsiteVisitors" class="animate-show-hide"><ng-include src="'/static/templates/websites/analytics-websites.html'"></ng-include></div>
+	</div>
+  </div>
+    
+</div>

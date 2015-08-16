@@ -1,0 +1,44 @@
+<div class="tab-pane active" id="new_tab">
+	<div class="note note-success" style="line-height:25px">
+		<p>These are the connections that you have already set up. You need to authorize them before they become useful. <p>Authorized systems are marked with a <span style="display:inline-block; height:15px;"><span style="display:table-cell; height:20px; vertical-align:middle"><i class="font-green-jungle fa fa-2x fa-check-circle"></i></span></span></p></p>
+	</div>
+	<div class="clearfix margin-bottom-20" ng-repeat="system in vm.existingSystems">
+		<ul class="media-list">
+			<li class="media">
+				<div class="pull-right media-button">
+					<form name="integration_form">
+						<div class="form-group" ng-hide="existingSystems[getId(system)]">
+						    <a href="#" ng-click="deleteSystem(system)" class="btn red-flamingo">
+								<span class="glyphicon glyphicon-trash"></span> Delete
+							</a>&nbsp;&nbsp;
+							<a href="#" ng-click="editSystem(system)" class="btn blue-madison">
+								<span class="glyphicon glyphicon-pencil"></span> Edit
+							</a>&nbsp;&nbsp;
+							<a ng-hide="system.company_info.access_token.length > 0" href="#" ng-click="authorize(system.company_info)" class="btn green-jungle">
+								<span class="glyphicon glyphicon-off"></span> Authorize
+							</a>
+							<div class="pull-right authorized-icon" title="Authorized" ng-show="system.company_info.access_token.length > 0"><i class="font-green-jungle fa fa-2x fa-check-circle"></i></div>
+						</div>
+						<div class="form-group" ng-show="existingSystems[getId(system)]">
+						    <a href="#" ng-click="confirmedDeleteSystem(system)" class="btn red-flamingo">
+								<span class="glyphicon glyphicon-ok"></span> Confirm
+							</a>&nbsp;&nbsp;
+							<a href="#" ng-click="cancelDeleteSystem(system)" class="btn green-jungle">
+								<span class="glyphicon glyphicon-remove"></span> Cancel
+							</a>
+						</div>
+					</form>
+				</div> 
+				
+				<a class="pull-left vendor_logo" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ system.code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ system.name }}</h4>
+					<small class="text-muted">{{ system.description }}</small>
+				</div>
+			</li>
+		</ul>
+	</div>
+
+</div>

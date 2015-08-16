@@ -1,0 +1,62 @@
+<div class="portlet light">
+
+	<div class="portlet-title">
+		<div class="caption">
+			<i class="fa fa-bar-chart font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Analytics Data Management</span>
+		</div>
+	</div>
+
+	<div class="portlet-body" style="font-size:80% !important">
+	    <div class="note note-info" style="line-height:25px">
+		  <p>Use this page to calculate and store the results for the more complex charts.<p>In the future, you can also delete the data from here</p></p>
+	    </div>
+		<div class="clearfix">
+		
+		    <div class="col-md-6">
+
+				<div class="portlet box grey-cascade">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-group"></i>Leads
+						</div>
+					</div>
+					<div class="portlet-body">
+						<form name="leads_form">
+							<ul class="media-list">
+							
+								<li class="media overflow-shown" ng-repeat="chart in vm.charts">
+									<div class="pull-right media-button" >		
+										<div class="form-group" ng-show="dataSelection == 'leads-' + chart.name">
+											<a href="#" ng-click="calculateAnalytics(chart.name, chart.system_type, chart.title, 'Daily')" class="btn green-jungle">
+											Daily Extract
+											</a>
+											<a href="#" ng-click="calculateAnalytics(chart.name, chart.system_type, chart.title, 'Initial')" class="btn red-flamingo">
+											Initial Extract
+											</a>
+										</div>
+									</div> 
+									<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="chart.name" data-ng-value="'leads-' + chart.name" />
+								    <div class="media-body">
+										<h4 class="media-heading" style="padding-top:2px">{{ chart.title }}</h4>
+										<p>&nbsp;</p>
+									</div>
+								</li>
+								
+							</ul>
+						  </form>
+					
+					</div>
+				</div>
+
+			</div>
+
+			
+			<!--  end of first col-md-6 -->
+
+			
+			
+
+		</div>
+	</div>
+
+</div>

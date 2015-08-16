@@ -1,0 +1,81 @@
+<div class="row" ng-show="vm.campaigns">
+	<div class="col-md-12">
+		<!-- BEGIN TABLE PORTLET-->
+		<div class="portlet light">
+			<div class="portlet-title">
+				<div class="caption">
+					<i class="fa fa-volume-up font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Campaigns</span>
+				</div>
+				<div class="tools">
+					<a href="javascript:;" class="collapse"> </a> <a
+						href="#portlet-config" data-toggle="modal" class="config"> </a> <a
+						href="javascript:;" class="reload"> </a> <a href="javascript:;"
+						class="remove"> </a>
+				</div>
+			</div>
+			<div class="portlet-body">
+				<div class="table-toolbar" ng-hide="!vm.campaigns || !vm.campaigns.length">
+					<div class="row">
+						<div class="col-md-12">
+							<div class="btn-group pull-right">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									Tools <i class="fa fa-angle-down"></i>
+								</button>
+								<ul class="dropdown-menu pull-right">
+									<li><a href="#"> Print </a></li>
+									<li><a href="#"> Save as PDF </a></li>
+									<li><a href="#"> Export to Excel </a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table ng-hide="!vm.campaigns || !vm.campaigns.length" class="table table-striped table-hover table-bordered dataTable"
+					id="campaigns_table" ng-cloak>
+					<thead>
+						<tr>
+							<th class="center">Name</th>
+							<th class="center">Description</th>
+							<th class="center">Created</th>
+							<th class="center">Type</th>
+							<th class="center">Workspace</th>
+							<th class="center">System</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr dir-paginate="campaign in vm.campaigns | itemsPerPage:10" total-items="totalCampaigns" current-page="pagination.current">
+							<td class="center">
+							{{ campaign.Name }}
+							</td>
+							<td class="center">
+							{{ campaign.Description }}
+							</td>
+							<td class="center">
+							<time title="{{ campaign.CreatedDate | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
+							{{ campaign.CreatedDate | amCalendar }}
+							</time>
+							</td>							
+							<td class="center">
+							{{ campaign.Type }}</td>
+							<td class="center">
+							{{ campaign.workspaceName }}
+							</td>
+							<td class="center">
+							{{ campaign.sourceSystem }}
+							</td>
+						</tr>
+					</tbody>
+					<div ng-hide="vm.campaigns && vm.campaigns.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>The are no campaigns available.</em>
+						</div>
+					</div> 
+				</table>
+				<div class="table-pagination-counter" ng-hide="!vm.campaigns || !vm.campaigns.length" >Showing {{startCampaignCounter}} to {{endCampaignCounter}} of {{totalCampaigns}}</div><dir-pagination-controls ng-hide="!vm.campaigns || !vm.campaigns.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			</div>
+		</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

@@ -1,0 +1,44 @@
+<ul class="breadcrumb">
+    {% block breadcrumbs %}
+    {% endblock %}
+</ul>
+<div class="container-fluid">
+
+    {% if messages %}
+    <div class="alert-messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %} alert-{{ message.tags }} {% endif %}">
+            <a class="close" data-dismiss="alert">&times;</a>
+            <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+{% block content %}{% endblock %}
+    
+
+{% block extrajs %}
+{% endblock %}
+
+<script type="text/javascript">
+//<![CDATA[
+{% block inlinejs %}
+{% endblock %}
+//]]>
+</script>
+
+<script type="text/javascript">
+    $("#action_delete").click(function(){
+        $('.btn-group').hide();
+        $('#delete_warning').show();
+    });
+    $(".alert_close").click(function(){
+        $('.btn-group').show();
+        $('#delete_warning').hide();
+    });
+    $("#action_delete_ok").click(function(){
+        var form_ = $('#delete_form');
+        form_.submit();
+    });
+</script>

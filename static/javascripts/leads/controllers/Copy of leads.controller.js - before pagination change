@@ -1,0 +1,117 @@
+/**
+* LeadsController
+* @namespace mmm.leads.controllers
+*/
+(function () {
+  'use strict';
+
+  angular
+    .module('mmm.leads.controllers', ['datatables'])
+    .controller('LeadsController', LeadsController);
+  
+  LeadsController.$inject = ['$scope', 'Leads', 'Authentication', '$location', 'DTOptionsBuilder', 'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter', '$state', '$stateParams', '$document', '$window'];
+
+  /**
+  * @namespace LeadsController
+  */
+  function LeadsController($scope, Leads, Authentication, $state, $stateParams, $location, DTOptionsBuilder, DTColumnDefBuilder, DTColumnBuilder, DTInstances,  $filter, $document, $window) {
+    var vm = this;
+
+    vm.isAuthenticated = Authentication.isAuthenticated();
+    vm.leads = []; 
+    
+/*    DTInstances.getLast().then(function (dtInstance) {
+        vm.dtInstance = dtInstance;
+    });*/
+    
+/*    vm.dtOptions = DTOptionsBuilder.newOptions()
+       .withPaginationType('full')
+       .withOption('rowCallback', rowCallback)
+       .withOption('order', [3, 'desc']);
+*/
+    
+    if ($scope.showLeads === false)
+    	return false;
+    
+    if (!(typeof $stateParams == 'undefined')) {
+    	if ($stateParams.system)
+    	{
+    		$scope.code = $stateParams.code; 
+    		getLeadsBySource($scope.code);
+    	}
+    	else
+    	{
+    		/*toastr.error("Oops, something went wrong!");
+    	    return;*/
+    		activate();
+    	}
+    }
+    else {
+    	toastr.error("Oops, something went wrong!");
+	    return;
+    }
+    
+    
+    
+/*    $scope.$state = $state;
+    $scope.scopeName = $state.current.name*/
+    
+
+
+
+    /**
+    * @name activate
+    * @desc Actions to be performed when this controller is instantiated
+    * @memberOf mmm.symbols.controllers.LeadsController
+    */
+    function activate() {   
+    	var account = Authentication.getAuthenticatedAccount();
+	    if (account) 
+	    	Leads.all(account.company).then(LeadsSuccessFn, LeadsErrorFn);
+	    else {
+	    	toastr.error('You need to login first');
+	    	$location.path('/login'); 
+	    }
+    }
+    
+    function isJson(str) {
+    	try {
+    		JSON.parse(str);
+    	}
+    	catch(e) {
+    		return false;
+    	}
+    	return true;
+    }
+    
+    String.prototype.ucfirst = function() {
+    	return this.charAt(0).toUpperCase() + this.substr(1);
+    }
+    
+    function LeadsSuccessFn(data, status, headers, config) { 
+    	 if (data.data.length > 0) // they could contain  Mkto, SFDC or HSPT leads
+    	 {  
+    		vm.leads = Leads.cleanLeadsBeforeDisplay(data);
+    	 }
+      }
+    
+    function LeadsErrorFn(data, status, headers, config) {
+        // $location.url('/');
+        toastr.error('Leads could not be retrieved');
+      }
+    
+
+    function getLeadsBySource(code) {   
+    	var account = Authentication.getAuthenticatedAccount();
+	    if (account) 
+	    	Leads.get(account.company, code).then(LeadsSuccessFn, LeadsErrorFn);
+	    else {
+	    	toastr.error('You need to login first');
+	    	$location.path('/login'); 
+	    }
+    }
+    
+    
+
+  }
+})();

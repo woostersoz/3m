@@ -1,0 +1,25 @@
+<div class="portlet box blue-madison">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-gear"></i>Add new integration
+    </div>    
+  </div>
+  
+  <div class="portlet-body" ng-repeat="system in systems">
+    <div class="clearfix">
+		<ul class="media-list">
+			<li class="media">		
+				<a class="pull-left" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ system.code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ system.name }}</h4>
+					<p>{{ system.description }}</p>
+				</div>
+			</li>
+		</ul>
+	</div>
+  </div>
+    
+</div>

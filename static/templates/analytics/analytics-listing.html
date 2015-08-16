@@ -1,0 +1,21 @@
+<div>
+<ul class="analytics-category">
+  <li ng-repeat="(key, value) in charts | groupBy: 'category'">
+    {{key}}
+    <ul class="analytics-charts">
+	    <li ng-repeat="chart in value" class="col-xs-6 col-sm-3">
+	      <div class="col-sm-3" style="padding-left:0px !important;">
+	         <a ng-click="drawChart(chart.title, chart.name, chart.chart_type, chart.system_type, chart.filters, $event)"><img class="chart-icon" ng-src="{{chart.src}}" /></a>
+	      </div>
+	      <div class="col-sm-9">
+	         <a ng-click="drawChart(chart.title, chart.name, chart.chart_type, chart.system_type, chart.filters, $event)"><div class="chart-title"><strong>{{chart.title}}</strong></div></a>
+	         <div class="chart-descr">{{chart.descr}}</div>
+	      </div>
+	      <div class="clearfix" style="clear:both;">&nbsp;</div>
+	    </li>
+    </ul>
+  </li>
+</ul>
+
+</slick>
+</div>

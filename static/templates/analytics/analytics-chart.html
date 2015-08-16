@@ -1,0 +1,74 @@
+
+<!-- BEGIN TABLE PORTLET-->
+<div class="portlet light" style="padding-top: 0px !important; padding-left: 0px !important; padding-right: 0px !important">
+	<div class="portlet-title">
+		<div class="caption">
+			<i class="fa fa-bullseye font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Chart</span>
+		</div>
+		<a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right small  animate-show-hide" style="padding:10px 0">Show Charts</a>
+	</div>
+	<div class="portlet-bodyx">
+
+    <div ng-if="showChart">
+		<div class="input-group col-sm-4 pull-left">
+			<span class="input-group-addon"><span
+				class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+				date-range-picker class="form-control date-picker"
+				style="font-size: 0.7rem !important; width: 75% !important"
+				name="groupDates.date" ng-model="groupDates.date" options="opts"
+				placeholder="Select date range" />
+		</div>
+		<div class="input-group col-sm-4 pull-left" id="filters">
+			<select name="google_profiles" class="form-control pull-right"
+					ng-options="item.profile_id as item.account_name + '- ' + item.profile_name for item in filterValues['google_profiles']"
+					ng-model="selectedFilterValues['google_profile']" ng-show="filters['google_profiles']" ng-required="filters['google_profiles']">
+					<option value="">All Google Analytics Profiles</option>
+			</select>
+		</div>
+		<div class="col-sm-4 pull-right chart-tools">
+			<a href="#" class="btn btn-sm green-jungle pull-right"
+				ng-click="postToChannel()" title="Post to Channel">
+				<span class="glyphicon glyphicon-headphones"></span>
+				Post
+			</a>
+			<a href="#"  class="btn btn-sm blue-steel pull-right"
+				ng-click="snapshot()" title="Take Snapshot">
+				<span class="glyphicon glyphicon-camera"></span>
+				Snapshot
+			</a>
+			<a href="#"  class="btn btn-sm yellow-casablanca pull-right"
+				ng-click="createNote()" title="Add Sticky">
+				<span class="glyphicon glyphicon-comment"></span>
+				Sticky
+			</a> 
+			
+		</div>
+
+		<div class="clearfix">&nbsp;</div>
+		<completearea>
+		<div class="chartTop">
+		<div sticky ng-repeat="note in notes" class="sticky draggable" note="note" ondelete="deleteNote(id)">
+	      <button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
+	      <input ng-model="note.title" ng-change="updateNote(note)" type="text" class="title">
+	      <textarea ng-model="note.body" ng-change="updateNote(note)" placeholder='Your note goes here' class="body">{{note.body}}</textarea>
+	    </div>
+		<nvd3 options="options" data="data" config="config">
+		
+		</nvd3>
+		</div>
+		</completearea>
+		<div style="text-align:center; margin-left:auto; margin-right:auto">
+		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
+		</div>
+	</div>
+	
+	<div ng-if="!showChart" class="text-center">
+	
+	<h3 class="text-muted">Select a chart from above</h3>
+	
+	</div>
+	
+	
+	
+</div>

@@ -1,0 +1,178 @@
+<div class="col-md-12 table-detail-row" style="padding-left: 0px !important">
+	    
+	<div class="col-md-5" style="padding-left: 0px !important">    
+	    <span class="label label-success pull-left"
+		   ng-show="lead.properties.hs_lifecyclestage_customer_date">{{lead.properties.days_to_close}}
+		   days to close </span>
+		<span class="label label-success pull-left"
+		   ng-hide="lead.properties.hs_lifecyclestage_customer_date">Flow Info</span>   
+
+	
+		<div class="table-timeline">
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_customer_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-heart"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a customer</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_customer_date
+								| amCalendar}} </span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_opportunity_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-money"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an opportunity</span> <span
+								class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_opportunity_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_salesqualifiedlead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-thumbs-o-up"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an SQL</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_salesqualifiedlead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_marketingqualifiedlead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-check-square-o"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an MQL</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_marketingqualifiedlead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_lead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-plus-circle"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a lead</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_lead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_subscriber_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span class="fa fa-user"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a subscriber</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_subscriber_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<div class="form col-md-6 col-md-offset-1">
+	
+	<span class="label label-info pull-left">Other Info</span>
+	<div class="clearfix"></div>	   
+	<form action="#" class="form-horizontal">
+	   <div class="form-body" style="padding-top:15px !important">
+	      <div class="form-group">
+	         <label class="col-md-3 control-label">Source</label>
+	         <div class="col-md-4">
+	           <div class="input-icon">
+	           <i class="fa fa-envelope" style="margin-top: 9px !important"></i>
+	            <input type="text" class="form-control" disabled ng-show="lead.properties.hs_analytics_source=='EMAIL_MARKETING'" value="Email Marketing" /><input  type="text" class="form-control" disabled  ng-show="lead.properties.hs_analytics_source=='OFFLINE'" value="Offline" />   
+	           </div>
+	         </div>
+	      </div>
+	      
+	      <div class="form-group">
+	         <label class="col-md-3 control-label">Source Name</label>
+	         <div class="col-md-4">
+	            <input type="text" class="form-control" disabled  value="{{lead.properties.hs_analytics_source_data_1}}" />   
+	           </div>
+	      </div>
+	      
+	      <div class="form-group">
+	         <label class="col-md-3 control-label">Emails Opened</label>
+	         <div class="col-md-4">
+	            <input type="text" class="form-control" disabled  value="{{lead.properties.hs_email_open}}" />   
+	           </div>
+	      </div>
+	      
+	      <div class="form-group">
+	         <label class="col-md-3 control-label">Emails Clicked</label>
+	         <div class="col-md-4">
+	            <input type="text" class="form-control" disabled  value="{{lead.properties.hs_email_click}}" />   
+	           </div>
+	         </div>
+	      </div>
+	      
+	      <div class="form-group">
+	         <label class="col-md-3 control-label">First Clicked</label>
+	         <div class="col-md-4">
+	            <input type="text" class="form-control" disabled  value="{{lead.properties.hs_email_first_click_date | amCalendar }}" />   
+	         </div>
+	      </div>
+	      
+	   </div>
+	</form>			
+	</div>
+
+</div>

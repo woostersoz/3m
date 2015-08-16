@@ -1,0 +1,29 @@
+<div class="tab-pane active" id="new_tab">
+	<div class="note note-info">
+		<p>Configure your connections to systems that you use within your
+			company today</p>
+	</div>
+	<div class="clearfix" ng-repeat="system in vm.systems">
+		<ul class="media-list">
+			<li class="media">
+				<div class="pull-right media-button">
+					<form name="sfdc_form">
+						<div class="form-group">
+							<a href="#" ng-click="addSystem(system)" class="btn green-jungle">
+								<i class="fa fa-plus"></i> Add
+							</a>
+						</div>
+					</form>
+				</div> 
+				<a class="pull-left" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ system.code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ system.name }}</h4>
+					<p>{{ system.description }}</p>
+				</div>
+			</li>
+		</ul>
+	</div>
+
+</div>

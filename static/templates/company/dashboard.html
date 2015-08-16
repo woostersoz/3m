@@ -1,0 +1,45 @@
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-home font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Dashboard</span>
+    </div>    
+  </div>
+  
+  <div class="portlet-body">
+    <div class="tiles">
+    
+      <div class="tile bg-yellow-saffron" ui-sref="/leads">
+        <div class="corner"></div>
+        <div class="tile-body">
+          <i class="fa fa-group"></i>
+        </div>
+        <div class="tile-object">
+           <div class="name">
+              Leads
+           </div>
+           <div class="number">
+             {{ vm.leadCount }}
+           </div>
+        </div>
+      </div>
+      
+      <div class="tile bg-green-meadow" ui-sref="/campaigns">
+        <div class="corner"></div>
+        <div class="tile-body">
+          <i class="fa fa-volume-up"></i>
+        </div>
+        <div class="tile-object">
+           <div class="name">
+              Campaigns
+           </div>
+           <div class="number">
+             {{ vm.campaignCount }}
+           </div>
+        </div>
+      </div>
+    
+    </div>
+  </div>
+    
+</div>

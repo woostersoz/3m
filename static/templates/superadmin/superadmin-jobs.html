@@ -1,0 +1,97 @@
+<div class="portlet light">
+
+	<div class="portlet-title">
+		<div class="caption">
+			<i class="fa fa-database font-blue-madison"></i><span
+				class="caption-subject bold uppercase font-blue-madison">Superadmin
+				Data Management</span>
+		</div>
+	</div>
+
+	<div class="portlet-body" style="font-size: 80% !important">
+		<div class="note note-info" style="line-height: 25px">
+			<p>Use this page to extract data from source systems and their
+				meta-data (wherever relevant and available).</p>
+			<p>In the future, you can also delete the data from here</p>
+			<p></p>
+		</div>
+		<div class="clearfix">
+
+			<div class="col-md-12">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-cubes"></i>External Data
+						</div>
+					</div>
+					<div class="portlet-body">
+						<form name="dataForm" action="">
+							<ul class="media-list">
+
+								<li class="media overflow-shown">
+									<div class="pull-right media-button">
+										<div class="form-group">
+											<a href="#" ng-disabled="dataForm.$invalid"
+												ng-click="confirm_retrieve_all_data()"
+												class="btn red-flamingo"> Run </a>
+										</div>
+									</div> <input style="margin-top: 10px; margin-right: 10px"
+									class="pull-left" type="radio" name="dataSelection"
+									data-ng-model="$parent.dataSelection" value="system.code"
+									data-ng-value="initial-run" />
+									<div class="media-body">
+										<h4 class="media-heading" style="padding-top: 2px; display:inline-block">Initial
+											Extract</h4>
+										&nbsp;&nbsp;
+										<select name="company" class="small"
+											ng-options="company.id as company.name for company in vm.companies"
+											ng-model="company.id" required>
+											<option value="">Select company</option>
+										</select>
+										&nbsp;&nbsp;
+		                                <div class="input-group col-sm-4" style="display:inline-flex">
+										<span class="input-group-addon"><span
+											class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+											date-range-picker class="form-control date-picker"
+											style="font-size: 0.7rem !important; width: 75% !important"
+											name="groupDates.date" ng-model="groupDates.date" options="opts"
+											placeholder="Select start date" required />
+									    </div>
+									</div>
+								</li>
+
+							</ul>
+						</form>
+
+					</div>
+				</div>
+
+			</div>
+
+
+			<!--  end of first col-md-6 -->
+
+
+
+		</div>
+	</div>
+
+</div>
+
+<script type="text/ng-template" id="confirmation.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Confirm initial data extract</h3>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to run the initial extract for {{ company.name }}?</p>
+        </div>
+        <div class="modal-footer">
+				<div class="pull-right">
+				   <a href="#" class="btn red-flamingo" ng-click="cancel()">No</a>
+&nbsp;
+				   <a href="#" class="btn green-jungle"
+						ng-disabled="dataForm.$invalid" ng-click="ok()">Yes</a>
+				</div>
+		</div>
+</script>

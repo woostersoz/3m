@@ -1,0 +1,178 @@
+<!--  dashboard -->
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption  col-md-6">
+      <i class="fa fa-twitter font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> Tweets - Summary</span>
+    </div>   
+    <div class="col-md-6">
+		
+	</div> 
+  </div>
+
+  <div class="row list-separated">
+    <div class="col-md-2 col-sm-2 col-xs-6">
+       <div class="font-grey-mint font-sm">
+          Total Tweets
+       </div>
+       <div class="uppercase font-hg font-blue-madison">
+          {{ totalCount }} 
+       </div>
+    </div>
+    
+    <div class="col-md-5 col-sm-5 col-xs-6">
+       <div class="font-grey-mint font-sm">
+          Earliest Created Date
+       </div>
+       <div class="uppercase font-hg font-blue-madison">
+          {{ firstDateCreated | amCalendar }} 
+       </div>
+    </div>
+    
+    <div class="col-md-5 col-sm-5 col-xs-6">
+       <div class="font-grey-mint font-sm">
+          Latest Date Created
+       </div>
+       <div class="uppercase font-hg font-blue-madison">
+          {{ lastDateCreated | amCalendar }}
+       </div>
+    </div>
+  
+  </div>
+  
+</div>  
+<!--  end of dashboard -->
+
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption  col-md-6">
+      <i class="fa fa-twitter font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> Tweets - Details </span>
+    </div>   
+    <div class="col-md-6">
+		<div class="btn-group pull-right" style="margin-top:3px"> <!-- ng-click="addRow()"   -->
+			<a href="" ng-click="addNewRow()" role="button" id="add_tweet" class="btn green-jungle">
+				<span class="glyphicon glyphicon-plus"></span>
+				Add New 
+			</a>
+		</div>
+	</div> 
+  </div>
+
+<div class="portlet-body">
+<div class="clearfix">
+   <div class="col-md-12">
+
+					   <form novalidate name="tweets_form">
+					       <div role="alert"><span class="error" ng-show="tweets_form.textarea.$error.required || tweets_form.textarea.$error.maxlength">Oops, there's an error!</span></div>
+						   <table ng-hide="(!vm.tweets || !vm.tweets.length) && !addRow" class="table table-striped table-hover table-bordered dataTable"
+					id="tweets_table" ng-cloak>
+								<thead>
+									<tr>
+										<th class="center">Category</th>
+										<th class="center" style="width:20%">Version 1</th>
+										<th class="center" style="width:20%">Version 2</th>
+										<th class="center" style="width:20%">Version 3</th>
+										<th class="center" style="width:10%">Date</th>
+										<th class="center">&nbsp;</th>
+									</tr>
+								</thead>
+			
+								<tbody>
+								    <tr ng-show='addRow'>
+								        <td>
+								        <select name="tweet_category" class="small"
+						                   ng-options="category.id as category.category_name for category in vm.tw_categories"
+						                   ng-model="newtweet.category.id" ng-required='addRow'>
+						                   <option value="">Select</option>
+										</select>
+								        </td>
+								        <td>
+								        <textarea style="height:200px" ng-maxlength="140" type="text" ng-model= "newtweet.text1"></textarea>
+								        </td>
+								        <td>
+								        <textarea style="height:200px" ng-maxlength="140" type="text" ng-model= "newtweet.text2"></textarea>
+								        </td>
+								        <td>
+								        <textarea style="height:200px" ng-maxlength="140" type="text" ng-model= "newtweet.text3"></textarea>
+								        </td>
+								        <td>
+								        &nbsp;
+								        </td>
+								        <td>
+								        <div>
+								            <a ng-disabled="tweets_form.$invalid" href="#" ng-click="addTweet(newtweet)" class="btn red-flamingo">
+											<span class="glyphicon glyphicon-ok"></span>  Save
+											</a>&nbsp;&nbsp;
+											<a href="#" ng-click="cancelAdd()" class="btn green-jungle">
+												<span class="glyphicon glyphicon-remove"></span> Cancel
+											</a>
+								        </div>
+								        </td>
+								    </tr>
+									<tr ng-repeat="tweet in vm.tweets">
+									    <td class="center">
+										<div ng-hide="editingData[tweet.id]">{{ tweet.category.category_name }}</div>
+										<div ng-show="editingData[tweet.id]"><select name="tweet_category" class="small"
+						                   ng-options="category.id as category.category_name for category in vm.tw_categories"
+						                   ng-model="tweet.category.id" required>
+											</select>
+										</div>
+										</td>
+										<td class="center">
+										<div ng-hide="editingData[tweet.id]">{{ tweet.text1 }}</div>
+										<div ng-show="editingData[tweet.id]"><textarea style="height:200px" name="tweet_text1" ng-maxlength="140" required ng-model= "tweet.text1" ></textarea></div>
+										</td>
+										<td class="center">
+										<div ng-hide="editingData[tweet.id]">{{ tweet.text2 }}</div>
+										<div ng-show="editingData[tweet.id]"><textarea style="height:200px" name="tweet_text2" ng-maxlength="140" required ng-model= "tweet.text2" ></textarea></div>
+										</td>
+										<td class="center">
+										<div ng-hide="editingData[tweet.id]">{{ tweet.text3 }}</div>
+										<div ng-show="editingData[tweet.id]"><textarea style="height:200px" name="tweet_text3" ng-maxlength="140" required ng-model= "tweet.text3" ></textarea></div>
+										</td>
+										<td class="center">
+										<div>{{ tweet.updated_date | amCalendar }}</div>
+										</td>
+										<td>
+										  <div class="form-group" ng-hide="tweets[tweet.id]">
+											<a ng-hide="editingData[tweet.id]" href="#" ng-click="deleteTweet(tweet)" class="btn btn-xs red-flamingo">
+											<i class="fa fa-trash-o"></i> Delete
+											</a>&nbsp;&nbsp;
+											<a ng-hide="editingData[tweet.id]" href="#" ng-click="editTweet(tweet)" class="btn  btn-xs blue-madison">
+												<i class="fa fa-edit"></i> Edit
+											</a>
+											<a ng-disabled="tweets_form.$invalid" ng-show="editingData[tweet.id]" href="#" ng-click="updateTweet(tweet)" class="btn  btn-xs red-flamingo">
+											<i class="fa fa-frown-o"></i>  Save
+											</a>&nbsp;&nbsp;
+											<a ng-show="editingData[tweet.id]" href="#" ng-click="cancelTweet(tweet)" class="btn  btn-xs green-jungle">
+												<i class="fa fa-smile-o"></i> Cancel
+											</a>
+										  </div>
+										  <div class="form-group" ng-show="tweets[tweet.id]">
+											    <a href="#" ng-click="confirmedDeleteTweet(tweet)" class="btn  btn-xs red-flamingo">
+													<i class="fa fa-frown-o"></i> Confirm
+												</a>&nbsp;&nbsp;
+												<a href="#" ng-click="cancelDeleteTweet(tweet)" class="btn  btn-xs green-jungle">
+													<i class="fa fa-smile-o"></i> Cancel
+												</a>
+										  </div>
+							             </td>		
+									</tr>
+								</tbody>
+								<div ng-hide="(vm.tweets && vm.tweets.length) || addRow">
+									<div class="col-sm-12 no-symbols-here">
+										<em>The are no tweets available.</em>
+									</div>
+								</div> 
+							</table>
+							
+						</form>
+					
+			</div>
+
+			
+			<!--  end of first col-md-6 -->
+			</div> <!--  clearfix end -->
+</div>
+</div>

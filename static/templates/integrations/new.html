@@ -1,0 +1,35 @@
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-gear font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"><span ng-hide="editMode">Add new </span><span ng-show="editMode">Edit </span> integration </span>
+    </div>    
+  </div>
+  {% verbatim %}
+  <div class="portlet-body">
+    <div class="clearfix">
+		<ul class="media-list">
+			<li class="media">		
+				<a class="pull-left" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ systems[0].code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ systems[0].name }}</h4>
+					<small class="text-muted">{{ systems[0].description }}</small>
+				</div>
+			</li>
+		</ul>
+	</div>
+	{% endverbatim %}
+<!-- 	<ng-include src="'/static/templates/integrations/' + code + '-partial.html'"></ng-include> -->
+   <form name="{{ form.form_name }}" method="post" action="." novalidate>
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="form-group">
+      <button type="cancel" class="btn red-flamingo" ng-click="cancel()">Cancel</button>
+      <button type="button" class="btn green-jungle" ng-click="submit()" ng-disabled="{{ form.form_name }}.$invalid">Save</button>
+    </div>
+   </form>
+  </div>
+    
+</div>

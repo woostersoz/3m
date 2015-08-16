@@ -1,0 +1,299 @@
+
+<div ng-show="lead.sourceSystem == 'HSPT'"
+	class="col-md-12 table-detail-row" style="padding-left: 0px !important">
+
+	<div class="col-md-5" style="padding-left: 0px !important">
+		<span class="label label-success pull-left"
+			ng-show="lead.properties.hs_lifecyclestage_customer_date && lead.properties.days_to_close">{{lead.properties.days_to_close}}
+			days to close </span> <span class="label label-success pull-left"
+			ng-show="lead.properties.hs_lifecyclestage_customer_date && !lead.properties.days_to_close">Path
+			to customer </span> <span class="label label-success pull-left"
+			ng-hide="lead.properties.hs_lifecyclestage_customer_date">Status
+			Flow</span>
+
+
+		<div class="table-timeline">
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_customer_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-heart"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a customer</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_customer_date
+								| amCalendar}} </span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_opportunity_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-money"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an opportunity</span> <span
+								class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_opportunity_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_salesqualifiedlead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-thumbs-o-up"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an SQL</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_salesqualifiedlead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_marketingqualifiedlead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-check-square-o"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								an MQL</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_marketingqualifiedlead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_lead_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span
+						class="fa fa-plus-circle"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a lead</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_lead_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="timeline-item"
+				ng-show="lead.properties.hs_lifecyclestage_subscriber_date">
+				<div class="timeline-badge">
+					<a href="#" class="btn btn-icon-only"> <span class="fa fa-user"></span>
+					</a>
+				</div>
+				<div class="timeline-body">
+					<div class="timeline-body-arrow"></div>
+					<div class="timeline-body-head">
+						<div class="timeline-body-head-caption">
+							<span class="timeline-body-title font-blue-madison">Became
+								a subscriber</span> <span class="timeline-body-time font-grey-cascade">{{lead.properties.hs_lifecyclestage_subscriber_date
+								| amCalendar}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+	</div>
+
+	<div class="form col-md-6 col-md-offset-1">
+
+		<span class="label label-info pull-left">Other Info</span>
+		<div class="clearfix"></div>
+		<form action="#" class="form-horizontal">
+			<div class="form-body" style="padding-top: 15px !important">
+				<div class="form-group">
+					<label class="col-md-3 control-label">Source</label>
+					<div class="col-md-4">
+						<div class="input-icon">
+							<i class="fa fa-envelope" style="margin-top: 9px !important"></i>
+							<input type="text" class="form-control" disabled
+								ng-show="lead.properties.hs_analytics_source=='EMAIL_MARKETING'"
+								value="Email Marketing" /><input type="text"
+								class="form-control" disabled
+								ng-show="lead.properties.hs_analytics_source=='OFFLINE'"
+								value="Offline" />
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-md-3 control-label">Source Name</label>
+					<div class="col-md-4">
+						<input type="text" class="form-control" disabled
+							value="{{lead.properties.hs_analytics_source_data_1}}" />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-md-3 control-label">Emails Opened</label>
+					<div class="col-md-4">
+						<input type="text" class="form-control" disabled
+							value="{{lead.properties.hs_email_open}}" />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-md-3 control-label">Emails Clicked</label>
+					<div class="col-md-4">
+						<input type="text" class="form-control" disabled
+							value="{{lead.properties.hs_email_click}}" />
+					</div>
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label class="col-md-3 control-label">First Clicked</label>
+				<div class="col-md-4">
+					<input type="text" class="form-control" disabled
+						value="{{lead.properties.hs_email_first_click_date | amCalendar }}" />
+				</div>
+			</div>
+			
+	</form>
+</div>
+
+</div>
+
+
+<div ng-show="lead.sourceSystem == 'MKTO'" class="col-md-12 table-detail-row"
+		style="padding-left: 0px !important">
+
+		<div class="col-md-5" style="padding-left: 0px !important">
+			<span class="label label-success pull-left" ng-show="lead.source_status && lead.source_status == 'Customer'">Path
+				to customer </span> <span class="label label-success pull-left" ng-hide="lead.source_status && lead.source_status == 'Customer'">Status
+				Flow</span>
+
+
+			<div class="table-timeline">
+				<div class="timeline-item" ng-show="lead.statuses.length > 0"
+					ng-repeat="status in lead.statuses">
+					<div class="timeline-badge">
+						<a href="#" class="btn btn-icon-only"> <span class="fa"
+							ng-class="{'fa-folder-open-o' : status.status=='Open', 'fa-question-circle' : status.status=='Dead' || status.status=='Unassigned' , 'fa-heart' : status.status=='Customer', 'fa-money' : status.status=='Opportunity', 'fa-check-square-o': status.status=='Qualified', 'fa-plus-circle': status.status=='Lead'}"></span>
+							<!--  {fa-heart: status.status=='Customer'}{fa-money: status.status=='Opportunity'}{fa-check-square-o: status.status=='MQL'}{fa-plus-circle: status.status=='Lead'} -->
+						</a>
+					</div>
+					<div class="timeline-body">
+						<div class="timeline-body-arrow"></div>
+						<div class="timeline-body-head">
+							<div class="timeline-body-head-caption">
+								<span class="timeline-body-title font-blue-madison">Changed
+									to {{status.status}}</span> <span
+									class="timeline-body-time font-grey-cascade">{{status.date
+									| amCalendar}} </span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="timeline-item" ng-hide="lead.statuses.length > 0">
+					<div class="timeline-badge">
+						<a href="#" class="btn btn-icon-only"> <span class="fa"
+							ng-class="{'fa-folder-open-o' : lead.source_status=='Open', 'fa-question-circle' : lead.source_status=='Dead' || lead.source_status=='Unassigned' || lead.source_status==null , 'fa-heart' : lead.source_status=='Customer', 'fa-money' : lead.source_status=='Opportunity', 'fa-check-square-o': lead.source_status=='Qualified', 'fa-plus-circle': lead.source_status=='Lead'}"></span>
+							<!--  {fa-heart: status.status=='Customer'}{fa-money: status.status=='Opportunity'}{fa-check-square-o: status.status=='MQL'}{fa-plus-circle: status.status=='Lead'} -->
+						</a>
+					</div>
+					<div class="timeline-body">
+						<div class="timeline-body-arrow"></div>
+						<div class="timeline-body-head">
+							<div class="timeline-body-head-caption">
+								<span ng-show="lead.source_status != null"
+									class="timeline-body-title font-blue-madison">Changed
+									status to {{lead.source_status}}</span> <span
+									class="timeline-body-time font-grey-cascade">{{lead.source_created_date
+									| amCalendar}} </span> <span ng-hide="lead.source_status != null"
+									class="timeline-body-title font-blue-madison">No status
+									information</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+
+		</div>
+
+
+	<div class="form col-md-6 col-md-offset-1">
+
+		<span class="label label-info pull-left">Activity Info</span>
+		
+		<div class="table-timeline">
+				<div class="timeline-item" ng-show="lead.activities.length > 0"
+					ng-repeat="activity in lead.activities">
+					<div class="timeline-badge">
+						<span class="badge badge-info">{{$index + 1}}</span>
+					</div>
+					<div class="timeline-body">
+						<div class="timeline-body-arrow hide"></div>
+						<div class="timeline-body-head">
+							<div class="timeline-body-head-caption-activity">
+							    <p
+									class="timeline-body-time font-grey-cascade">{{activity.activityDate
+									| amCalendar}} </p>
+								<p class="timeline-body-title-activity font-blue-madison" ng-attr-title="{{activity.activityTypeName}}: {{activity.primaryAttributeValue}}">{{activity.activityTypeName + ':' + activity.primaryAttributeValue | limitTo: 65 }} {{(activity.activityTypeName + ':' + activity.primaryAttributeValue).length > 65 ? '...' : ''}} </p> 
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="timeline-item" ng-hide="lead.activities.length > 0">
+					<div class="timeline-badge">
+						<a href="#" class="btn btn-icon-only"> <span class="fa fa-question-circle"></span>
+			            </a>
+					</div>
+					<div class="timeline-body">
+						<div class="timeline-body-arrow"></div>
+						<div class="timeline-body-head">
+							<div class="timeline-body-head-caption">
+								<span class="timeline-body-title font-blue-madison">No activity information</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+		
+	</div>
+</div>
+
+
+<!--  end MKTO -->

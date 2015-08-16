@@ -1,0 +1,36 @@
+<!--  this file is currently not used anywhere - May 29th 2015 -->
+
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-user font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> {{vm.profile.first_name}} {{vm.profile.last_name}} - Edit Profile </span>
+    </div>    
+  </div>
+
+<div class="portlet-body">
+  <div class="" ng-show="vm.profile">
+    <form role="form" class="settings" ng-submit="vm.update()">
+      <div class="form-group">
+        <label for="settings__email">Email</label>
+        <input type="text" class="form-control" id="settings__email" ng-model="vm.profile.email" placeholder="ex. john@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__username">Username</label>
+        <input type="text" class="form-control" id="settings__username" ng-model="vm.profile.username" placeholder="ex. notgoogleplus" />
+        <input type="hidden" class="form-control" id="settings__username_old" ng-model="vm.profile.oldusername" />
+      </div>
+
+      <div class="form-group">
+        <label for="settings__tagline">Tagline</label>
+        <textarea class="form-control" id="settings__tagline" ng-model="vm.profile.tagline" placeholder="ex. This is Not Google Plus." />
+      </div>
+
+      <div class="form-group">
+        <button type="submit" class="btn green-jungle">Submit</button>
+        <button type="button" class="btn red-flamingo" ng-click="vm.destroy()">Delete Account</button>
+      </div>
+    </form>
+  </div>
+</div>

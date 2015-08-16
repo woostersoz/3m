@@ -1,0 +1,168 @@
+{% load staticfiles %}
+{% if user.is_authenticated %}
+<nav class="page-header navbar navbar-fixed-top" role="navigation" ng-controller="NavbarController as vm">
+  <div class="page-header-inner">
+    <div class="page-logo">
+      <a class="navbar-brand" href="/">
+          <img src="{% static 'images/logo.png' %}" style="height:200%"/>
+      </a>
+      <div class="menu-toggler sidebar-toggler"></div>
+    </div> <!-- ./page-logo -->
+    <a href="javascript:;" class="menu-toggler responsive-toggler" data-toggle="collapse" data-target=".navbar-collapse">
+		</a>
+		
+	<div class="page-actions">
+	
+
+	
+	</div>
+	
+	<div class="page-top">
+			<!-- BEGIN HEADER SEARCH BOX -->
+			<!-- DOC: Apply "search-form-expanded" right after the "search-form" class to have half expanded search box -->
+			<form name="search-form" class="search-form" action="extra_search.html" method="GET">
+				<div class="input-group">
+					<input type="text" class="form-control input-sm" placeholder="Search..." name="query">
+					<span class="input-group-btn">
+					<a href="javascript:;" class="btn submit"><i class="icon-magnifier"></i></a>
+					</span>
+				</div>
+			</form>
+			<!-- END HEADER SEARCH BOX -->
+			<!-- BEGIN TOP NAVIGATION MENU -->
+			<div class="top-menu">
+			    <ul class="nav navbar-nav pull-right">
+			        {% if user.is_authenticated %}
+                    <li class="dropdown dropdown-extended dropdown-notification dropdown-dark" id="header_rooms_bar">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
+                           <i class="icon-earphones"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                          <li class="external">
+				             <h3 class="">Channels you can join</h3>
+				             <a href="#" ng-click=addChannel()>Create new</a>
+				          </li>
+				          <li>   
+				              <ul class="dropdown-menu-list scroller" style="height: 50px;" data-handle-color="#637283">
+							    <li ng-show="$parent.rooms.length > 0" ng-repeat="room in $parent.rooms" title="Join channel">
+							        <a ng-click="showChannelPreview(room)">
+							        {% verbatim %}
+							        <i class="icon-pin"></i> &nbsp; {{room.name}}
+							        {% endverbatim %}
+							        </a>
+							    </li>
+							    <li ng-hide="$parent.rooms.length > 0" >
+							         <a href="#">No new channels </a>
+							    </li>
+							</ul>
+					     </li>
+					     <li class="external">
+				             <h3 class="title">Channels you belong to</h3>
+				         </li>
+				         <li>
+				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
+							    <li ng-repeat="room in $parent.subscribedRooms">
+							        <a ui-sref="enterChannel({enteredRoom: room.room.id, roomName: room.room.name, roomDescription: room.room.description})">
+							        {% verbatim %}
+							        <i class="icon-pin"></i> &nbsp; {{room.room.name}}
+							        {% endverbatim %}
+							        </a>
+							    </li>
+							</ul>
+					     </li>
+                        
+                        </ul>
+                    </li>
+					<li class="separator hide">
+					</li>
+                    <li class="dropdown dropdown-extended dropdown-notification dropdown-dark" id="header_notification_bar">
+                        <a href="#" ui-sref="notifications" ng-mouseenter="getUnreadNotifications()" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
+                           <i class="icon-bell"></i>
+                           <span class="badge badge-danger" ng-cloak ng-show="$parent.notifications.unreadCount > 0">{% verbatim %} <span>{{ $parent.notifications.unreadCount }}</span> {% endverbatim %}</span>
+                        </a>
+                        <ul class="dropdown-menu" ng-show="showNotificationsDropdown">
+                            <li class="external">
+                               <h3>
+                                  {% verbatim %} <span class="bold">{{ $parent.notifications.unreadCount }} unread </span> {% endverbatim %}notifications
+                               </h3>
+                               <a href="#" ui-sref="notifications">View all</a>
+                            </li>
+                            <li>
+                               {% verbatim %}
+                              
+                                  <ul class="dropdown-menu-list scroller" style="height: 250px;" data-handle-color="#637283">
+                                    <li ng-repeat="unreadNotification in $parent.notifications.unread track by $index">
+                                       <a href="#">
+                                           <span class="time"><time title="{{ unreadNotification.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">{{ unreadNotification.updated_date | amCalendar }}</time></span>
+                                           <span class="details">
+                                              <span class="label label-sm label-icon label-success">
+                                                 <i class="fa fa-database"></i>
+                                              </span>
+                                              {{ unreadNotification.message }}
+                                           </span>
+                                       </a>
+                                    </li>
+                                  </ul>  
+                                  
+                                {% endverbatim %}
+                            </li>
+                        </ul>
+                    </li>
+			        <li class="dropdown dropdown-user dropdown-dark">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
+						<span class="username username-hide-on-mobile">
+						{{ user.username }} </span>
+						<!-- DOC: Do not remove below empty space(&nbsp;) as its purposely used -->
+						<img alt="" class="img-circle" src="../static/theme/assets/admin/layout4/img/avatar9.jpg"/>
+						</a>
+						<ul class="dropdown-menu dropdown-menu-default">
+							<li>
+								<a href="/users/{{ user.id }}/settings">
+								<i class="icon-user"></i> My Profile </a>
+							</li>
+							<li>
+								<a href="page_calendar.html">
+								<i class="icon-calendar"></i> My Calendar </a>
+							</li>
+							<li>
+								<a href="inbox.html">
+								<i class="icon-envelope-open"></i> My Inbox <span class="badge badge-danger">
+								3 </span>
+								</a>
+							</li>
+							<li>
+								<a href="/notifications">
+								<i class="icon-rocket"></i> My Notifications <span class="badge badge-success">
+								{% verbatim %} {{ $parent.notifications.count }} {% endverbatim %}</span>
+								</a>
+							</li>
+							<li class="divider">
+							</li>
+							<li>
+								<a href="extra_lock.html">
+								<i class="icon-lock"></i> Lock Screen </a>
+							</li>
+							<li>
+								<a href="javascript:void(0)" ng-click="vm.logout()">
+								<i class="icon-key"></i> Log Out </a>
+							</li>
+						</ul>
+					</li>
+					{% else %}
+					<li><a href="/login">Login</a></li>
+                    <li class="separator hide">
+                    <li><a href="/register">Register</a></li>
+					{% endif %}
+					<!-- END USER LOGIN DROPDOWN -->
+				</ul>
+			</div>
+			<!-- END TOP NAVIGATION MENU -->
+		</div>
+		<!-- END PAGE TOP -->
+			  
+  </div> <!-- /.page-header-inner -->
+</nav>
+<div class="clearfix">
+</div>
+{% endif %}
+

@@ -1,0 +1,22 @@
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-camera font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"><span ng-show="listMode">Snapshots</span><span ng-hide="listMode">Snapshot of {{chartName}} - as of {{ snapshotDate | amCalendar }}</span></span>
+    </div> 
+    <div class="pull-right"  ng-hide="listMode" style="margin-top:7px !important">
+    <a class="btn btn-sm blue-steel pull-right" ng-click="goBackToList()">
+    <span class="glyphicon glyphicon-circle-arrow-left" title="Go back"></span>
+         Back
+	</a>
+    </div>   
+  </div>
+   
+  <div class="portlet-body">
+    <div class="clearfix">
+		<div style="margin-left:-20px; margin-right:-20px" ng-show="listMode" class="animate-show-hide"><ng-include src="'/static/templates/analytics/snapshots-list.html'"></ng-include></div>
+		<div style="margin-left:-20px; margin-right:-20px" ng-hide="listMode" class="animate-show-hide"><ng-include src="'/static/templates/analytics/snapshot.html'"></ng-include></div>
+	</div>
+  </div>
+    
+</div>

@@ -1,0 +1,141 @@
+<div class="row" style="margin-top:10px"> <!-- Main Toolbar -->
+
+			<div class="col-md-5 form-group ">
+			    <a href="#" e-name="newBinder.name" editable-text="newBinder.name">{{ newBinder.name }}</a>
+			</div>
+			<div class="col-md-7 form-group chart-tools">
+			    <a href="#" class="btn btn-sm green-jungle pull-right"
+					ng-click="convertPagesToPdf()" title="Export to PDF">
+					<span class="fa fa-file-pdf-o"></span>
+					Export to PDF
+				</a>
+				<a href="#"  class="btn btn-sm blue-steel pull-right"
+					ng-click="snapshot()" title="Export to PPT">
+					<span class="fa fa-file-powerpoint-o"></span>
+					Export to PPT
+				</a>
+				<a href="#"  class="btn btn-sm red-flamingo pull-right"
+					ng-click="toggleFullscreen()" title="Slideshow">
+					<span class="icon icon-screen-desktop"></span>
+					Slideshow
+				</a>
+			</div>
+
+        <form name="binder_view" novalidate role="form">
+		</form>
+     </div>
+     <hr style="margin-top:0px !important; margin-bottom:0px !important" class="hidden">
+     
+     <div class="row hidden" style="margin-top:10px; margin-bottom:10px"> <!-- Secondary Toolbar -->
+        <div class="col-sm-6 chart-tools">
+			<a href="#" class="btn btn-sm blue-madison"
+				ng-click="createBinderPage('chart')" title="Add Chart Page">
+				Add Chart Page
+			</a>
+			<a href="#" class="btn btn-sm blue-madison"
+				ng-click="createBinderPage('text')" title="Add Text Page">
+				Add Text Page
+			</a>
+		</div>
+     </div>
+     
+     <div class="row"> <!--  Content Area -->
+       <div class="col-md-2" id="binder_left_bar"> <!--  Left bar -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title">
+            Pages
+            </div>
+            <div class="portlet-body">
+               <div binderpage page="page" ondelete="deleteBinderPage(id)" onshowcontent="showPageContent(page)" ng-repeat="page in pages track by $index">
+                <div class="portlet light subportlet binderPage" ng-class='{active: page.selected}'>
+			      <div class="portlet-title draggable">
+			        <div class="caption">
+			        
+			        </div>
+			        <div class="tools">
+			          <button type="button" class="close" ng-click="deleteBinderPage(page.id)">&times;</button>
+			        </div>
+			      </div>
+			      <div class="portlet-body" style="text-align:center">
+			        <div>{{ page.contentTitle }}</div>
+			        <a style="font-size: 0.5rem !important" href ng-click="showPageContent(page)">Content</a>
+			      </div>
+			    </div>
+			   </div>
+           </div>
+         </div>
+       </div>
+       <div class="col-md-7" id="binder_main_content"> <!--  Middle content area -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title" id="content-title">
+               <div class="col-sm-2 pull-left">
+                    Content 
+               </div>
+               <div class="col-sm-10 pull-right chart-tools">				
+					<a href="#"  class="btn btn-sm yellow-casablanca pull-right"
+						ng-click="createNote()" title="Add Sticky">
+						<span class="glyphicon glyphicon-comment"></span>
+						Sticky
+					</a> 	
+				</div>
+            </div>
+            <div class="portlet-body center slide-content" ng-attr-id="{{currentPage.id}}-content" fullScreen="isFullscreen" > <!--  ng-keyup="escapeHit($event)" tabIndex={{$index}} -->
+              <div id="{{currentPage.id}}-content-header">
+                 <a href="#" e-name="contentTitle" editable-text="currentPage.contentTitle">{{ currentPage.contentTitle }}</a>
+              </div>
+              <div id="{{currentPage.id}}-content-body" class="content-body">
+                 <div sticky ng-repeat="note in currentPage.notes" class="sticky draggable" note="note" ondelete="deleteNote(id)"> <!-- ng-style="left:{{note.cssStyle.left}}; top: {{note.cssStyle.top}};" -->
+				      <button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
+				      <input ng-model="note.title" ng-change="updateNote(note)" type="text" class="title">
+				      <textarea ng-model="note.body" ng-change="updateNote(note)" placeholder='Your note goes here' class="body">{{note.body}}</textarea>
+				      
+				 </div>
+                 <nvd3 ng-if="currentPage.type == 'chart'" options="currentPage.chartOptions" data="currentPage.chartData" config="config">
+		
+		         </nvd3>
+		         <div ng-if="currentPage.type == 'text'" style="margin-top:30px">
+		         &nbsp;
+		         </div>
+		         <div>
+		           <a href="#" editable-textarea="currentPage.contentBody" e-rows="10" e-cols="30">
+		             <pre ng-hide="isFullscreen && !currentPage.contentBody">{{currentPage.contentBody || 'Enter additional text' }}</pre>
+		           </a>
+		         
+		         </div>
+              </div>
+              <button type="button" data-role="none" class="slick-prev slick-prev-slideshow" aria-label="previous" style="display: block;" ng-show="isFullscreen" ng-click="goSlideBack()" ng-disabled="noMoreBack">Previous</button>
+              <button type="button" data-role="none" class="slick-next slick-next-slideshow" aria-label="next" style="display: block;" ng-show="isFullscreen" ng-click="goSlideForward()" ng-disabled="noMoreForward">Next</button>
+            </div>
+         </div>
+       </div>
+       <div class="col-md-3" id="binder_right_bar"> <!--  Right bar -->
+         <div class="portlet light subportlet">
+            <div class="portlet-title">
+            Details
+            </div>
+            <div class="portlet-body">
+              <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'text'">
+		         <p>You can edit the title and other text on this page. You can save your changes but they won't be reflected in the template.</p>
+	          </div>
+	          <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'chart'">
+		        <p>You can annotate the chart by using stickies or text.</p>
+	          </div>
+	          <div class="center" ng-show="currentPage.type == 'chart'">
+	           
+	            <div>{{currentPage.chartType.title}}</div>
+	          
+				<div class="input-group pull-left binder-chart-filter">
+					<span class="input-group-addon"><span
+						class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+						date-range-picker class="form-control date-picker"
+						style="font-size: 0.7rem !important; width: 100% !important"
+						name="currentPage.chartFilters.groupDates.date" ng-model="currentPage.chartFilters.groupDates.date" options="opts"
+						placeholder="Select date range" />
+				</div>
+				<div style="clear:both">&nbsp</div>
+	          </div>
+            </div>
+         </div>
+       </div>
+       
+     </div>
