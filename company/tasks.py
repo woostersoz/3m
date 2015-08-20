@@ -27,13 +27,13 @@ from collab.signals import send_notification
 from collab.models import Notification 
 from mmm.views import _str_from_date
 
-from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster
+from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, tempDataCleanup
 from contacts.tasks import retrieveSfdcContacts, saveSfdcContactsToMaster
 from activities.tasks import retrieveMktoActivities, retrieveSfdcActivities, saveMktoActivitiesToMaster
 from opportunities.tasks import retrieveMktoOpportunities, retrieveSfdcOpportunities, saveSfdcOpportunitiesToMaster, retrieveHsptOpportunities, saveHsptOpportunitiesToMaster
 from campaigns.tasks import retrieveHsptCampaigns, retrieveMktoCampaigns, saveMktoCampaignsToMaster, retrieveSfdcCampaigns, saveSfdcCampaignsToMaster
 from accounts.tasks import retrieveSfdcAccounts, saveSfdcAccountsToMaster
-from social.tasks import retrieveBufrTwInteractions, saveBufrTwInteractionsToMaster, retrieveFbokAdStats, saveFbokAdStatsToMaster, retrieveFbokPageStats
+from social.tasks import retrieveBufrTwInteractions, saveBufrTwInteractionsToMaster, retrieveFbokAdStats, saveFbokAdStatsToMaster, retrieveFbokPageStats, saveFbokPageStatsToMaster, retrieveFbokPostStats, saveFbokPostStatsToMaster
 from websites.tasks import retrieveHsptWebsiteTraffic, saveHsptWebsiteTrafficToMaster, retrieveGoogWebsiteTraffic, saveGoogleWebsiteTrafficToMaster
 #from superadmin.tasks import _get_superadmin
 from superadmin.models import SuperJobMonitor
@@ -165,15 +165,15 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts],  \
 #                     "bufr" : [retrieveBufrTwInteractions], \
 #                     "goog" : [retrieveGoogWebsiteTraffic], \
-#                      "fbok" : [retrieveFbokPageStats] #retrieveFbokAdStats]
+#                      "fbok" : [retrieveFbokAdStats] #, retrieveFbokPageStats, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {#"mkto" : [saveMktoLeadsToMaster, saveMktoCampaignsToMaster, saveMktoActivitiesToMaster], \
-#                    "hspt" : [saveHsptLeadsToMaster]#, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], \
+#                    "hspt" : [saveHsptLeadsToMaster]#, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], tempDataCleanup \
 #                     "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster],  \
 #                     "bufr" : [saveBufrTwInteractionsToMaster], \
 #                     "goog": [saveGoogleWebsiteTrafficToMaster], \
-#                      "fbok": [saveFbokAdStatsToMaster]
+#                      "fbok": [saveFbokAdStatsToMaster] #, saveFbokPageStatsToMaster, saveFbokPostStatsToMaster] #
                     }
 #         #
 # #         #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, 
@@ -246,7 +246,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
                      #{'chart_name': 'contacts_distr', 'system_type': 'MA', 'chart_title':'Contacts Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'source_pie', 'system_type': 'MA', 'chart_title':'Source Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'revenue_source_pie', 'system_type': 'MA', 'chart_title':'Revenue by Source', 'mode': run_type, 'start_date': sinceDateTime}, \
-                     {'chart_name': 'facebook_leads', 'system_type': 'MA', 'chart_title':'Facebook Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'multichannel_leads', 'system_type': 'MA', 'chart_title':'Multichannel Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
                 ]

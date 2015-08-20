@@ -25,6 +25,7 @@ from hubspot.contacts._schemas.contacts import CONTACT_SCHEMA
 from mongoengine.queryset.visitor import Q
 from mmm.views import _str_from_date
 from mmm.views import saveTempData, saveTempDataDelta, _date_from_str
+from itertools import izip_longest
 
 @app.task
 def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
@@ -464,6 +465,7 @@ def saveHsptLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
     
 def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
     #job_id = ObjectId("55cbb7a356ea0628f85c0075")
+    job_id = ObjectId("55d0d4ac8afb000d3f0a6f45") #new job id on Prodn
     if run_type == 'initial':
         collection = TempData._get_collection()
         leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'hspt', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
@@ -518,26 +520,28 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
             existingLeadSfdc = None
             existingContactSfdc = None
             existingLead = None
-            existingLead = Lead.objects(Q(company_id=company_id) & Q(hspt_id=hspt_id)).first()
+            #existingLead = Lead.objects(Q(company_id=company_id) & Q(hspt_id=hspt_id)).first()
+            collection2 = Lead._get_collection()
+            existingLead = collection2.find_one({'company_id': int(company_id), 'hspt_id': hspt_id})
             
-            if existingLead is not None and 'hspt' in existingLead.leads:  # we found this lead already in the DB
-                existingLead.source_first_name = hspt_first_name
-                existingLead.source_last_name = hspt_last_name
-                existingLead.source_email = hspt_email
-                existingLead.source_company = hspt_company
-                existingLead.source_created_date = hspt_created_date
-                existingLead.source_status = newLead['properties'].get('leadstatus', None)
-                existingLead.source_stage = newLead['properties'].get('lifecyclestage', None)
-                existingLead.source_source = hspt_analytics_source
-                existingLead.hspt_subscriber_date = hspt_subscriber_date
-                existingLead.hspt_lead_date = hspt_lead_date
-                existingLead.hspt_mql_date = hspt_mql_date
-                existingLead.hspt_sql_date = hspt_sql_date
-                existingLead.hspt_opp_date = hspt_opp_date
-                existingLead.hspt_customer_date = hspt_customer_date
+            if existingLead is not None and 'hspt' in existingLead['leads']:  # we found this lead already in the DB
+                existingLead['source_first_name'] = hspt_first_name
+                existingLead['source_last_name'] = hspt_last_name
+                existingLead['source_email'] = hspt_email
+                existingLead['source_company'] = hspt_company
+                existingLead['source_created_date'] = hspt_created_date
+                existingLead['source_status'] = newLead['properties'].get('leadstatus', None)
+                existingLead['source_stage'] = newLead['properties'].get('lifecyclestage', None)
+                existingLead['source_source'] = hspt_analytics_source
+                existingLead['hspt_subscriber_date'] = hspt_subscriber_date
+                existingLead['hspt_lead_date'] = hspt_lead_date
+                existingLead['hspt_mql_date'] = hspt_mql_date
+                existingLead['hspt_sql_date'] = hspt_sql_date
+                existingLead['hspt_opp_date'] = hspt_opp_date
+                existingLead['hspt_customer_date'] = hspt_customer_date
                 
-                existingLead.leads["hspt"] = newLead
-                existingLead.save()
+                existingLead['leads']["hspt"] = newLead
+                collection2.save(existingLead)
                 #Lead.objects(Q(company_id=company_id) & Q(hspt_id=hspt_id)).update(leads__hspt=newLead)
 #                 if 'hspt' in existingLead.lists:
 #                     currentLists = existingLead.lists['mkto']        
@@ -555,38 +559,41 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
             elif existingLead is None:  # this lead does not exist 
                 if hspt_sfdc_id is not None:  # but has a SFDC lead id
                     #print 'found lead with SFDC ID ' + str(hspt_sfdc_id)
-                    existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(leads__sfdc__Id=hspt_sfdc_id)).first()
+                    #existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(leads__sfdc__Id=hspt_sfdc_id)).first()
+                    existingLeadSfdc = collection2.find_one({'company_id': int(company_id), 'leads.sfdc.Id': hspt_sfdc_id})
                     if existingLeadSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
-                        existingLeadSfdc.hspt_id = hspt_id
-                        existingLeadSfdc.leads['hspt'] = newLead
-                        existingLeadSfdc.hspt_subscriber_date = hspt_subscriber_date
-                        existingLeadSfdc.hspt_lead_date = hspt_lead_date
-                        existingLeadSfdc.hspt_mql_date = hspt_mql_date
-                        existingLeadSfdc.hspt_sql_date = hspt_sql_date
-                        existingLeadSfdc.hspt_opp_date = hspt_opp_date
-                        existingLeadSfdc.hspt_customer_date = hspt_customer_date
-                        existingLeadSfdc.save()
+                        existingLeadSfdc['hspt_id'] = hspt_id
+                        existingLeadSfdc['leads']['hspt'] = newLead
+                        existingLeadSfdc['hspt_subscriber_date'] = hspt_subscriber_date
+                        existingLeadSfdc['hspt_lead_date'] = hspt_lead_date
+                        existingLeadSfdc['hspt_mql_date'] = hspt_mql_date
+                        existingLeadSfdc['hspt_sql_date'] = hspt_sql_date
+                        existingLeadSfdc['hspt_opp_date'] = hspt_opp_date
+                        existingLeadSfdc['hspt_customer_date'] = hspt_customer_date
+                        collection2.save(existingLeadSfdc)
 #                         currentLists = []
 #                         currentLists.append(newList)
 #                         existingLeadSfdc.update(lists__mkto=currentLists)
                 elif hspt_sfdc_contact_id is not None:  # but has a SFDC contact id
                     print 'found contact with SFDC ID ' + str(hspt_sfdc_contact_id)
-                    existingContactSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=hspt_sfdc_contact_id)).first()
+                    #existingContactSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=hspt_sfdc_contact_id)).first()
+                    existingContactSfdc = collection2.find_one({'company_id': int(company_id), 'sfdc_contact_id': hspt_sfdc_contact_id})
                     if existingContactSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
-                        existingContactSfdc.hspt_id = hspt_id
-                        existingContactSfdc.leads['hspt'] = newLead
-                        existingContactSfdc.hspt_subscriber_date = hspt_subscriber_date
-                        existingContactSfdc.hspt_lead_date = hspt_lead_date
-                        existingContactSfdc.hspt_mql_date = hspt_mql_date
-                        existingContactSfdc.hspt_sql_date = hspt_sql_date
-                        existingContactSfdc.hspt_opp_date = hspt_opp_date
-                        existingContactSfdc.hspt_customer_date = hspt_customer_date
-                        existingContactSfdc.save()
+                        existingContactSfdc['hspt_id'] = hspt_id
+                        existingContactSfdc['leads']['hspt'] = newLead
+                        existingContactSfdc['hspt_subscriber_date'] = hspt_subscriber_date
+                        existingContactSfdc['hspt_lead_date'] = hspt_lead_date
+                        existingContactSfdc['hspt_mql_date'] = hspt_mql_date
+                        existingContactSfdc['hspt_sql_date'] = hspt_sql_date
+                        existingContactSfdc['hspt_opp_date'] = hspt_opp_date
+                        existingContactSfdc['hspt_customer_date'] = hspt_customer_date
+                        collection2.save(existingContactSfdc)
 #                         currentLists = []
 #                         currentLists.append(newList)
 #                         existingLeadSfdc.update(lists__mkto=currentLists)
             
             if existingLeadSfdc is None and existingContactSfdc is None and existingLead is None:  # no matches found so save new record
+                print 'this is a new lead'
                 lead = Lead()
                 lead.hspt_id = hspt_id
                 lead.company_id = company_id
@@ -604,8 +611,30 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                 lead.hspt_sql_date = hspt_sql_date
                 lead.hspt_opp_date = hspt_opp_date
                 lead.hspt_customer_date = hspt_customer_date
+                lead.leads = {}
                 lead.leads["hspt"] = newLead
                 lead.save()
+                
+#                 lead = {}
+#                 lead['hspt_id'] = hspt_id
+#                 lead['company_id'] = company_id
+#                 lead['source_first_name'] = hspt_first_name
+#                 lead['source_last_name'] = hspt_last_name
+#                 lead['source_email'] = hspt_email
+#                 lead['source_company'] = hspt_company
+#                 lead['source_created_date'] = hspt_created_date
+#                 lead['source_status'] = newLead['properties'].get('leadstatus', None)
+#                 lead['source_stage'] = newLead['properties'].get('lifecyclestage', None)
+#                 lead['source_source'] = hspt_analytics_source
+#                 lead['hspt_subscriber_date'] = hspt_subscriber_date
+#                 lead['hspt_lead_date'] = hspt_lead_date
+#                 lead['hspt_mql_date'] = hspt_mql_date
+#                 lead['hspt_sql_date'] = hspt_sql_date
+#                 lead['hspt_opp_date'] = hspt_opp_date
+#                 lead['hspt_customer_date'] = hspt_customer_date
+#                 lead['leads'] = {}
+#                 lead['leads']["hspt"] = newLead
+#                 collection2.save(lead)
 #                 currentLists = []
 #                 currentLists.append(newList)
 #                 lead.update(lists__mkto=currentLists)
@@ -700,4 +729,25 @@ def saveGoogWebsiteTraffic(user_id=None, company_id=None, account_id=None, accou
         record['data'] = trafficList.get('rows')
         saveTempDataDelta(company_id=company_id, record_type="traffic", source_system="goog", source_record=record, job_id=job_id)
          
-        
+def tempDataCleanup(user_id=None, company_id=None, job_id=None, run_type=None):
+    # remove documents from TempData whose IDs already exist in lead
+    targetLeads = []
+    collection = Lead._get_collection()
+    print 'getting leads'
+    existingLeads = collection.find({'company_id': int(company_id)}, projection={'leads.hspt.vid': True}, batch_size=1000)     
+    print 'got cursor'
+    
+    for lead in existingLeads:
+        targetLeads.append(lead['leads']['hspt']['vid'])
+    print 'got leads'
+     
+    collection2 = TempData._get_collection()
+    targetLeadsSubsets = list(_grouper(targetLeads, 100))
+    print 'got subsets'
+    for targetLeadsSubset in targetLeadsSubsets:
+        print 'deleting subset'
+        collection2.remove({'company_id' : int(company_id), 'source_record.vid' : {'$in' : targetLeadsSubset} })   
+    
+def _grouper(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return izip_longest(*args, fillvalue=fillvalue)

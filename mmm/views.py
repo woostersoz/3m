@@ -205,3 +205,21 @@ def matchingAlgo(request, search_name=None,  entries=None, object_type=None): #e
     except Exception as e:
         print 'exception was ' + str(e)
         return str(e)
+    
+
+def replace_dots(obj):
+    #print 'object is ' + str(obj)
+    if isinstance(obj, list):
+        for i in range(len(obj)):
+            for key in obj[i].keys():
+                new_key = key.replace(".", "~")
+                if new_key != key:
+                    obj[i][new_key] = obj[i][key]
+                    del obj[i][key]
+    else:
+        for key in obj.keys():
+            new_key = key.replace(".", "~")
+            if new_key != key:
+                obj[new_key] = obj[key]
+                del obj[key]
+    return obj

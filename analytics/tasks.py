@@ -3,6 +3,7 @@ from datetime import timedelta, date, datetime
 import pytz
 import os
 import time
+import urllib2
 from dateutil import tz
 
 from collections import OrderedDict
@@ -23,6 +24,7 @@ from collab.models import Notification
 from social.models import PublishedTweet
 from analytics.models import AnalyticsData, AnalyticsIds
 from websites.models import Traffic
+from superadmin.models import SuperUrlMapping
 
 from django.utils.timezone import get_current_timezone
 
@@ -81,7 +83,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "facebook_leads" : hspt_facebook_leads}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -2700,7 +2702,7 @@ def hspt_contacts_revenue_sources_pie_deprecated_2(user_id, company_id, chart_na
         return JsonResponse({'Error' : str(e)})
  
 
-def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
+def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
     try:
         if mode == 'delta':
             #start_date = datetime.utcnow() + timedelta(-1)
@@ -2748,15 +2750,21 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
         for i in range(len(sources)):
             subsources[sources[i]] = list(collection.find({'company_id':int(company_id), 'leads.hspt.properties.hs_analytics_source': sources[i]}).distinct('leads.hspt.properties.hs_analytics_source_data_1'))
         print 'got subsources ' + str(subsources)
-    
+        url_map = SuperUrlMapping.objects()[0]['mappings']
+        print 'got mappings ' + str(url_map)
+        #return
+        
         s = local_start_date - timedelta(days=1)
         while s < (e - delta):
             s += delta #increment the day counter
             date = s.strftime('%Y-%m-%d')
             print 'date is ' + date
-            utc_day_start = datetime(s.year, s.month, s.day, tzinfo=tz.tzutc())
-            utc_day_end = utc_day_start + timedelta(1) #watch out - this is the start of the next day in UTC so search for < not <=
-            
+            #utc_day_start = datetime(s.year, s.month, s.day, tzinfo=tz.tzutc())
+            #utc_day_end = utc_day_start + timedelta(1) #watch out - this is the start of the next day in UTC so search for < not <=
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            print 'utc day start is ' + str(utc_day_start)
+            print 'utc day end is ' + str(utc_day_end)
             utc_day_start_epoch = time.mktime(utc_day_start.timetuple()) * 1000
             utc_day_end_epoch = time.mktime(utc_day_end.timetuple()) * 1000
             #print 'start epoch ' + str(utc_day_start_epoch)
@@ -2765,56 +2773,62 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
             f = s + timedelta(days=1)
             #f_date = f.strftime('%Y-%m-%d')
             #start_date_string = _str_from_date(s)
+            collection = Lead._get_collection()
             print 'date is ' + str(date)
 #             print 's is ' + str(s)
             #print 'start date string is ' + start_date_string
             
-#             queryDict = {company_query : company_id, system_type_query: 'MA', chart_name_query: chart_name, date_qry: date}
-#             analyticsData = AnalyticsData.objects(**queryDict).first()
-#             if analyticsData is None:
-#                 analyticsData = AnalyticsData()
-#                 analyticsData.system_type = 'MA'
-#                 analyticsData.company_id = company_id  
-#                 analyticsData.chart_name = chart_name
-#                 analyticsData.date = date
-#                 analyticsData.results = {}
-#                 analyticsData.save()
-#                 
-#             analyticsIds = AnalyticsIds.objects(**queryDict).first()
-#             if analyticsIds is None:
-#                 analyticsIds = AnalyticsIds()
-#                 analyticsIds.system_type = 'MA'
-#                 analyticsIds.company_id = company_id  
-#                 analyticsIds.chart_name = chart_name
-#                 analyticsIds.date = date
-#                 analyticsIds.results = {}
-#                 analyticsIds.save()
+            queryDict = {company_query : company_id, system_type_query: 'MA', chart_name_query: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'MA'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                 
+            analyticsIds = AnalyticsIds.objects(**queryDict).first()
+            if analyticsIds is None:
+                analyticsIds = AnalyticsIds()
+                analyticsIds.system_type = 'MA'
+                analyticsIds.company_id = company_id  
+                analyticsIds.chart_name = chart_name
+                analyticsIds.date = date
+                analyticsIds.results = {}
+                analyticsIds.save()
             
             results_data = {}
             results_ids = {}
-            #find all new leads who visited today from each subsource
+            #find all  leads who visited today from each subsource
             new_leads_by_subsource = {}
+            old_leads_by_subsource = {}
             for i in range(len(sources)):
+                print 'starting source ' + sources[i]
                 source_count = 0
                 results_data[sources[i]] = {}
                 results_ids[sources[i]] = {}
                 for subsource in subsources[sources[i]]:
+                    #print 'starting subsource '
+                    original_subsource = subsource
+                    subsource = subsource.replace('.', '~')
                     results_data[sources[i]][subsource] = {}
                     results_ids[sources[i]][subsource] = {}
                     
                     #query for new leads
-                    querydict = {company_query: company_id, source1_qry: subsource, first_visit_date_gte_qry: utc_day_start, first_visit_date_lt_qry: utc_day_end}
-            #print 'time 1 is ' + str(time.time())
-            #leads = Lead.objects(**querydict).only('leads__hspt__properties__hs_analytics_source')
-                    new_leads_by_subsource[subsource] = Lead.objects(**querydict).only('hspt_id').only('leads__hspt__properties__hs_analytics_source_data_1').only('leads__hspt__properties__hs_analytics_source_data_2').only('leads__hspt__properties__lifecyclestage').only('leads__hspt__versions__lifecyclestage')
-                    subsource_count = new_leads_by_subsource[subsource].count()
-                    source_count += subsource_count
+                    #querydict = {company_query: company_id, source1_qry: subsource, first_visit_date_gte_qry: utc_day_start, first_visit_date_lt_qry: utc_day_end}
+                    #new_leads_by_subsource[subsource] = Lead.objects(**querydict).only('hspt_id').only('leads__hspt__properties__hs_analytics_source_data_1').only('leads__hspt__properties__hs_analytics_source_data_2').only('leads__hspt__properties__lifecyclestage').only('leads__hspt__versions__lifecyclestage')
+                    new_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'leads.hspt.properties.hs_analytics_source' : sources[i], 'leads.hspt.properties.hs_analytics_source_data_1' : original_subsource, 'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$gte' : utc_day_start, '$lt' : utc_day_end}})     
+                    #print 'found new leads' 
+                    subsource_new_count = new_leads_by_subsource[subsource].count()
+                    #source_count += subsource_new_count
                     results_data[sources[i]][subsource]['New'] = {}
-                    results_data[sources[i]][subsource]['New']['Visits'] = subsource_count
+                    results_data[sources[i]][subsource]['New']['Visits'] = subsource_new_count
                     results_ids[sources[i]][subsource]['New'] = {}
-                    #print 'goibg ubti sirce 2'
+                    
                     for lead in list(new_leads_by_subsource[subsource]):
-                        print 'lead id is ' + str(lead['hspt_id']) + ' and day end is ' + str(utc_day_end_epoch)
+                        #print 'new lead id is ' + str(lead['hspt_id']) 
                         #first, find the stage of the contact as of the day of the visit
                         lead_stage = ''
                         lead_stages = lead['leads']['hspt']['versions']['lifecyclestage']
@@ -2833,7 +2847,7 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
                             else:
                                     lead_stage = 'Unknown'
                                     
-                        print 'lead stage is ' + lead_stage   
+                        #print 'lead stage is ' + lead_stage   
                             
                         if lead_stage not in results_data[sources[i]][subsource]['New']:
                             results_data[sources[i]][subsource]['New'][lead_stage] = {}
@@ -2856,116 +2870,106 @@ def hspt_facebook_leads(user_id, company_id, chart_name, mode, start_date):
                             results_data[sources[i]][subsource]['New'][lead_stage]['Unassigned'] +=1 
                             results_ids[sources[i]][subsource]['New'][lead_stage]['Unassigned'].append(lead['hspt_id'])
                             
-                          
-                if sources[i] == 'SOCIAL_MEDIA':
-                    print 'new leads on social media '+ str(results_data[sources[i]])
+                    ##find all existing leads who visited today from each subsource
+                    #querydict = {company_query: company_id, repeat_visit_date_gte_qry: utc_day_start_epoch, repeat_visit_date_lte_qry: utc_day_end_epoch}    
+                    search_url = None
+                    if sources[i] == 'REFERRALS':
+                        search_url = original_subsource
+                    elif sources[i] == 'SOCIAL_MEDIA':
+                        search_url = url_map.get(original_subsource, None)
                     
-            continue
-        
-            #find all existing leads who visited today from each subsource
-            querydict = {company_query: company_id, repeat_url_qry: 'facebook.com', repeat_visit_date_gte_qry: utc_day_start_epoch, repeat_visit_date_lte_qry: utc_day_end_epoch}
-            #print 'time 3 is ' + str(time.time())
-            #leads = Lead.objects(**querydict).only('leads__hspt__properties__hs_analytics_source')
-            old_leads_repeat_visit = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__hs_analytics_first_visit_timestamp__lt=utc_day_start) & Q(leads__hspt__versions__hs_analytics_last_referrer__match={'value':{'$regex' : '.*facebook.*'}, 'timestamp': {'$gte': utc_day_start_epoch, '$lte': utc_day_end_epoch }})).only('hspt_id')
-            #print 'time 4 is ' + str(time.time())
-            print '#oldleads found ' + str(old_leads_repeat_visit.count())
-            continue
-            # we have the leads 
-            
-            opps[date] = {}
-            ids[date] = {}
-            closedwon_status = 'closedwon' #need to make this configurable at company level since it can be changed in Hspt
-            
-            for lead in leads:
-                print 'lead id is ' + lead['hspt_id']
-                source = lead['source_source']
-                if not 'hspt' in lead['opportunities']:
-                    continue
-                lead_opps = lead['opportunities']['hspt']
-                for opp in lead_opps:
-                    print 'starting opp ' + str(opp['dealId']) 
-#                     if opp['CreatedDate'][:10] > date: # if this opp is created after today's date, go to next opp
-#                         continue
-                    properties = opp['properties']
-                    if 'amount' in properties: #amount may be missing in Deal data
-                        if properties['amount']['value'] is None: # don't consider opportunities with a null value
-                            properties['amount']['value'] = 0
-                    else:
-                        properties['amount'] = {}
-                        properties['amount']['value'] = 0
-                    print 'beyond c with opp ' + str(opp['dealId'] )
-                    opp_close_date = properties['closedate']['value']
-                    opp_close_date = datetime.fromtimestamp(float(opp_close_date) / 1000)
-                    local_opp_close_date = get_current_timezone().localize(opp_close_date, is_dst=None)
-                    local_opp_close_date_string = _str_from_date(local_opp_close_date, 'short')
-                    if properties['dealstage']['value'] != closedwon_status or (properties['dealstage']['value'] == closedwon_status and date < local_opp_close_date_string): #open  opportunity created on or before this date OR closed opportunity but still open on this date
-                        if date not in opps: # no other opp yet for this date
-                            print 'in 1/1 with ' + str(opp['dealId'] )
-                            opps[date] = {}
-                            opps[date][source] = {}
-                            opps[date][source]['open'] = float(properties['amount']['value'])
-                            opps[date][source]['closed'] = 0
-                            
-                            ids[date] = {}
-                            ids[date][source] = {}
-                            ids[date][source]['open'] = []
-                            ids[date][source]['closed'] = []
-                            ids[date][source]['open'].append(lead['hspt_id'])
-                        else: #atleast one more opp for this date already exists
-                            print 'in 2/1 with ' + str(opp['dealId'] )
-                            if source not in opps[date]:
-                                opps[date][source] = {}
-                                opps[date][source]['open'] = float(properties['amount']['value'])
-                                opps[date][source]['closed'] = 0
+                    if search_url is not None:
+                        original_search_url = search_url
+                        search_url = '.*' + search_url + '.*'
+                        ##old_leads_by_subsource[subsource] = Lead.objects(**querydict).only('hspt_id').only('leads__hspt__properties__hs_analytics_source_data_1').only('leads__hspt__properties__hs_analytics_source_data_2').only('leads__hspt__properties__lifecyclestage').only('leads__hspt__versions__hs_analytics_last_referrer')
+                        #old_leads_by_subsource[subsource] = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__hs_analytics_first_visit_timestamp__lt=utc_day_start) & Q(leads__hspt__versions__hs_analytics_last_referrer__match={'value':{'$regex' : search_url}, 'timestamp': {'$gte': utc_day_start_epoch, '$lte': utc_day_end_epoch }})).only('hspt_id').only('leads__hspt__properties__hs_analytics_source_data_1').only('leads__hspt__properties__hs_analytics_source_data_2').only('leads__hspt__properties__lifecyclestage').only('leads__hspt__versions__hs_analytics_last_referrer')
                         
-                                ids[date][source] = {}
-                                ids[date][source]['open'] = []
-                                ids[date][source]['closed'] = []
-                                ids[date][source]['open'].append(lead['hspt_id'])
-                            else: #source already exists
-                                opps[date][source]['open'] += float(properties['amount']['value'])
-                                ids[date][source]['open'].append(lead['hspt_id'])
-                            
-                    elif properties['dealstage']['value'] == closedwon_status and date == local_opp_close_date_string: # opp is closed on this date
-                        if date not in opps: # no other opp yet for this date
-                            print 'in 1/2 with ' + str(opp['dealId'] )
-                            opps[date] = {}
-                            opps[date][source] = {}
-                            opps[date][source]['open'] = 0
-                            opps[date][source]['closed'] =float(properties['amount']['value'])
-                            
-                            ids[date] = {}
-                            ids[date][source] = {}
-                            ids[date][source]['closed'] = []
-                            ids[date][source]['open'] = []
-                            ids[date][source]['closed'].append(lead['hspt_id'])
-                        else: #atleast one more opp for this date already exists
-                            print 'in 2/2 with ' + str(opp['dealId'] )
-                            if source not in opps[date]:
-                                opps[date][source] = {}
-                                opps[date][source]['open'] = 0
-                                opps[date][source]['closed'] = float(properties['amount']['value'])
+                        if subsource == 'Facebook':
+                            print 'day start is ' + str(utc_day_start) + ' and tmiestamps are ' + str(utc_day_start_epoch) + ' and ' + str(utc_day_end_epoch) + ' for search ' + str(search_url)
+                        old_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'leads.hspt.properties.hs_analytics_source' : sources[i],  'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$lt': utc_day_start}, 'leads.hspt.versions.hs_analytics_last_referrer': {'$elemMatch': {'value' : {'$regex': search_url}, 'timestamp': {'$gte': utc_day_start_epoch, '$lte': utc_day_end_epoch }}}})
+                        print 'found old leads'
+                        if sources[i] == 'SOCIAL_MEDIA':
+                            print '#old leads found for subsource ' + subsource + ' ' + str(old_leads_by_subsource[subsource].count())      
+                        
+                        subsource_old_count = old_leads_by_subsource[subsource].count()
+                        if subsource_old_count == 0:
+                            continue
+                        #source_count += subsource_old_count
+                        results_data[sources[i]][subsource]['Repeat'] = {}
+                        results_data[sources[i]][subsource]['Repeat']['Visits'] = subsource_old_count
+                        results_ids[sources[i]][subsource]['Repeat'] = {}
+                        
+                        for lead in list(old_leads_by_subsource[subsource]):
+                            print 'old lead id is ' + str(lead['hspt_id'])
+                            #first, find the stage of the contact as of the day of the visit
+                            lead_stage = ''
+                            lead_stages = lead['leads']['hspt']['versions']['lifecyclestage']
+                            if len(lead_stages) <= 1: #there's less than two status changes so stage as of visit is the same as current stage
+                                lead_stage = lead['leads']['hspt']['properties']['lifecyclestage']
+                            else:
+                                #sorted_lead_stages = sorted(lead_stages, key=itemgetter('timestamp'), reverse=True)   
+                                #we now have the stages sorted in descending order of time
+                                filtered_lead_stages = list(l for l in lead_stages if l['timestamp'] < utc_day_end_epoch)
+                                if len(filtered_lead_stages) > 0:
+                                    entry = max(filtered_lead_stages, key=lambda x:x['timestamp'])
+                                    if 'value' in entry:
+                                        lead_stage = entry['value']
+                                    else:
+                                        lead_stage = 'Unknown'
+                                else:
+                                        lead_stage = 'Unknown'
+                                        
+                            #print 'lead stage is ' + lead_stage   
                                 
-                                ids[date][source] = {}
-                                ids[date][source]['closed'] = []
-                                ids[date][source]['open'] = []
-                                ids[date][source]['closed'].append(lead['hspt_id'])
-                            else: #source already exists
-                                opps[date][source]['closed'] += float(properties['amount']['value'])
-                                ids[date][source]['closed'].append(lead['hspt_id'])
-                                
+                            if lead_stage not in results_data[sources[i]][subsource]['Repeat']:
+                                results_data[sources[i]][subsource]['Repeat'][lead_stage] = {}
+                            if lead_stage not in results_ids[sources[i]][subsource]['Repeat']:
+                                results_ids[sources[i]][subsource]['Repeat'][lead_stage] = {}
+                            
+                            #loop through the last referring pages to find the ones relevant for this day
+                            utm_campaign_string = 'utm_campaign='
+                            ampersand_char = '&'
+                            visits = lead['leads']['hspt']['versions']['hs_analytics_last_referrer']
+                            for visit in visits:
+                                if not (visit['timestamp'] >= utc_day_start_epoch and visit['timestamp'] <= utc_day_end_epoch and original_search_url in visit['value']):
+                                    continue # skip to the next visit record
+                                #this visit record meets the conditions so process it
+                                #find the campaign from the last referring page
+                                if utm_campaign_string in visit['value']: #this is from a campaign referral
+                                    #this gives us the string after utm_campaign=
+                                    first_split = visit['value'].split(utm_campaign_string, 1)[1]
+                                    #now split again on '&' to get the campaign name
+                                    campaign_name = first_split.split(ampersand_char, 1)[0]
+                                    campaign_name = urllib2.unquote(campaign_name)
+                                    source_data_2 = campaign_name.replace('.', '~')
+                                else:
+                                    source_data_2 = 'Unassigned'
+                                print 'source data 2 is ' + source_data_2
+                                #capture the original source of the lead
+                                original_subsource = lead['leads']['hspt']['properties'].get('hs_analytics_source_data_1', None) 
+                                original_subsource = original_subsource.replace('.', '~')
+                                print 'original source is ' + original_subsource
+                                if source_data_2 not in results_data[sources[i]][subsource]['Repeat'][lead_stage]:
+                                    results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2] = {}
+                                #print 'skip 1'
+                                if original_subsource not in results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2]:
+                                    results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource] = {}
+                                    results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource]['Total']= 0
+                                    results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource]['Average # Touches'] = 0   
+                                #print 'skip 2'
+                                if source_data_2 not in results_ids[sources[i]][subsource]['Repeat'][lead_stage]:
+                                    results_ids[sources[i]][subsource]['Repeat'][lead_stage][source_data_2] = {}
+                                if original_subsource not in results_ids[sources[i]][subsource]['Repeat'][lead_stage][source_data_2]:
+                                    results_ids[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource] = []
+                                #print 'skip 3'
+                                results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource]['Total'] +=1 
+                                results_ids[sources[i]][subsource]['Repeat'][lead_stage][source_data_2][original_subsource].append(lead['hspt_id'])
+                                #print 'skip 4'
+           
             # we are done for this day so do calculations and save the record in DB
-            analyticsData.results = {}
-            analyticsIds.results = {}
-            for entry in opps[date]: 
-                encoded_key = encodeKey(entry)
-                analyticsData.results[encoded_key] = {}
-                analyticsData.results[encoded_key]['open'] = opps[date][entry]['open']
-                analyticsData.results[encoded_key]['closed'] = opps[date][entry]['closed']
-                
-                analyticsIds.results[encoded_key] = {}
-                analyticsIds.results[encoded_key]['open'] = ids[date][entry]['open']
-                analyticsIds.results[encoded_key]['closed'] = ids[date][entry]['closed']
+            analyticsData.results = results_data
+            #print 'skip 5'
+            analyticsIds.results = results_ids
             print 'saving' 
             AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
             AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)

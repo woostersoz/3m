@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import serializers as drfme_serial, DocumentSerializer
 
-from social.models import CompanyTweetCategory, Tweet, TweetMasterList, PublishedTweet, FbAdInsight
+from social.models import CompanyTweetCategory, Tweet, TweetMasterList, PublishedTweet, FbAdInsight, FbPageInsight, FbPostInsight
 from buffpy.models.profile import PATHS, Profile
 from facebookads.objects import Insights
 
@@ -94,3 +94,29 @@ class FbAdInsightSerializer(DocumentSerializer):
                 setattr(instance, k, v)
             return instance
         return FbAdInsight(**attrs)   
+    
+class FbPageInsightSerializer(DocumentSerializer):       
+    
+    class Meta:
+        model = FbPageInsight
+        #fields = ('tweets', 'company',  'published', 'published_date', 'updated_date')
+    
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            for k, v in attrs.iteritems():
+                setattr(instance, k, v)
+            return instance
+        return FbPageInsight(**attrs)   
+    
+class FbPostInsightSerializer(DocumentSerializer):       
+    
+    class Meta:
+        model = FbPageInsight
+        #fields = ('tweets', 'company',  'published', 'published_date', 'updated_date')
+    
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            for k, v in attrs.iteritems():
+                setattr(instance, k, v)
+            return instance
+        return FbPostInsight(**attrs)   

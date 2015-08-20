@@ -67,3 +67,10 @@ class SuperJobMonitor(Document):
     comments = StringField()
     
     meta = {'collection': 'superJobMonitor', 'indexes': ['company_id', 'started_date', 'ended_date', 'status']}
+
+
+class SuperUrlMapping(Document):
+   
+    mappings = ListField(StringField())
+   
+    meta = {'collection': 'superUrlMapping', 'indexes': ['mappings']}

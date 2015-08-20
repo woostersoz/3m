@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import os
+#import django
 
 from celery import Celery
 
-from django.conf import settings
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mmm.settings')
+
+from django.conf import settings
+#django.setup()
 
 app = Celery('mmm', backend='amqp', broker='amqp://')
 

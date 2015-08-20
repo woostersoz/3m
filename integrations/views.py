@@ -1521,6 +1521,28 @@ class FacebookPage:
         response = s.get(url, params=data)
         response_json = response.json()
         return response_json
+    
+    def get_posts(self, page_id, page_token):
+        #graph = self.create_graph()
+        #graph.get_object(id='me/accounts')
+        data = {
+            'access_token': page_token
+        }
+        url = 'https://graph.facebook.com/' + str(page_id) + '/posts'
+        s = requests.Session()
+        response = s.get(url, params=data)
+        response_json = response.json()
+        return response_json
+    
+    def get_post_insights(self, post_id, page_token):
+        data = {
+            'access_token': page_token
+                }
+        url = 'https://graph.facebook.com/v2.4/' + post_id + '/insights'
+        s = requests.Session()
+        response = s.get(url, params=data)
+        response_json = response.json()
+        return response_json
       
 class Twitter:
      
