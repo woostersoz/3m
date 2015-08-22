@@ -21,7 +21,7 @@ from company.models import CompanyIntegration
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from collab.signals import send_notification
 from collab.models import Notification 
-from social.models import PublishedTweet
+from social.models import PublishedTweet, FbAdInsight, FbPageInsight
 from analytics.models import AnalyticsData, AnalyticsIds
 from websites.models import Traffic
 from superadmin.models import SuperUrlMapping
@@ -83,7 +83,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -2744,11 +2744,13 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
         ids = {}
         
         #get all the distinct sources
-        collection = Lead._get_collection()
-        sources = list(collection.find({'company_id':int(company_id)}).distinct('leads.hspt.properties.hs_analytics_source'))
         subsources = {}
-        for i in range(len(sources)):
-            subsources[sources[i]] = list(collection.find({'company_id':int(company_id), 'leads.hspt.properties.hs_analytics_source': sources[i]}).distinct('leads.hspt.properties.hs_analytics_source_data_1'))
+        collection = Lead._get_collection()
+        #sources = collection.find({'company_id':int(company_id)}).distinct('source_source').hint({'company_id': 1, 'source_source': 1})
+        sources = ['OFFLINE', 'DIRECT_TRAFFIC', 'REFERRALS', 'ORGANIC_SEARCH', 'OTHER_CAMPAIGNS', 'SOCIAL_MEDIA', 'PAID_SEARCH', 'EMAIL_MARKETING', 'None']
+        for source in sources:
+            print 'source is ' + str(source)
+            subsources[source] = list(collection.find({'company_id':int(company_id), 'source_source': source}).distinct('leads.hspt.properties.hs_analytics_source_data_1'))
         print 'got subsources ' + str(subsources)
         url_map = SuperUrlMapping.objects()[0]['mappings']
         print 'got mappings ' + str(url_map)
@@ -2774,7 +2776,7 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
             #f_date = f.strftime('%Y-%m-%d')
             #start_date_string = _str_from_date(s)
             collection = Lead._get_collection()
-            print 'date is ' + str(date)
+            
 #             print 's is ' + str(s)
             #print 'start date string is ' + start_date_string
             
@@ -2819,7 +2821,7 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
                     #query for new leads
                     #querydict = {company_query: company_id, source1_qry: subsource, first_visit_date_gte_qry: utc_day_start, first_visit_date_lt_qry: utc_day_end}
                     #new_leads_by_subsource[subsource] = Lead.objects(**querydict).only('hspt_id').only('leads__hspt__properties__hs_analytics_source_data_1').only('leads__hspt__properties__hs_analytics_source_data_2').only('leads__hspt__properties__lifecyclestage').only('leads__hspt__versions__lifecyclestage')
-                    new_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'leads.hspt.properties.hs_analytics_source' : sources[i], 'leads.hspt.properties.hs_analytics_source_data_1' : original_subsource, 'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$gte' : utc_day_start, '$lt' : utc_day_end}})     
+                    new_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'source_source' : sources[i], 'leads.hspt.properties.hs_analytics_source_data_1' : original_subsource, 'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$gte' : utc_day_start, '$lt' : utc_day_end}}, projection={'hspt_id': True, 'source_source': True, 'leads.hspt.properties.hs_analytics_source_data_1': True, 'leads.hspt.properties.hs_analytics_first_visit_timestamp':True, 'leads.hspt.properties.lifecyclestage': True, 'leads.hspt.versions.lifecyclestage': True})     
                     #print 'found new leads' 
                     subsource_new_count = new_leads_by_subsource[subsource].count()
                     #source_count += subsource_new_count
@@ -2856,6 +2858,7 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
                         
                         if 'hs_analytics_source_data_2'  in lead['leads']['hspt']['properties']:
                             source_data_2 = lead['leads']['hspt']['properties']['hs_analytics_source_data_2']
+                            source_data_2 = source_data_2.replace('.', '~')
                             if source_data_2 not in results_data[sources[i]][subsource]['New'][lead_stage]:
                                 results_data[sources[i]][subsource]['New'][lead_stage][source_data_2] = 0
                             if source_data_2 not in results_ids[sources[i]][subsource]['New'][lead_stage]:
@@ -2886,10 +2889,10 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
                         
                         if subsource == 'Facebook':
                             print 'day start is ' + str(utc_day_start) + ' and tmiestamps are ' + str(utc_day_start_epoch) + ' and ' + str(utc_day_end_epoch) + ' for search ' + str(search_url)
-                        old_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'leads.hspt.properties.hs_analytics_source' : sources[i],  'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$lt': utc_day_start}, 'leads.hspt.versions.hs_analytics_last_referrer': {'$elemMatch': {'value' : {'$regex': search_url}, 'timestamp': {'$gte': utc_day_start_epoch, '$lte': utc_day_end_epoch }}}})
-                        print 'found old leads'
-                        if sources[i] == 'SOCIAL_MEDIA':
-                            print '#old leads found for subsource ' + subsource + ' ' + str(old_leads_by_subsource[subsource].count())      
+                        old_leads_by_subsource[subsource] = collection.find({'company_id': int(company_id), 'source_source' : sources[i],  'leads.hspt.properties.hs_analytics_first_visit_timestamp' : {'$lt': utc_day_start}, 'leads.hspt.versions.hs_analytics_last_referrer': {'$elemMatch': {'value' : {'$regex': search_url}, 'timestamp': {'$gte': utc_day_start_epoch, '$lte': utc_day_end_epoch }}}}, projection={'hspt_id': True, 'source_source': True, 'leads.hspt.properties.hs_analytics_source_data_1': True, 'leads.hspt.properties.hs_analytics_first_visit_timestamp':True, 'leads.hspt.properties.lifecyclestage': True, 'leads.hspt.versions.lifecyclestage': True, 'leads.hspt.versions.hs_analytics_last_referrer': True})
+                        #print 'found old leads'
+                        #if sources[i] == 'SOCIAL_MEDIA':
+                            #print '#old leads found for subsource ' + subsource + ' ' + str(old_leads_by_subsource[subsource].count())      
                         
                         subsource_old_count = old_leads_by_subsource[subsource].count()
                         if subsource_old_count == 0:
@@ -2900,7 +2903,7 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
                         results_ids[sources[i]][subsource]['Repeat'] = {}
                         
                         for lead in list(old_leads_by_subsource[subsource]):
-                            print 'old lead id is ' + str(lead['hspt_id'])
+                            #print 'old lead id is ' + str(lead['hspt_id'])
                             #first, find the stage of the contact as of the day of the visit
                             lead_stage = ''
                             lead_stages = lead['leads']['hspt']['versions']['lifecyclestage']
@@ -2944,11 +2947,11 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
                                     source_data_2 = campaign_name.replace('.', '~')
                                 else:
                                     source_data_2 = 'Unassigned'
-                                print 'source data 2 is ' + source_data_2
+                                #print 'source data 2 is ' + source_data_2
                                 #capture the original source of the lead
                                 original_subsource = lead['leads']['hspt']['properties'].get('hs_analytics_source_data_1', None) 
                                 original_subsource = original_subsource.replace('.', '~')
-                                print 'original source is ' + original_subsource
+                                #print 'original source is ' + original_subsource
                                 if source_data_2 not in results_data[sources[i]][subsource]['Repeat'][lead_stage]:
                                     results_data[sources[i]][subsource]['Repeat'][lead_stage][source_data_2] = {}
                                 #print 'skip 1'
@@ -2971,15 +2974,158 @@ def hspt_multichannel_leads(user_id, company_id, chart_name, mode, start_date):
             #print 'skip 5'
             analyticsIds.results = results_ids
             print 'saving' 
-            AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
-            AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
             print 'saved'
         print 'start time was ' + time1 + ' and end time is ' + str(time.time())
     except Exception as e:
         print 'exception is ' + str(e) + ' and type is ' + str(type(e))
         return JsonResponse({'Error' : str(e)})
     
+# hspt_social_roi
 
+def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
+    print 'starting social roi'
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        print 'local start is ' + str(local_start_date)
+        print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
+    
+        delta = timedelta(days=1)
+        e = local_end_date
+        
+        results = {}
+       
+        ids = {}
+        
+        #all query parameters
+        source_created_date_qry = 'source_created_date'
+        company_id_qry = 'company_id'
+        source_metric_name_qry = 'source_metric_name'
+        period_qry = 'data__period'
+        end_time_qry = 'data__values__end_time'
+        source_page_id_qry = 'source_page_id'
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date'
+        
+        #all other predefined data
+        fb_paid_metrics = {'impressions', 'unique_impressions', 'reach', 'clicks', 'website_clicks', 'frequency', 'spend', 'cpc'} #actions array should also be included 
+        fb_organic_metrics = {'page_impressions', 'page_impressions_unique', 'page_impressions_organic', 'page_impressions_organic_unique', 'page_consumptions_by_consumption_type', 'page_positive_feedback_by_type'}  
+        
+        #get all the distinct sources
+        collection = Lead._get_collection()
+        #sources = collection.find({'company_id':int(company_id)}).distinct('source_source').hint({'company_id': 1, 'source_source': 1})
+        sources = ['OFFLINE', 'DIRECT_TRAFFIC', 'REFERRALS', 'ORGANIC_SEARCH', 'OTHER_CAMPAIGNS', 'SOCIAL_MEDIA', 'PAID_SEARCH', 'EMAIL_MARKETING', 'None']
+    
+        # get the FB pages for this company
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        fbokIntegration = existingIntegration.integrations['fbok']
+        fbok_pages = fbokIntegration['pages']
+        
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            print 'utc day start is ' + str(utc_day_start)
+            print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = time.mktime(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = time.mktime(utc_day_end.timetuple()) * 1000
+            results[date] = {}
+            
+            results[date]['Social'] = {}
+            results[date]['Social']['Facebook'] = {}
+            results[date]['Website'] = {}
+            
+            #get FB Paid data
+            results[date]['Social']['Facebook']['Paid'] = []
+            querydict = {company_id_qry : company_id, source_created_date_qry: date}
+            fbPaidList = FbAdInsight.objects(**querydict)
+            
+            for entry in fbPaidList:
+                truncated_entry = {}
+                for metric in fb_paid_metrics: #read all prefedined metrics and copy
+                    if metric in entry['data']:
+                        truncated_entry[metric] = entry['data']
+                if 'actions' in entry['data']:
+                    for list_entry in entry['data']['actions']: #special treatment for actions array
+                        truncated_entry[list_entry['action_type']] = list_entry['value']
+                            
+                sub_object = {'account_id': entry['source_account_id'], 'data': truncated_entry}
+                results[date]['Social']['Facebook']['Paid'].append(sub_object) 
+                
+            #get FB Organic data
+            results[date]['Social']['Facebook']['Organic'] = []  
+            filter_date = s + timedelta(days=1)
+            filter_date_str = _str_from_date(filter_date)
+            for metric in fb_organic_metrics:
+                truncated_entry = {}
+                for fbok_page in fbok_pages:
+                    querydict = {company_id_qry : company_id, source_metric_name_qry: metric, end_time_qry: filter_date_str, source_page_id_qry: fbok_page['id']}
+                    fbOrganicList = FbPageInsight.objects(**querydict).first()
+                    for value in fbOrganicList['values']:
+                        if value['end_time'] == filter_date_str:
+                            for key, value in value['value'].iteritems():
+                                truncated_entry[key] += value
+                 
+                    sub_object = {'page_id': entry['source_page_id'], 'data': truncated_entry}
+                    results[date]['Social']['Facebook']['Organic'].append(sub_object)             
+            
+            queryDict = {company_id_qry : company_id, system_type_qry: 'SO', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'SO'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                 
+            analyticsIds = AnalyticsIds.objects(**queryDict).first()
+            if analyticsIds is None:
+                analyticsIds = AnalyticsIds()
+                analyticsIds.system_type = 'MA'
+                analyticsIds.company_id = company_id  
+                analyticsIds.chart_name = chart_name
+                analyticsIds.date = date
+                analyticsIds.results = {}
+                analyticsIds.save()
+                
+            analyticsData.results = results
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                #AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
+            print 'saved'
+            
+            results_data = {}
+            results_ids = {}
+        #print 'start time was ' + time1 + ' and end time is ' + str(time.time())
+    except Exception as e:
+        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
+        return JsonResponse({'Error' : str(e)})
 
 
 # Buffer Analytics       

@@ -115,13 +115,16 @@ def getAllLeads(request, id):
         page_number = int(request.GET.get('page_number'))
         items_per_page = int(request.GET.get('per_page'))
         offset = (page_number - 1) * items_per_page
-        total = Lead.objects.filter(company_id=company_id).count()
-        total_with_company = Lead.objects.filter(Q(company_id=company_id) & Q(source_company__ne=None)).count()
+        collection = Lead._get_collection()
+        total = collection.find({'company_id' : company_id}).count()
+        total_with_company = collection.find({'company_id' : company_id, 'source_company' : {'$ne' : None}}).count()
+        #total = Lead.objects.filter(company_id=company_id).count()
+        #total_with_company = Lead.objects.filter(Q(company_id=company_id) & Q(source_company__ne=None)).count()
         total_without_company = total - total_with_company
         #queryset = Lead.objects.filter(company_id=company_id).skip(offset).limit(items_per_page)
         queryset = Lead.objects().filter(company_id=company_id).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name')
-        stages = Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
-        sources = Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
+        stages = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
+        sources = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
         serializer = LeadSerializer(queryset, many=True)   
         return JsonResponse({'count' : total, 'results': serializer.data, 'total_with_company': total_with_company, 'total_without_company': total_without_company, 'stages':stages, 'sources':sources})    
     except Exception as e:

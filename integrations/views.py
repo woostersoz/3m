@@ -45,6 +45,7 @@ from facebookads.objects import (
     EdgeIterator
 )
 import facebook
+from facepy import GraphAPI
 #Twitter
 from requests_oauthlib import OAuth1Session
 import oauth2 as oauth
@@ -1189,7 +1190,29 @@ class Hubspot:
             return hspt.get_sources(params = params)
             
         except Exception as e:
-            raise Exception("Could not retrieve analytics from Hubspot: " + str(e))
+            raise Exception("Could not retrieve sources analytics from Hubspot: " + str(e))
+        
+    def get_detailed_traffic(self, channel=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            if channel is None or fromTimestamp is None or toTimestamp is None:
+                return
+            
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
+            #print 'at is ' + self.access_token
+#             hspt = NurturingClient(access_token = self.access_token)
+#             return hspt.get_campaigns(params = params)
+            hspt = AnalyticsClient(access_token = self.access_token)
+            if channel == 'social':
+                return hspt.get_social_breakdown(params = params)
+            else:
+                return None
+            
+        except Exception as e:
+            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
     
     def get_campaigns(self):
         try:
@@ -1436,6 +1459,50 @@ class Facebook:
             return api
         except Exception as e:
             raise Exception("Could not create Facebook API: " + str(e))
+        
+    #@api_view(['GET'])
+    #@renderer_classes((JSONRenderer,))        
+    def get_adaccount_stats(self, company_id, run_type):
+        
+        api = self.create_api(company_id)
+        FacebookAdsApi.set_default_api(api)
+        ### Setup user and read the object from the server
+        me = AdUser(fbid='me', api=api)
+    
+        ### Get first account connected to the user
+        my_account = me.get_ad_account()
+    
+        ### Read connections (in this case, the accounts connected to me)
+    
+        # Pro tip: Use list(me.get_ad_accounts()) to make a list out of
+        # all the elements out of the iterator
+    
+        my_accounts = list(me.get_ad_accounts())
+        
+        if run_type == 'initial':
+            preset = Insights.Preset.last_3_months
+        else:
+            preset = Insights.Preset.last_7_days
+            
+        params = {'date_preset': preset, 'time_increment': 1}
+    
+        accounts = []
+        for account in my_accounts:
+                account_object = {}
+                account_object['id'] = account[AdAccount.Field.id]
+                #account_object['name'] = account[AdAccount.Field.name]
+                account_object['insights'] = []
+                #insights = [insight for insight in EdgeIterator(campaign.get_insights(params=params), Insights)]
+                insights = list(account.get_insights(params=params))
+                #print 'got insights ' + str(insights)
+                for insight in insights:
+                    entries_list = json.loads(json.dumps(insight, default=lambda o: o.__dict__))
+                    entries_list = {'data' : entries_list['_data']}
+                    print 'entries list is ' + str(entries_list)
+                    account_object['insights'].append(entries_list)
+                accounts.append(account_object)
+            
+        return accounts
 
     #@api_view(['GET'])
     #@renderer_classes((JSONRenderer,))        
@@ -1512,9 +1579,12 @@ class FacebookPage:
         response_json = response.json()
         return response_json
     
-    def get_page_insights(self, page_id, page_token):
+    def get_page_insights(self, page_id, page_token, sinceTimestamp, untilTimestamp):
         data = {
-            'access_token': page_token
+            'access_token': page_token,
+            'since': sinceTimestamp,
+            'until': untilTimestamp,
+            'period' : 'day'
                 }
         url = 'https://graph.facebook.com/v2.4/' + page_id + '/insights'
         s = requests.Session()
@@ -1523,16 +1593,20 @@ class FacebookPage:
         return response_json
     
     def get_posts(self, page_id, page_token):
-        #graph = self.create_graph()
-        #graph.get_object(id='me/accounts')
-        data = {
-            'access_token': page_token
-        }
-        url = 'https://graph.facebook.com/' + str(page_id) + '/posts'
-        s = requests.Session()
-        response = s.get(url, params=data)
-        response_json = response.json()
-        return response_json
+#         data = {
+#             'access_token': page_token
+#         }
+#         url = 'https://graph.facebook.com/' + str(page_id) + '/posts'
+#         s = requests.Session()
+#         response = s.get(url, params=data)
+#         response_json = response.json()
+#         return response_json
+
+          graph = GraphAPI(page_token)
+          posts = graph.get(page_id + '/posts')
+          print '# posts ' + str(len(posts))
+          #print 'posts retrieved are ' + str(posts)
+          return posts
     
     def get_post_insights(self, post_id, page_token):
         data = {

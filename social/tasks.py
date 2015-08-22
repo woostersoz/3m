@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import os
-import datetime
+import datetime, calendar, time
 from datetime import timedelta, datetime
 from celery import shared_task
 from mmm.celery import app
@@ -117,7 +117,8 @@ def saveBufrTwInteractionsToMaster(user_id=None, company_id=None, job_id=None, r
 #                         
     except Exception as e:
         send_notification(dict(type='error', success=False, message=str(e)))     
-        
+ 
+#FB Ad Account       
 @app.task
 def retrieveFbokAdStats(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
@@ -133,10 +134,10 @@ def retrieveFbokAdStats(user_id=None, company_id=None, job_id=None, run_type=Non
         if fbok is None:
             raise Exception('Facebook object could not be created')
         
-        print 'calling campaigns'
-        campaigns = fbok.get_campaign_stats(company_id, run_type)
-        print 'found FB campaigns: ' + str(campaigns)
-        saveFbokAdStats(user_id=user_id, company_id=company_id, results=campaigns, job_id=job_id, run_type=run_type)
+        print 'calling accounts'
+        accounts = fbok.get_adaccount_stats(company_id, run_type)
+        print 'found FB accounts: ' + str(accounts)
+        saveFbokAdStats(user_id=user_id, company_id=company_id, results=accounts, job_id=job_id, run_type=run_type)
                 
         
     except Exception as e:
@@ -146,7 +147,7 @@ def retrieveFbokAdStats(user_id=None, company_id=None, job_id=None, run_type=Non
              success=False,
              message=str(e)
             ))      
-        
+    
 #save the data in the temp table
 def saveFbokAdStats(user_id=None, company_id=None, results=None, job_id=None, run_type=None):
     if run_type == 'initial':
@@ -170,6 +171,74 @@ def saveFbokAdStatsToMaster(user_id=None, company_id=None, job_id=None, run_type
     try:
         for i in range(len(fbList)):
             fb_record = {}
+            source_account_id = fbList[i].get('id') 
+            insights = fbList[i]['insights']
+            for insight in insights:
+                fb_record = insight['data']
+                source_created_date = fb_record['date_stop']
+                source_source = 'fbok'  
+               
+                FbAdInsight.objects(Q(company_id=company_id) & Q(source_created_date=source_created_date)& Q(source_account_id=source_account_id)).delete()
+                fbAdInsight = FbAdInsight(data=fb_record, company_id=company_id, source_account_id=source_account_id, source_created_date=source_created_date)
+                fbAdInsight.save()
+            
+    except Exception as e:
+        print 'exception is ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e))) 
+        
+#FB Ad camaign        
+@app.task
+def retrieveFbokAdCampaignStats(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
+    try:
+        print 'starting retrieveFbokAdCampaignStats for company ' + str(company_id)
+        existingIntegration = CompanyIntegration.objects(company_id = company_id).first()
+        if 'fbok' not in existingIntegration['integrations']: # if Buffer is present and configured
+            print 'did not find fbok'
+            raise Exception('Facebook integration not found')
+        integration = existingIntegration.integrations['fbok']
+        if integration['access_token'] is None:
+            raise Exception('Facebook access token not found')
+        fbok = Facebook(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'])
+        if fbok is None:
+            raise Exception('Facebook object could not be created')
+        
+        print 'calling campaigns'
+        campaigns = fbok.get_campaign_stats(company_id, run_type)
+        print 'found FB campaigns: ' + str(campaigns)
+        saveFbokAdCampaignStats(user_id=user_id, company_id=company_id, results=campaigns, job_id=job_id, run_type=run_type)
+                
+        
+    except Exception as e:
+        print 'exception was ' + str(e)
+        send_notification(dict(
+             type='error',
+             success=False,
+             message=str(e)
+            ))      
+    
+#save the data in the temp table
+def saveFbokAdCampaignStats(user_id=None, company_id=None, results=None, job_id=None, run_type=None):
+    if run_type == 'initial':
+        for result in results:
+            saveTempData(company_id=company_id, record_type="fb_ad_campaign_stat", source_system="fbok", source_record=result, job_id=job_id)
+    else:
+        for result in results:
+            saveTempDataDelta(company_id=company_id, record_type="fb_ad_campaign_stat", source_system="fbok", source_record=result, job_id=job_id)
+
+def saveFbokAdCampaignStatsToMaster(user_id=None, company_id=None, job_id=None, run_type=None): #behaves differently because it directly saves the data to the AnalyticsData collection   
+    
+    if run_type == 'initial':
+        fb_stats = TempData.objects(Q(company_id=company_id) & Q(record_type='fb_ad_campaign_stat') & Q(source_system='fbok') & Q(job_id=job_id) ).only('source_record')
+    else:
+        fb_stats = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='fb_ad_campaign_stat') & Q(source_system='fbok') & Q(job_id=job_id) ).only('source_record')
+  
+  
+    fbList = list(fb_stats)
+    fbList = [i['source_record'] for i in fbList]
+    
+    try:
+        for i in range(len(fbList)):
+            fb_record = {}
             source_campaign_id = fbList[i].get('id')
             source_campaign_name = fbList[i].get('name')
             source_account_id = fbList[i].get('account_id') 
@@ -179,18 +248,29 @@ def saveFbokAdStatsToMaster(user_id=None, company_id=None, job_id=None, run_type
                 source_created_date = fb_record['date_stop']
                 source_source = 'fbok'  
                
-                FbAdInsight.objects(Q(company_id=company_id) & Q(source_created_date=source_created_date)& Q(source_campaign_id=source_campaign_id)).delete()
-                fbAdInsight = FbAdInsight(data=fb_record, company_id=company_id, source_campaign_id=source_campaign_id, source_campaign_name=source_campaign_name, source_account_id=source_account_id, source_created_date=source_created_date)
-                fbAdInsight.save()
+                FbAdCampaignInsight.objects(Q(company_id=company_id) & Q(source_created_date=source_created_date)& Q(source_campaign_id=source_campaign_id)).delete()
+                fbAdCampaignInsight = FbAdCampaignInsight(data=fb_record, company_id=company_id, source_campaign_id=source_campaign_id, source_campaign_name=source_campaign_name, source_account_id=source_account_id, source_created_date=source_created_date)
+                fbAdCampaignInsight.save()
             
     except Exception as e:
         print 'exception is ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e))) 
-        
+ 
+#FB Page        
 @app.task
 def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
         print 'starting retrieveFbokPageStats for company ' + str(company_id)
+        #print 'timestamp ' + str(sinceDateTime)
+        if (datetime.now() - sinceDateTime).days > 89:
+            print 'FB does not allow for more than 89 days of data'
+            sinceDateTime = datetime.now - timedelta(days=89)
+        sinceTimestamp = calendar.timegm(sinceDateTime.timetuple())
+        sinceTimestamp = str('{0:f}'.format(sinceTimestamp).rstrip('0').rstrip('.'))
+        untilTimestamp = time.mktime(datetime.now().timetuple())
+        untilTimestamp = str('{0:f}'.format(untilTimestamp).rstrip('0').rstrip('.'))
+        #print 'since ' + str(sinceTimestamp) + ' until ' + str(untilTimestamp)
+    
         existingIntegration = CompanyIntegration.objects(company_id = company_id).first()
         if 'fbok' not in existingIntegration['integrations']: # if Buffer is present and configured
             print 'did not find fbok'
@@ -208,7 +288,8 @@ def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=N
         for page in pages:
             page_token = page['access_token']
             page_id = page['id']
-            page_insights = fbok.get_page_insights(page_id, page_token)
+            print 'page id is ' + str(page_id) + ' and token is ' + str(page_token)
+            page_insights = fbok.get_page_insights(page_id, page_token, sinceTimestamp, untilTimestamp)
             #print 'page insights for ' + page['name'] + ': ' + str(page_insights)
             page_insights_cleaned = json.loads(json.dumps(page_insights['data']), object_hook = replace_dots)
             results = {'page_id': page_id, 'insights': page_insights_cleaned}
@@ -227,7 +308,7 @@ def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=N
 #save the data in the temp table
 def saveFbokPageStats(user_id=None, company_id=None, results=None, job_id=None, run_type=None):
     if run_type == 'initial':
-        print 'results are ' + str(results)
+        #print 'results are ' + str(results)
         #for result in results:
         saveTempData(company_id=company_id, record_type="fb_page_stat", source_system="fbok", source_record=results, job_id=job_id)
     else:
@@ -297,11 +378,12 @@ def retrieveFbokPostStats(user_id=None, company_id=None, job_id=None, run_type=N
             page_token = page['access_token']
             page_id = page['id']
             posts = fbok.get_posts(page_id, page_token)['data']
+            print 'got back #posts ' + str(len(posts))
             for post in posts:
                 post_insights = fbok.get_post_insights(post['id'], page_token)
-                print 'post insights for ' + post['id'] + ': ' + str(post_insights)
+                #print 'post insights for ' + post['id'] + ': ' + str(post_insights)
                 post_insights_cleaned = json.loads(json.dumps(post_insights['data']), object_hook = replace_dots)
-                results = {'page_id': page_id, 'post_id' : post['id'], 'insights': post_insights_cleaned}
+                results = {'page_id': page_id, 'post_id' : post['id'], 'created_time': post['created_time'], 'insights': post_insights_cleaned}
                 saveFbokPostStats(user_id=user_id, company_id=company_id, results=results, job_id=job_id, run_type=run_type)
         #saveFbokAdStats(user_id=user_id, company_id=company_id, results=campaigns, job_id=job_id, run_type=run_type)
                 
@@ -317,7 +399,7 @@ def retrieveFbokPostStats(user_id=None, company_id=None, job_id=None, run_type=N
 #save the data in the temp table
 def saveFbokPostStats(user_id=None, company_id=None, results=None, job_id=None, run_type=None):
     if run_type == 'initial':
-        print 'results are ' + str(results)
+        #print 'results are ' + str(results)
         #for result in results:
         saveTempData(company_id=company_id, record_type="fb_post_stat", source_system="fbok", source_record=results, job_id=job_id)
     else:
@@ -340,6 +422,7 @@ def saveFbokPostStatsToMaster(user_id=None, company_id=None, job_id=None, run_ty
             fb_record = {}
             source_page_id = fbList[i].get('page_id', None)
             source_post_id = fbList[i].get('post_id', None)
+            source_created_date = fbList[i].get('created_time', None)
             insights = fbList[i].get('insights', None)
             for insight in insights:
                 fb_record = insight
@@ -348,9 +431,10 @@ def saveFbokPostStatsToMaster(user_id=None, company_id=None, job_id=None, run_ty
                
                 fbPostInsight = FbPostInsight.objects(Q(company_id=company_id) & Q(source_metric_id=source_metric_id)& Q(source_page_id=source_page_id) & Q(source_post_id=source_post_id)).first()
                 if fbPostInsight is None:
-                    fbPostInsight = FbPostInsight(data=fb_record, company_id=company_id, source_metric_id=source_metric_id, source_metric_name=source_metric_name, source_page_id=source_page_id, source_post_id=source_post_id)
+                    fbPostInsight = FbPostInsight(data=fb_record, company_id=company_id, source_created_date=source_created_date, source_metric_id=source_metric_id, source_metric_name=source_metric_name, source_page_id=source_page_id, source_post_id=source_post_id)
                 else:
                     fbPostInsight['source_metric_name'] = source_metric_name
+                    fbPostInsight['source_created_date'] = source_created_date
                     fbValuesList = fbPostInsight['data']['values']
                     for entry in fb_record['values']: #iterate through each new date value of metric to see if it already exists
                         if fb_record['period'] == 'lifetime':

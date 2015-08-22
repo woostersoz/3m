@@ -58,12 +58,21 @@ class FbAdInsight(Document):
     company_id = IntField()
     data = DictField()
     source_created_date = StringField()
+    source_account_id = StringField()
+    updated_date = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {'collection': 'facebookAdInsight', 'indexes': ['company_id', 'updated_date', 'source_created_date', 'source_account_id'], 'ordering':['-updated_date']}
+
+class FbAdCampaignInsight(Document):
+    company_id = IntField()
+    data = DictField()
+    source_created_date = StringField()
     source_campaign_id = StringField()
     source_campaign_name = StringField()
     source_account_id = StringField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'facebookAdInsight', 'indexes': ['company_id', 'updated_date', 'source_created_date', 'source_account_id', 'source_campaign_id'], 'ordering':['-updated_date']}
+    meta = {'collection': 'facebookAdCampaignInsight', 'indexes': ['company_id', 'updated_date', 'source_created_date', 'source_account_id', 'source_campaign_id'], 'ordering':['-updated_date']}
 
 class FbPageInsight(Document):
     company_id = IntField()
@@ -82,6 +91,7 @@ class FbPostInsight(Document):
     source_metric_name = StringField()
     source_page_id = StringField()
     source_post_id = StringField()
+    source_created_date = StringField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'facebookPostInsight', 'indexes': ['company_id', 'updated_date', 'source_metric_id', 'source_metric_name', 'source_page_id', 'source_post_id'], 'ordering':['-updated_date']}
+    meta = {'collection': 'facebookPostInsight', 'indexes': ['company_id', 'updated_date', 'source_created_date', 'source_metric_id', 'source_metric_name', 'source_page_id', 'source_post_id'], 'ordering':['-updated_date']}

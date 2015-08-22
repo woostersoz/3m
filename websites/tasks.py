@@ -2,7 +2,9 @@ from __future__ import absolute_import
 import os
 import datetime, json, time
 from datetime import timedelta, date, datetime
-import pytz
+from dateutil import parser
+from dateutil.tz import gettz, tzutc
+import pytz, calendar
 from pprint import pprint
 from celery import shared_task
 from mmm.celery import app
@@ -25,6 +27,8 @@ from mmm.views import _str_from_date
 from mmm.views import saveTempData, saveTempDataDelta, _date_from_str
 from websites.models import Traffic
 
+from django.utils.timezone import get_current_timezone
+
 
 @app.task
 def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
@@ -37,7 +41,25 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
         else:
             trafficList = hspt.get_traffic()
         print 'Traffic got: ' + str(len(trafficList))
-        
+        #tzinfos = {"UTC" : gettz(tzutc().tzname)}
+        #print 'tzinfos is ' + str(tzinfos)
+        for traffic in trafficList:
+            date_str = traffic + " 00:00:00 UTC"
+            #print 'date str is ' + date_str
+            utc_day_start = parser.parse(date_str)
+            #print 'utc day start is ' + str(parser.parse(date_str))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000 #use calendar.timegm and not mktime because of UTC
+            utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
+            print 'utc epoch is ' + str(utc_day_start_epoch)
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
+            #return
+            for record in trafficList[traffic]: # this gives each 'breakdown' entry for the day
+                channel = record['breakdown']
+                if channel == 'social': # for now, only consider social
+                    detailedTraffic = hspt.get_detailed_traffic(channel, utc_day_start_epoch, utc_day_start_epoch)
+                    record['breakdowns'] = detailedTraffic.get('breakdowns', None)
         saveHsptWebsiteTraffic(user_id=user_id, company_id=company_id, trafficList=trafficList, job_id=job_id, run_type=run_type)
         
         try:
@@ -60,6 +82,7 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
                 ))          
         return trafficList
     except Exception as e:
+        print 'exception while retrieving sources data from hspt: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
       
 @app.task
@@ -141,17 +164,20 @@ def saveHsptWebsiteTraffic(user_id=None, company_id=None, trafficList=None, job_
             saveTempDataDelta(company_id=company_id, record_type="traffic", source_system="hspt", source_record=record, job_id=job_id)
  
 def saveHsptWebsiteTrafficToMaster(user_id=None, company_id=None, job_id=None, run_type=None): #behaves differently because it directly saves the data to the AnalyticsData collection   
-    
+    #job_id = ObjectId("55d76fb556ea06636022e016")
     if run_type == 'initial':
         traffic = TempData.objects(Q(company_id=company_id) & Q(record_type='traffic') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record')
     else:
         traffic = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='traffic') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record')
     
-    system_type_query = 'system_type'
+    #system_type_query = 'system_type'
     company_query = 'company_id'
-    chart_name_query = 'chart_name'
-    date_query = 'date'
-    chart_name = 'website_traffic'
+    #chart_name_query = 'chart_name'
+    #date_query = 'date'
+    #chart_name = 'website_traffic'
+    source_system_temp = 'hspt'
+    source_system_qry = 'source_system'
+    date_query = 'source_created_date'
         
     trafficList = list(traffic)
     trafficList = [i['source_record'] for i in trafficList]
@@ -159,32 +185,49 @@ def saveHsptWebsiteTrafficToMaster(user_id=None, company_id=None, job_id=None, r
     try:
         for traffic in trafficList:
             date = traffic['date']
-            trafficData = traffic['data']
-            
-            queryDict = {company_query : company_id, system_type_query: 'MA', chart_name_query: chart_name, date_query: date}
+            newTrafficData = traffic['data'] 
+            #queryDict = {company_query : company_id, system_type_query: 'MA', chart_name_query: chart_name, date_query: date}
+            queryDict = {company_query : company_id, source_system_qry: source_system_temp, date_query: date}
                 
-            analyticsData = AnalyticsData.objects(**queryDict).first()
-            if analyticsData is None: #though not Initial, this date's record not found
-                analyticsData = AnalyticsData()
-            analyticsData.system_type = 'MA'
-            analyticsData.company_id = company_id  
-            analyticsData.chart_name = chart_name
-            analyticsData.date = date
-            analyticsData.results = {}
-            analyticsData.save()
-            
-            analyticsData.date = date
-            
-            for record in trafficData:
+            trafficData = Traffic.objects(**queryDict).first()
+            if trafficData is None:  
+                trafficData = Traffic(company_id = company_id)
+            trafficData.source_system = source_system_temp
+            trafficData.source_created_date = date
+            trafficData.data = {}
+            trafficData.save() 
+            for record in newTrafficData:
                 source = record['breakdown']
-                analyticsData.results[source] = {}
+                trafficData.data[source] = {}
                 for datapoint in record:
                     if datapoint != 'breakdown':
-                        analyticsData.results[source][datapoint] = record[datapoint]
+                        trafficData.data[source][datapoint] = record[datapoint]
              
-            AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+            Traffic.objects(id=trafficData.id).update(data = trafficData.data)
+            
+#             analyticsData = AnalyticsData.objects(**queryDict).first()
+#             if analyticsData is None: #though not Initial, this date's record not found
+#                 analyticsData = AnalyticsData()
+#             analyticsData.system_type = 'MA'
+#             analyticsData.company_id = company_id  
+#             analyticsData.chart_name = chart_name
+#             analyticsData.date = date
+#             analyticsData.results = {}
+#             analyticsData.save()
+#             
+#             analyticsData.date = date
+#             
+#             for record in trafficData:
+#                 source = record['breakdown']
+#                 analyticsData.results[source] = {}
+#                 for datapoint in record:
+#                     if datapoint != 'breakdown':
+#                         analyticsData.results[source][datapoint] = record[datapoint]
+#              
+#             AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
                         
     except Exception as e:
+        print 'exception while saving hspt website data ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))     
         
 #save the data in the temp table
@@ -235,7 +278,7 @@ def saveGoogleWebsiteTrafficToMaster(user_id=None, company_id=None, job_id=None,
                 source_created_date = datetime.strptime(ga_record.get('ga:date'), '%Y%m%d').date()
                 source_created_date = _str_from_date(source_created_date, 'short')            
                 Traffic.objects(Q(company_id=company_id) & Q(source_id=source_id)).delete()
-                website = Traffic(data=ga_record, company_id=company_id, source_source='goog', source_id=source_id, source_created_date=source_created_date, source_account_id=source_account_id, source_account_name=source_account_name, source_profile_id=source_profile_id, source_profile_name=source_profile_name)
+                website = Traffic(data=ga_record, company_id=company_id, source_system='goog', source_id=source_id, source_created_date=source_created_date, source_account_id=source_account_id, source_account_name=source_account_name, source_profile_id=source_profile_id, source_profile_name=source_profile_name)
                 website.save()
             
     except Exception as e:

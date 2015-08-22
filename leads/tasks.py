@@ -642,70 +642,7 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
     except Exception as e:
         send_notification(dict(type='error', success=False, message=str(e)))  
         
-#save the data in the temp table
-def saveHsptWebsiteTraffic(user_id=None, company_id=None, trafficList=None, job_id=None, run_type=None):
-    print 'saving Hspt website traffic'
-    
-    if run_type == 'initial':
-        for traffic in trafficList:
-            record = {}
-            record['date'] = traffic
-            record['data'] = trafficList[traffic]
-            saveTempData(company_id=company_id, record_type="traffic", source_system="hspt", source_record=record, job_id=job_id)
-    else:
-        for traffic in trafficList:
-            record = {}
-            record['date'] = traffic
-            record['data'] = trafficList[traffic]
-            saveTempDataDelta(company_id=company_id, record_type="traffic", source_system="hspt", source_record=record, job_id=job_id)
- 
-def saveHsptWebsiteTrafficToMaster(user_id=None, company_id=None, job_id=None, run_type=None): #behaves differently because it directly saves the data to the AnalyticsData collection   
-    
-    if run_type == 'initial':
-        traffic = TempData.objects(Q(company_id=company_id) & Q(record_type='traffic') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record')
-    else:
-        traffic = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='traffic') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record')
-    
-    system_type_query = 'system_type'
-    company_query = 'company_id'
-    chart_name_query = 'chart_name'
-    date_query = 'date'
-    chart_name = 'website_traffic'
-        
-    trafficList = list(traffic)
-    trafficList = [i['source_record'] for i in trafficList]
-    
-    try:
-        for traffic in trafficList:
-            date = traffic['date']
-            trafficData = traffic['data']
-            
-            queryDict = {company_query : company_id, system_type_query: 'MA', chart_name_query: chart_name, date_query: date}
-                
-            analyticsData = AnalyticsData.objects(**queryDict).first()
-            if analyticsData is None: #though not Initial, this date's record not found
-                analyticsData = AnalyticsData()
-            analyticsData.system_type = 'MA'
-            analyticsData.company_id = company_id  
-            analyticsData.chart_name = chart_name
-            analyticsData.date = date
-            analyticsData.results = {}
-            analyticsData.save()
-            
-            analyticsData.date = date
-            
-            for record in trafficData:
-                source = record['breakdown']
-                analyticsData.results[source] = {}
-                for datapoint in record:
-                    if datapoint != 'breakdown':
-                        analyticsData.results[source][datapoint] = record[datapoint]
-             
-            AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
-                        
-    except Exception as e:
-        send_notification(dict(type='error', success=False, message=str(e)))     
-        
+
 #save the data in the temp table
 def saveGoogWebsiteTraffic(user_id=None, company_id=None, account_id=None, account_name=None, profile_id=None, profile_name=None, trafficList=None, job_id=None, run_type=None):
     print 'saving GA website traffic'

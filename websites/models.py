@@ -18,11 +18,11 @@ class Traffic(Document):
     data = DictField()
     source_created_date = StringField()
     source_id = StringField()
-    source_source = StringField()
+    source_system = StringField()
     source_account_id = StringField()
     source_account_name = StringField()
     source_profile_id = StringField()
     source_profile_name = StringField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'traffic', 'indexes': ['company_id', 'source_source', 'updated_date', 'source_created_date', 'source_id'], 'ordering':['-updated_date']}
+    meta = {'collection': 'traffic', 'indexes': ['company_id', 'source_system', 'updated_date', 'source_created_date', 'source_id'], 'ordering':['-updated_date']}
