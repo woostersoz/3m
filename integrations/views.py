@@ -1167,22 +1167,24 @@ class Hubspot:
                 names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp', 'hs_analytics_last_timestamp', 
                 contactList = []
                 with PortalConnection(authentication_key, "3m") as connection:
-                    for contact in get_all_contacts_by_last_update(connection, property_names=names, cutoff_datetime=sinceDateTime):
+                    return get_all_contacts_by_last_update(connection, property_names=names, cutoff_datetime=sinceDateTime)
                         #'firstname', 'lastname', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click',
                         #'hs_analytics_num_page_views', print contact
-                        contactList.append(contact)
-                return contactList
+                        #contactList.append(contact)
+                #return contactList
             else:
                 raise Exception("Could not retrieve field list for Hubspot")
             
         except Exception as e:
             raise Exception("Could not retrieve contacts from Hubspot: " + str(e))
         
-    def get_traffic(self):
+    def get_traffic(self, fromTimestamp=None, toTimestamp=None):
         try:
             self.get_creds()
             params = {}
             params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
             #print 'at is ' + self.access_token
 #             hspt = NurturingClient(access_token = self.access_token)
 #             return hspt.get_campaigns(params = params)
@@ -1214,6 +1216,102 @@ class Hubspot:
         except Exception as e:
             raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
     
+    def get_detailed_traffic_by_campaign(self, channel=None, subChannel=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            if channel is None or fromTimestamp is None or toTimestamp is None:
+                return
+            
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
+            params['d1'] = subChannel
+            #print 'at is ' + self.access_token
+#             hspt = NurturingClient(access_token = self.access_token)
+#             return hspt.get_campaigns(params = params)
+            hspt = AnalyticsClient(access_token = self.access_token)
+            if channel == 'social':
+                return hspt.get_social_breakdown(params = params)
+            else:
+                return None
+            
+        except Exception as e:
+            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
+    
+    def get_contacts_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            if channel is None or fromTimestamp is None or toTimestamp is None:
+                return
+            
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
+            params['d1'] = subChannel
+            params['d2'] = campaign
+            #print 'at is ' + self.access_token
+#             hspt = NurturingClient(access_token = self.access_token)
+#             return hspt.get_campaigns(params = params)
+            hspt = AnalyticsClient(access_token = self.access_token)
+            if channel == 'social':
+                return hspt.get_contacts_breakdown_for_social(params = params)
+            else:
+                return None
+            
+        except Exception as e:
+            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
+    
+    def get_customers_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            if channel is None or fromTimestamp is None or toTimestamp is None:
+                return
+            
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
+            params['d1'] = subChannel
+            params['d2'] = campaign
+            #print 'at is ' + self.access_token
+#             hspt = NurturingClient(access_token = self.access_token)
+#             return hspt.get_campaigns(params = params)
+            hspt = AnalyticsClient(access_token = self.access_token)
+            if channel == 'social':
+                return hspt.get_customers_breakdown_for_social(params = params)
+            else:
+                return None
+            
+        except Exception as e:
+            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
+    
+    def get_leads_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            if channel is None or fromTimestamp is None or toTimestamp is None:
+                return
+            
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['start'] = fromTimestamp
+            params['end'] = toTimestamp
+            params['d1'] = subChannel
+            params['d2'] = campaign
+            #print 'at is ' + self.access_token
+#             hspt = NurturingClient(access_token = self.access_token)
+#             return hspt.get_campaigns(params = params)
+            hspt = AnalyticsClient(access_token = self.access_token)
+            if channel == 'social':
+                return hspt.get_leads_breakdown_for_social(params = params)
+            else:
+                return None
+            
+        except Exception as e:
+            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
+    
+    
     def get_campaigns(self):
         try:
             self.get_creds()
@@ -1226,11 +1324,12 @@ class Hubspot:
         except Exception as e:
             raise Exception("Could not retrieve campaigns from Hubspot: " + str(e))
     
-    def get_deals(self):
+    def get_deals(self, count=500):
         try:
             self.get_creds()
             params = {}
             params['access_token'] = self.access_token
+            params['count'] = count
             #print 'at is ' + self.access_token
 #             hspt = NurturingClient(access_token = self.access_token)
 #             return hspt.get_campaigns(params = params)

@@ -1000,3 +1000,26 @@ ul.analytics-charts > li {
 .chart-title:hover {
 	text-decoration: underline;
 }
+
+#dashboard-funnel-main {
+	text-align: center;
+	position: relative;
+	height: 2000px;
+}
+
+#dashboard-funnel-main *:not(#dashboard-funnel-image) {
+	z-index: 1;
+}
+
+#dashboard-funnel-image {
+	width:100%;
+	max-width:100%;
+	float:left;
+	position: relative;
+	top: -105px;
+	z-index: -99;
+}
+
+#dashboard-funnel-newcontacts {
+    margin-top: 0px;
+}

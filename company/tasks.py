@@ -161,19 +161,19 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {#"mkto" : [retrieveMktoActivities, retrieveMktoLeads,  retrieveMktoCampaigns], \
-#                     "hspt" : [retrieveHsptWebsiteTraffic] #retrieveHsptLeads,retrieveHsptOpportunities, ], \
+#                    "hspt" : [retrieveHsptOpportunities] #retrieveHsptLeads, retrieveHsptWebsiteTraffic, ], \
 #                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts],  \
 #                     "bufr" : [retrieveBufrTwInteractions], \
 #                     "goog" : [retrieveGoogWebsiteTraffic], \
-#                      "fbok" : [retrieveFbokPageStats] #retrieveFbokAdStats, , retrieveFbokPostStats] # , ]
+#                      "fbok" : [retrieveFbokAdStats] #, retrieveFbokPageStats, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {#"mkto" : [saveMktoLeadsToMaster, saveMktoCampaignsToMaster, saveMktoActivitiesToMaster], \
-#                    "hspt" : [saveHsptWebsiteTrafficToMaster] #saveHsptLeadsToMaster]#, saveHsptOpportunitiesToMaster, ], tempDataCleanup \
+#                    "hspt" : [saveHsptOpportunitiesToMaster] #]#saveHsptLeadsToMaster, saveHsptWebsiteTrafficToMaster, ], tempDataCleanup \
 #                     "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster],  \
 #                     "bufr" : [saveBufrTwInteractionsToMaster], \
 #                     "goog": [saveGoogleWebsiteTrafficToMaster], \
-#                      "fbok": [saveFbokPageStatsToMaster] #, , saveFbokAdStatsToMaster, saveFbokPostStatsToMaster] #
+#                      "fbok": [saveFbokAdStatsToMaster] #, saveFbokPageStatsToMaster, , saveFbokPostStatsToMaster] #
                     }
 #         #
 # #         #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, 

@@ -15,7 +15,7 @@
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/dashboards/dashboard.html'
+					templateUrl : '/static/templates/dashboards/dashboard-funnel.html'
 				})
 		        .state(
 				'fbok-test',

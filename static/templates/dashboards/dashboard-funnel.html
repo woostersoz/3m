@@ -1,0 +1,35 @@
+<div class="row">
+	<div class="col-md-12">
+	
+	<!--  dashboard -->
+<div class="portlet light" style="overflow:hidden" ng-cloak>
+  
+  <div class="portlet-title">
+    <div class="caption  col-md-6">
+      <i class="fa fa-random font-blue-madison"></i>
+      <span class="caption-subject bold uppercase font-blue-madison">Funnel
+      From <span class="label label-info">{{ results.start_date }}</span> to <span class="label label-info">{{ results.end_date }}</span>
+      </span>
+    </div>   
+    
+  </div>
+  
+  <div id="dashboard-funnel-main" class="col-md-12" ng-style="{'background-image': 'url({{dashboardFunnelUrl}})', 'background-size': '100%', 'background-repeat': 'no-repeat'}">
+      
+      <h3 id="dashboard-funnel-newcontacts" class="info-metric"  style="color:#1f8a70" title="Number of new contacts in this time period">{{results.created_count | number:0}}</h3> <h4> ( {{ results.percentage_increase }}% ) </h4>
+      <!-- img ng-src="{{dashboardFunnelUrl}}" id="dashboard-funnel-image" / -->
+  
+  </div>
+
+ 
+ 
+    
+    
+  
+</div>  
+<!--  end of dashboard -->
+	
+		
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

@@ -193,8 +193,16 @@ def retrieveHsptLeads(user_id=None, company_id=None, job_id=None, run_type=None,
             except Exception as e:
                 print 'exception: ' + str(e)
         else:
-            leadList = hspt.get_recent_contacts(sinceDateTime)
-            saveHsptLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
+            try:
+                for lead in hspt.get_recent_contacts(sinceDateTime):
+                    leadList.append(lead)
+                    if len(leadList) == 100:
+                        saveHsptLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
+                        leadList = []
+            except Exception as e:
+                print 'exception: ' + str(e)
+#             leadList = hspt.get_recent_contacts(sinceDateTime)
+#             saveHsptLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
         
         #print 'Leads got: ' + str(leadList[0])
         
@@ -464,16 +472,17 @@ def saveHsptLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
 
     
 def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
-    #job_id = ObjectId("55cbb7a356ea0628f85c0075")
-    job_id = ObjectId("55d0d4ac8afb000d3f0a6f45") #new job id on Prodn
+    job_id = ObjectId("55d8c76c56ea066268f1fcc4")
     if run_type == 'initial':
         collection = TempData._get_collection()
         leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'hspt', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
         #leads = collection.find({"company_id" : company_id, "record_type": "lead", "source_system":"hspt", "job_id": job_id}, projection={"source_record": True}, batch_size=100)
         #leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record').order_by('-updated_date')
     else:
-        leads = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record').order_by('-updated_date')
-    
+        #leads = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record').order_by('-updated_date')
+        collection = TempDataDelta._get_collection()
+        leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'hspt', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
     #leadList = list(leads)
     #leadList = [i['source_record'] for i in leadList]
     

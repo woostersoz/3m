@@ -24,11 +24,38 @@ def retrieveMktoOpportunities(user_id=None, company_id=None, job_id=None, run_ty
 @app.task
 def retrieveHsptOpportunities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
-        print 'retrieveing Hspt deals'
+        print 'retrieving Hspt deals'
         hspt = Hubspot(company_id)
-        oppList = hspt.get_deals()
-        print 'got opps ' + str(len(oppList['results']))
-        saveHsptOpportunities(user_id=user_id, company_id=company_id, oppList=oppList, job_id=job_id, run_type=run_type)
+        oppList = []
+#         if run_type == 'initial':
+#             oppList = hspt.get_deals(count=10000)
+#         else:
+#             oppList = hspt.get_deals(count=1000)
+#         print 'got opps ' + str(len(oppList['results']))
+#         saveHsptOpportunities(user_id=user_id, company_id=company_id, oppList=oppList, job_id=job_id, run_type=run_type)
+        #print 'job id is ' + str(job_id)
+        if run_type == 'initial':
+            print 'initial run for opps'
+            try:
+                for opp in hspt.get_deals(count=10000)['results']:
+                    oppList.append(opp)
+                    if len(oppList) == 100:
+                        #print 'going to save'
+                        saveHsptOpportunities(user_id=user_id, company_id=company_id, oppList=oppList, job_id=job_id, run_type=run_type)
+                        oppList = []
+            except Exception as e:
+                print 'exception: ' + str(e)
+        else:
+            try:
+                for opp in hspt.get_deals(count=1000)['results']:
+                    oppList.append(opp)
+                    if len(oppList) == 100:
+                        saveHsptOpportunities(user_id=user_id, company_id=company_id, oppList=oppList, job_id=job_id, run_type=run_type)
+                        oppList = []
+            except Exception as e:
+                print 'exception: ' + str(e)
+        
+        
         try:
             message = 'Opportunities retrieved from Hubspot'
             notification = Notification()
@@ -435,10 +462,10 @@ def saveSfdcOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, ru
 def saveHsptOpportunities(user_id=None, company_id=None, oppList=None, job_id=None, run_type=None):
     print 'saving hspt opps'
     if run_type == 'initial':
-        for opp in oppList['results']:
+        for opp in oppList:
             saveTempData(company_id=company_id, record_type="opportunity", source_system="hspt", source_record=opp, job_id=job_id)
     else:
-        for opp in oppList['results']:
+        for opp in oppList:
             saveTempDataDelta(company_id=company_id, record_type="opportunity", source_system="hspt", source_record=opp, job_id=job_id)
        
 #saves Hspt Deals to Lead collection

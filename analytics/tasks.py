@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from datetime import timedelta, date, datetime
 import pytz
 import os
-import time
+import time, calendar
 import urllib2
 from dateutil import tz
 
@@ -3023,10 +3023,14 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
         system_type_qry = 'system_type'
         chart_name_qry = 'chart_name'
         date_qry = 'date'
+        source_system_qry= 'source_system'
+        hspt_id_qry = 'hspt_id'
+        related_contact_vid_qry = 'leads__hspt__related_contact_vids'
         
         #all other predefined data
         fb_paid_metrics = {'impressions', 'unique_impressions', 'reach', 'clicks', 'website_clicks', 'frequency', 'spend', 'cpc'} #actions array should also be included 
         fb_organic_metrics = {'page_impressions', 'page_impressions_unique', 'page_impressions_organic', 'page_impressions_organic_unique', 'page_consumptions_by_consumption_type', 'page_positive_feedback_by_type'}  
+        source_system = 'hspt'
         
         #get all the distinct sources
         collection = Lead._get_collection()
@@ -3047,53 +3051,187 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
             utc_day_end = utc_day_start + timedelta(seconds=86399)
             print 'utc day start is ' + str(utc_day_start)
             print 'utc day end is ' + str(utc_day_end)
-            utc_day_start_epoch = time.mktime(utc_day_start.timetuple()) * 1000
-            utc_day_end_epoch = time.mktime(utc_day_end.timetuple()) * 1000
-            results[date] = {}
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            print 'utc day starte is ' + str(utc_day_start_epoch)
+            print 'utc day ende is ' + str(utc_day_end_epoch)
+            results = {}
             
-            results[date]['Social'] = {}
-            results[date]['Social']['Facebook'] = {}
-            results[date]['Website'] = {}
+            results['Social'] = {}
+            results['Social']['Facebook'] = {}
+            results['Social']['LinkedIn'] = {}
+            results['Social']['Twitter'] = {}
+            results['Website'] = {}
             
             #get FB Paid data
-            results[date]['Social']['Facebook']['Paid'] = []
+            results['Social']['Facebook']['Paid'] = []
+            sub_object = {} 
             querydict = {company_id_qry : company_id, source_created_date_qry: date}
             fbPaidList = FbAdInsight.objects(**querydict)
-            
+            print 'starting paid'
             for entry in fbPaidList:
+                if entry['source_account_id'] not in sub_object:
+                    sub_object[entry['source_account_id']] = {}
                 truncated_entry = {}
                 for metric in fb_paid_metrics: #read all prefedined metrics and copy
+                    metric = metric.replace('.', '~')
                     if metric in entry['data']:
-                        truncated_entry[metric] = entry['data']
+                        truncated_entry[metric] = entry['data'][metric]
                 if 'actions' in entry['data']:
                     for list_entry in entry['data']['actions']: #special treatment for actions array
+                        list_entry['action_type'] = list_entry['action_type'].replace('.', '~')
+                        if list_entry['action_type'] not in truncated_entry:
+                            truncated_entry[list_entry['action_type']] = 0
                         truncated_entry[list_entry['action_type']] = list_entry['value']
                             
-                sub_object = {'account_id': entry['source_account_id'], 'data': truncated_entry}
-                results[date]['Social']['Facebook']['Paid'].append(sub_object) 
-                
+                sub_object[entry['source_account_id']] = truncated_entry     
+                results['Social']['Facebook']['Paid'].append(sub_object)    
+            print 'finished paid'    
+            
             #get FB Organic data
-            results[date]['Social']['Facebook']['Organic'] = []  
-            filter_date = s + timedelta(days=1)
-            filter_date_str = _str_from_date(filter_date)
-            for metric in fb_organic_metrics:
+            results['Social']['Facebook']['Organic'] = []  
+            #filter_date = s + timedelta(days=1)
+            #filter_date_str = _str_from_date(filter_date)
+            filter_date_str = date + 'T07:00:00+0000' #hack - needs to be changed
+            print 'filter date is ' + filter_date_str
+            sub_object = {} 
+            for fbok_page in fbok_pages:
+                if fbok_page['id'] not in sub_object:
+                    sub_object[fbok_page['id']] = {}  
                 truncated_entry = {}
-                for fbok_page in fbok_pages:
+                
+                        
+                for metric in fb_organic_metrics:
+                    
                     querydict = {company_id_qry : company_id, source_metric_name_qry: metric, end_time_qry: filter_date_str, source_page_id_qry: fbok_page['id']}
                     fbOrganicList = FbPageInsight.objects(**querydict).first()
-                    for value in fbOrganicList['values']:
-                        if value['end_time'] == filter_date_str:
-                            for key, value in value['value'].iteritems():
-                                truncated_entry[key] += value
-                 
-                    sub_object = {'page_id': entry['source_page_id'], 'data': truncated_entry}
-                    results[date]['Social']['Facebook']['Organic'].append(sub_object)             
+                    if fbOrganicList is None: # if no data found for metric, move to the next one
+                        continue
+                    for value in fbOrganicList['data']['values']:
+                        if value['end_time'] == filter_date_str: 
+                            valuex = value['value']
+                            if isinstance(valuex, (int, long)): #if it is a single value
+                                print 'valuex ' + str(valuex)
+                                if metric not in truncated_entry:
+                                    truncated_entry[metric] = 0   
+                                truncated_entry[metric] += valuex
+                            else: # if it is a list of values
+                                for type_entry_key, type_entry_value in valuex.iteritems():
+                                    type_entry_key = type_entry_key.replace('.', '~')
+                                    if type_entry_key not in truncated_entry:
+                                        truncated_entry[type_entry_key] = 0  
+                                    truncated_entry[type_entry_key] += type_entry_value
+                                    
+                sub_object[fbok_page['id']] = truncated_entry     
+                results['Social']['Facebook']['Organic'].append(sub_object)             
+            print 'finished organic'
             
-            queryDict = {company_id_qry : company_id, system_type_qry: 'SO', chart_name_qry: chart_name, date_qry: date}
+            #get HS Sources data 
+            results['Website']['Hubspot'] = {}
+            results['Website']['Hubspot']['Revenue'] = 0
+            querydict = {company_id_qry : company_id, source_system_qry: source_system, source_created_date_qry: date}
+            trafficList = Traffic.objects(**querydict).first()
+            if trafficList is not None and 'data' in trafficList:
+                #results['Website']['Hubspot'].append(trafficList['data']) 
+                for channelKey, channelData in trafficList['data'].items():
+                    print 'channel is ' + channelKey
+                    if channelKey not in results['Website']['Hubspot']:
+                        results['Website']['Hubspot'][channelKey] = {}
+                    results['Website']['Hubspot'][channelKey]['Revenue'] = 0
+                    if channelKey == 'social':
+                        for subchannel in channelData['breakdowns']:
+                            if subchannel['breakdown'] not in results['Website']['Hubspot'][channelKey]:
+                                results['Website']['Hubspot'][channelKey][subchannel['breakdown']] = {}
+                            if 'Paid' not in results['Website']['Hubspot'][channelKey][subchannel['breakdown']]:
+                                results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid'] = {}
+                            if 'Organic' not in results['Website']['Hubspot'][channelKey][subchannel['breakdown']]:
+                                results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Total Visits'] = subchannel.get('visits', 0)
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Contacts'] = subchannel.get('contacts', 0)
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Leads'] = subchannel.get('leads', 0)
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Customers'] = subchannel.get('customers', 0)
+                            campaigns = subchannel.get('campaigns', None)
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Total Visits'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Contacts'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Contacts']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Contacts']['People'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Leads'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Leads']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Leads']['People'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Customers'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Customers']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Customers']['People'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Total Visits'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Contacts'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Contacts']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Contacts']['People'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Leads'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Leads']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Leads']['People'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Customers'] = {}
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Customers']['Total'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Customers']['People'] = []
+                            
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Revenue'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Revenue'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Revenue'] = 0
+                            
+                            
+                            for campaign in campaigns:
+                                contacts = campaign.get('contacts', None)
+                                leads = campaign.get('leads', None)
+                                customers = campaign.get('customers', None)
+                                for person in customers['people']:
+                                        hspt_id = str(person['vid'])
+                                        print 'customer id is ' + str(hspt_id)
+                                        querydict = {company_id_qry: company_id, hspt_id_qry: hspt_id}
+                                        lead = Lead.objects(**querydict).first()
+                                        if lead is None:
+                                            print 'lead 1 not found'
+                                            querydict = {company_id_qry: company_id, related_contact_vid_qry:person['vid']}
+                                            lead = Lead.objects(**querydict).first()
+                                        if lead is None:
+                                            print 'no leads found for this id'
+                                            continue
+                                        else:
+                                            opps = lead['opportunities'].get('hspt', [])
+                                            for opp in opps:
+                                                if opp['properties']['closedate']['timestamp'] >= int(utc_day_start_epoch) and opp['properties']['closedate']['timestamp'] <= int(utc_day_end_epoch):
+                                                    print 'opp found'
+                                                    deal_amount = float(opp['properties']['amount']['value'])
+                                                    if campaign['breakdown'] == 'c90e6907-e895-479c-8689-0d22fa660677': #hardcode? Check this
+                                                        results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Revenue'] += deal_amount
+                                                    else:
+                                                        results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Revenue'] += deal_amount
+                                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Revenue'] += deal_amount
+                                                    results['Website']['Hubspot'][channelKey]['Revenue'] += deal_amount
+                                                    results['Website']['Hubspot']['Revenue'] += deal_amount
+                                if campaign['breakdown'] == 'c90e6907-e895-479c-8689-0d22fa660677': #hardcode? Check this  
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Total Visits'] += campaign.get('visits', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Contacts']['Total'] += contacts.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Contacts']['People'].extend(contacts.get('people', []))
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Leads']['Total'] +=  leads.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Leads']['People'].extend(leads.get('people', []))
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Customers']['Total'] +=  customers.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Customers']['People'].extend(customers.get('people', []))
+                                    
+                                else:
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Total Visits'] += campaign.get('visits', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Contacts']['Total'] += contacts.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Contacts']['People'].extend(contacts.get('people', []))
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Leads']['Total'] +=  leads.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Leads']['People'].extend(leads.get('people', []))
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Customers']['Total'] +=  customers.get('total', 0)
+                                    results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Customers']['People'].extend(customers.get('people', []))
+                                    
+                
+                
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
             analyticsData = AnalyticsData.objects(**queryDict).first()
             if analyticsData is None:
                 analyticsData = AnalyticsData()
-                analyticsData.system_type = 'SO'
+                analyticsData.system_type = 'MA'
                 analyticsData.company_id = company_id  
                 analyticsData.chart_name = chart_name
                 analyticsData.date = date
@@ -3110,7 +3248,9 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
                 analyticsIds.results = {}
                 analyticsIds.save()
                 
+            #print 'results are ' + str(results)
             analyticsData.results = results
+            results = {}
             print 'saving' 
             try:
                 AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
@@ -3119,9 +3259,6 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
                 print 'exception while saving analytics data: ' + str(e)
                 continue
             print 'saved'
-            
-            results_data = {}
-            results_ids = {}
         #print 'start time was ' + time1 + ' and end time is ' + str(time.time())
     except Exception as e:
         print 'exception is ' + str(e) + ' and type is ' + str(type(e))

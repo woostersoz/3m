@@ -58,6 +58,8 @@
 		$scope.rowUrl = staticUrl('images/dashboards-row.png');
 		$scope.pieUrl = staticUrl('images/dashboards-pie.png');
 		
+		$scope.dashboardFunnelUrl = staticUrl('images/dashboard-funnel.png');
+		
 		$scope.dashboard_name = '';
 		$scope.system_type = '';
 		$scope.start_date = '';
