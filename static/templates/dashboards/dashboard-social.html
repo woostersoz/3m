@@ -2,353 +2,275 @@
 	<div class="col-md-12">
 	
 	<!--  dashboard -->
-<div class="portlet light">
+<div class="portlet light" style="overflow:hidden">
   
   <div class="portlet-title">
-    <div class="caption  col-md-6">
-      <i class="fa fa-random font-blue-madison"></i>
+    <div class="caption col-md-6">
+      <i class="fa fa-money font-blue-madison"></i>
       <span class="caption-subject bold uppercase font-blue-madison">Social ROI
       From <span class="label label-info">{{ results.start_date }}</span> to <span class="label label-info">{{ results.end_date }}</span>
       </span>
     </div>   
     
-  </div>
-
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid  #bedb39; border-top:10px solid  #bedb39; margin-top:50px">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-2 text-center">
+    <div class="col-md-6">
+	    <div class="input-group col-sm-7 pull-right">
+				<span class="input-group-addon"><span
+					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+					date-range-picker class="form-control date-picker"
+					style="font-size: 0.7rem !important; width: 75% !important"
+					name="groupDates.date" ng-model="groupDates.date" options="opts"
+					placeholder="Select date range" />
+		</div>
+	</div>
     
-    <h3 class="info-metric"  style="color:#1f8a70" title="Number of new contacts in this time period">{{results.created_count | number:0}}</h3> <h4> ( {{ results.percentage_increase }}% ) </h4>
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-users info-icon"></i>
-    </a>
-    <h4 class="info-label">Contacts</h4>
   </div>
   
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-top:10px solid #fd7400; margin-top:50px">
-    &nbsp;
+  <div class="col-md-12" id="column-headers">
+	  <div class="col-md-1 uppercase bold">
+	    &nbsp;
+	  </div>
+	  <div class="col-md-4 text-center uppercase bold">
+	    Social Metrics
+	  </div>
+	  <div class="col-md-4 text-center uppercase bold">
+	    Website Metrics
+	  </div>
+	  <div class="col-md-3 text-center uppercase bold">
+	    ROI
+	  </div>
   </div>
   
-  <div class="col-md-2">
-    &nbsp;
-  </div>
- 
- <div class="clearfix" style="clear:both; height:0px">
- &nbsp;
- </div>
-  
-  <div class="row list-separated hidden">
-    <div>Contacts created before this period</div>
-    <ul>
-      <li ng-repeat='(key, value) in results.existed_source'>
-         {{ value }} from {{ key }}
-      </li>
-    </ul>
-    <ul>
-      <li ng-repeat='(key, value) in results.existed_stage'>
-         {{ value }} were in {{ key }} stage
-      </li>
-    </ul>
-  </div>
-  
-  <div class="col-md-5 info-box">
-    <div class="text-center info-label">Sources</div>
-    <ul style="list-style:none">
-      <li ng-repeat='(key, value) in results.created_source' class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ sourceNames[key] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#bedb39;">
-            <i ng-show="key == 'EMAIL_MARKETING'" class="icon icon-envelope info-icon-medium"></i>
-            <i ng-show="key == 'DIRECT_TRAFFIC'" class="icon icon-home info-icon-medium"></i>
-            <i ng-show="key == 'OFFLINE'" class="icon icon-cloud-upload info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ value | number:0 }}</p>
-      </li>
-    </ul>
-  </div>
-  <div class="col-md-1">&nbsp;</div>
-  <div class="col-md-6 info-box">
-    <div class="text-center info-label">Stages</div>
-    <ul style="list-style:none; padding-left:0px; margin-left:0px">
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['subscriber'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-user info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['subscriber'] || 0 | number:0 }}</p>
-      </li>
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['lead'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-plus-circle info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['lead'] || 0 | number:0 }}</p>
-      </li>
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['marketingqualifiedlead'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-check-square-o info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
-      </li>
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['salesqualifiedlead'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-thumbs-o-up info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
-      </li>
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['opportunity'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-money info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['opportunity'] || 0 | number:0 }}</p>
-      </li>
-      <li class="info-list-item-compressed text-center">
-         <h6 class="info-label">{{ stageNames['customer'] }}</h6>
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
-            <i class="fa fa-heart info-icon-medium"></i>
-         </a>
-         <p class="info-label">{{ results.created_stage['customer'] || 0 | number:0 }}</p>
-      </li>
-    </ul>
-  </div>
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- <!--  Subscriber -->
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-arrow-down info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ results.existed_stage['subscriber'] + results.leads_subscribers  - results.created_stage['subscriber'] | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358"  title="Number of contacts in this stage">{{results.created_stage['subscriber'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-user info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['subscriber'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="fa fa-calendar info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Average number of days in this stage">{{ results.leads_avg_subscriber_duration }} days</h4>
-  </div>
-  
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of Subscriber -->
-  <!--  Lead -->
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- 
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-arrow-down info-icon"></i>
-    </a>
-    <h4 class="info-label"  title="Number of contacts that moved to the next stage">{{ results.existed_stage['lead'] +  results.leads_leads  - results.created_stage['lead'] | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358" title="Number of contacts in this stage">{{results.created_stage['lead'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-plus-circle  info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['lead'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="fa fa-calendar info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Average number of days in this stage">{{ results.leads_avg_lead_duration }} days</h4>
-  </div>
-  
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of Lead -->
- <!--  MQL -->
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- 
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-arrow-down info-icon"></i>
-    </a>
-    <h4 class="info-label"  title="Number of contacts that moved to the next stage">{{ results.existed_stage['marketingqualifiedlead'] + results.leads_mqls  - results.created_stage['marketingqualifiedlead'] | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358"  title="Number of contacts in this stage">{{results.created_stage['marketingqualifiedlead'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-check-square-o info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['marketingqualifiedlead'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="fa fa-calendar info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Average number of days in this stage">{{ results.leads_avg_mql_duration }} days</h4>
-  </div>
-  
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of MQL --> 
-  <!--  SQL -->
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- 
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-arrow-down info-icon"></i>
-    </a>
-    <h4 class="info-label"  title="Number of contacts that moved to the next stage">{{ results.existed_stage['salesqualifiedlead'] + results.leads_sqls  - results.created_stage['salesqualifiedlead'] | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358"  title="Number of contacts in this stage">{{results.created_stage['salesqualifiedlead'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-thumbs-o-up info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['salesqualifiedlead'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="fa fa-calendar info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Average number of days in this stage">{{ results.leads_avg_sql_duration }} days</h4>
+  <div class="col-md-12 channel-row" id="facebook">
+	  <div class="col-md-1 uppercase bold dashboard-icon-div text-center">
+	    <i class="fa fa-facebook font-blue-madison dashboard-icon"></i>
+	  </div>
+	  <div class="col-md-4 dashboard-results-cell">
+	      <div class="col-md-12 uppercase row-header-1">
+	          Organic
+	      </div>
+	      <div class="col-md-12 row-body-1">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-6">
+		            <i class="fa fa-eye"></i>
+		            <p class="dashboard-metric-name">Impressions</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Impressions | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-6">
+		            <i class="fa fa-gears"></i>
+		            <p class="dashboard-metric-name">Engagement</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Clicks + results.social.Facebook.Organic.Comments + results.social.Facebook.Organic.Shares + results.social.Facebook.Organic.Likes | number:0 }}</p>
+		        </li>
+	          
+	          </ul>
+	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-3">
+		            <i class="fa fa-external-link"></i>
+		            <p class="dashboard-metric-name-small">Clicks</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Clicks | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-comments"></i>
+		            <p class="dashboard-metric-name-small">Comments</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Comments  | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-share-alt"></i>
+		            <p class="dashboard-metric-name-small">Shares</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Shares | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-thumbs-up"></i>
+		            <p class="dashboard-metric-name-small">Likes</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Likes | number:0 }}</p>
+		        </li>
+	          
+	          </ul>
+	          
+	         
+	      </div>
+	      <div class="col-md-12" style="height:10px; background-color: #f9f9f9;">&nbsp;</div>
+	      <div class="col-md-12 uppercase row-header-2">
+	          Paid
+	      </div>
+	      <div class="col-md-12 row-body-2">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-6">
+		            <i class="fa fa-eye"></i>
+		            <p class="dashboard-metric-name">Impressions</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Impressions | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-6">
+		            <i class="fa fa-gears"></i>
+		            <p class="dashboard-metric-name">Engagement</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Clicks + results.social.Facebook.Paid.Comments + results.social.Facebook.Paid.Shares + results.social.Facebook.Paid.Likes | number:0 }}</p>
+		        </li>
+	          
+	          </ul>
+	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-3">
+		            <i class="fa fa-external-link"></i>
+		            <p class="dashboard-metric-name-small">Clicks</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Clicks | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-comments"></i>
+		            <p class="dashboard-metric-name-small">Comments</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Comments  | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-share-alt"></i>
+		            <p class="dashboard-metric-name-small">Shares</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Shares | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-3">
+		            <i class="fa fa-thumbs-up"></i>
+		            <p class="dashboard-metric-name-small">Likes</p>
+		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Likes | number:0 }}</p>
+		        </li>
+	          
+	          </ul>
+	          
+	         
+	      </div>
+	  </div>
+	  <div class="col-md-4 dashboard-results-cell">
+	      <div class="col-md-12 uppercase row-header-1">
+	          &nbsp;
+	      </div>
+	      <div class="col-md-12 row-body-1">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-6">
+		            <i class="fa fa-globe"></i>
+		            <p class="dashboard-metric-name">Visits</p>
+		            <p class="dashboard-metric-value">{{ results.website.Facebook.Organic.Visits | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-6">
+		            <i class="fa fa-money"></i>
+		            <p class="dashboard-metric-name">Deals</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Deals | number:0 }}</a></p>
+		        </li>
+	          
+	          </ul>
+	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-4">
+		            <i class="fa fa-user"></i>
+		            <p class="dashboard-metric-name-small">Contacts</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Contacts | number:0 }}</a></p>
+		        </li>
+		        <li class="text-center col-md-4">
+		            <i class="fa fa-bullhorn"></i>
+		            <p class="dashboard-metric-name-small">Leads</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Leads  | number:0 }}</a></p>
+		        </li>
+		        <li class="text-center col-md-4">
+		            <i class="fa fa-heart-o"></i>
+		            <p class="dashboard-metric-name-small">Customers</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Customers | number:0 }}</a></p>
+		        </li>
+		        
+	          </ul>
+	       </div>   
+	      <div class="col-md-12" style="height:10px; background-color: #f9f9f9;">&nbsp;</div>    
+	      <div class="col-md-12 uppercase row-header-2">
+	          &nbsp;
+	      </div>
+	      <div class="col-md-12 row-body-2">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-6">
+		            <i class="fa fa-globe"></i>
+		            <p class="dashboard-metric-name">Visits</p>
+		            <p class="dashboard-metric-value">{{ results.website.Facebook.Paid.Visits | number:0 }}</p>
+		        </li>
+		        <li class="text-center col-md-6">
+		            <i class="fa fa-money"></i>
+		            <p class="dashboard-metric-name">Deals</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Deals | number:0 }}</a></p>
+		        </li>
+	          
+	          </ul>
+	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-4">
+		            <i class="fa fa-user"></i>
+		            <p class="dashboard-metric-name-small">Contacts</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Contacts | number:0 }}</a></p>
+		        </li>
+		        <li class="text-center col-md-4">
+		            <i class="fa fa-bullhorn"></i>
+		            <p class="dashboard-metric-name-small">Leads</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Leads  | number:0 }}</a></p>
+		        </li>
+		        <li class="text-center col-md-4">
+		            <i class="fa fa-heart-o"></i>
+		            <p class="dashboard-metric-name-small">Customers</p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Customers | number:0 }}</a></p>
+		        </li>
+		        
+	          </ul>
+	       </div>   
+	  </div>
+	  <div class="col-md-3 dashboard-results-cell">
+	      <div class="col-md-12 uppercase row-header-1">
+	          &nbsp;
+	      </div>
+	      <div class="col-md-12 row-body-1 row-body-no-border">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-12">
+		            <i class="fa fa-dollar"></i>
+		            <p class="dashboard-metric-name">Revenue</p>
+		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Organic.Revenue | currency:"$ " }}</p>
+		        </li>
+		        
+	          </ul>
+	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <ul class="col-md-12" style="margin-bottom:0px">
+	            <li class="text-center col-md-12" style="margin-top:6px">
+		            <i class="fa fa-minus-square-o"></i>
+		            <p class="dashboard-metric-name">Spend</p>
+		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Organic.Spend | currency:"$ " }}</p>
+		        </li>
+	          
+	          </ul>
+	       </div> 
+	      <div class="col-md-12" style="height:10px; background-color: #f9f9f9;">&nbsp;</div>
+	      <div class="col-md-12 uppercase row-header-2">
+	          &nbsp;
+	      </div>
+	      <div class="col-md-12 row-body-2 row-body-no-border">
+	          <ul class="col-md-12">
+	            <li class="text-center col-md-12">
+		            <i class="fa fa-dollar"></i>
+		            <p class="dashboard-metric-name">Revenue</p>
+		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Paid.Revenue | currency:"$ " }}</p>
+		        </li>
+		        
+	          </ul>
+	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <ul class="col-md-12" style="margin-bottom:0px">
+	            <li class="text-center col-md-12" style="margin-top:6px">
+		            <i class="fa fa-minus-square-o"></i>
+		            <p class="dashboard-metric-name">Spend</p>
+		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Paid.Spend | currency:"$ " }}</p>
+		        </li>
+	          
+		        
+	          </ul>
+	       </div> 
+	  </div>
+	  
   </div>
   
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of SQL -->
-  <!--  Opp -->
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- 
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="icon icon-arrow-down info-icon"></i>
-    </a>
-    <h4 class="info-label"  title="Number of contacts that moved to the next stage">{{ results.existed_stage['opportunity'] + results.leads_opps  - results.created_stage['opportunity'] | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358"  title="Number of contacts in this stage">{{results.created_stage['opportunity'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-money info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['opportunity'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="fa fa-calendar info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Average number of days in this stage">{{ results.leads_avg_opp_duration }} days</h4>
-  </div>
-  
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of Opp -->
-  <!--  Customer -->
-  
-  <div class="clearfix" style="clear:both; height:0px">
-    &nbsp;
-  </div>
- 
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-left:10px solid #bedb39; border-bottom:10px solid #bedb39; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
-      <i class="fa fa-dollar info-icon"></i>
-    </a>
-    <h4 class="info-label"  title="Total value of deals closed in this time period">{{ results.closed_deal_value | number:0 }}</h4>
-  </div>
-  
-  <div  class="col-md-2 text-center">
-  <h3 class="info-metric"  style="color:#004358"  title="Number of contacts in this stage">{{results.created_stage['customer'] || 0 | number:0}}</h3>
-    <a class="btn btn-lg text-center" style="color:#004358;">
-      <i class="fa fa-heart info-icon"></i>
-    </a>
-    <h4 class="info-label">{{ stageNames['customer'] }}</h4>
-  </div>
-  
-  <div class="col-md-3 text-center" style="min-height:150px; border-right:10px solid #fd7400; border-bottom:10px solid #fd7400; margin-top:0px; padding-top:30px">
-    <a class="btn btn-lg text-center" style="color:red;">
-      <i class="icon icon-badge info-icon"></i>
-    </a>
-    <h4 class="info-label" title="Highest value of deal closed in this time period">{{ results.max_deal_value | number:0 }}</h4>
-  
-  </div>
-  
-  <div class="col-md-2">
-    &nbsp;
-  </div>
-  
-  <!--  end of Customer -->
-  <div class="clearfix" style="clear:both">
-   &nbsp;
-  </div>
-    
-    
+  <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
   
 </div>  
 <!--  end of dashboard -->
 	
+	<div ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+	<div ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+		
 		
 	</div>
 </div>

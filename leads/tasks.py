@@ -472,7 +472,7 @@ def saveHsptLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
 
     
 def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
-    job_id = ObjectId("55d8c76c56ea066268f1fcc4")
+    #job_id = ObjectId("55dfd3408afb00066d74703f")
     if run_type == 'initial':
         collection = TempData._get_collection()
         leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'hspt', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
@@ -505,9 +505,9 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
             hspt_sql_date = newLead['properties'].get('hs_lifecyclestage_salesqualifiedlead_date', None)
             hspt_opp_date = newLead['properties'].get('hs_lifecyclestage_opportunity_date', None)
             hspt_customer_date = newLead['properties'].get('hs_lifecyclestage_customer_date', None)
-            hspt_created_date = str(newLead['properties'].get('createdate', None))
+            hspt_created_date = newLead['properties'].get('createdate', None)
             if hspt_created_date is None:
-                hspt_created_date = str(newLead['properties'].get('hs_analytics_first_timestamp', None))
+                hspt_created_date = newLead['properties'].get('hs_analytics_first_timestamp', None)
             if hspt_created_date is None:
                 continue
             

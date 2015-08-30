@@ -1,0 +1,95 @@
+<div class="row" ng-show="showDeals" id="dealdrilldown">
+	<div class="col-md-12">
+		<!-- BEGIN TABLE PORTLET-->
+		<div class="portlet light"  style="">
+			<div class="portlet-title">
+				<div class="caption class="col-sm-8">
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Drilldown</span><span class="font-blue-madison font-md"> {{filterTitle}}</span>
+				</div>
+				<div class="btn-group col-sm-4 pull-right chart-tools">
+				    
+					<a href="#" class="btn btn-sm green-jungle pull-right"
+						ng-click="downloadDealsCsv()" title="Download as CSV">
+						<span class="glyphicon glyphicon-download"></span>
+						Download CSV
+						
+					</a>
+			    </div>
+			</div>
+			<div class="portlet-body">
+				<div class="table-toolbar" ng-hide="!vm.deals || !vm.deals.length" >
+					<div class="row">
+						<div class="col-md-12">
+							<div class="btn-group pull-right">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									Tools <i class="fa fa-angle-down"></i>
+								</button>
+								<ul class="dropdown-menu pull-right">
+									<li><a href="#"> Print </a></li>
+									<li><a href="#"> Save as PDF </a></li>
+									<li><a href="#"> Export to Excel </a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table ng-hide="!vm.deals || !vm.deals.length"  class="table table-striped table-hover table-bordered dataTable"
+					id="deals_table" ng-cloak>
+					<thead ng-show="showDeals"> <!-- ng-hide="showDealsDuration && showDeals" && !showDealsDuration -->
+						<tr>
+							<th ng-hide="hideDetailColumn" class="center"></th>
+							<th class="center">Deal ID</th>
+							<th class="center">Name</th>
+							<th class="center">Close Date</th>
+							<th class="center">Amount</th>
+							<th class="center">Related Contact</th>
+						</tr>
+					</thead>
+					
+
+					<tbody>
+						<tr dir-paginate-start="deal in vm.deals | itemsPerPage:10" total-items="totalDeals" current-page="pagination.current">
+							<td class="center" ng-hide=hideDetailColumn>
+							<a ng-hide="showingContact[deal.id]" ng-click="showContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-close"></span>
+							</a>
+							<a ng-show="showingContact[deal.id]" ng-click="hideContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-open"></span>
+							</a>
+							</td>
+							<td class="center">
+							<a ng-if="source_system=='hspt'" target="_blank" href="http://app.hubspot.com/sales/{{portal_id}}/deal/{{deal.deal_id}}">{{ deal.deal_id }}</a>
+							</td>
+							<td class="center">
+							{{ deal.deal_name }}
+							</td>
+							<td class="center">
+							{{ deal.deal_close_date | date:"yyyy-MM-dd 'at' h:mma"  }}
+							</td>
+							<td class="center">
+							{{ deal.deal_amount | currency:"USD " }}
+							</td>
+							<td class="center">
+							<a ng-if="source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{deal.lead_id}}">{{ deal.lead_id }}</a>
+							</td>
+						</tr>
+						<tr dir-paginate-end ng-show="showingContact[deal.id]">
+						<td colspan="9"><ng-include src="'/static/templates/deals/analytics-deals-detail.html'"></ng-include></td>
+						</tr>
+					</tbody>
+					
+					
+					<div ng-hide="vm.deals && vm.deals.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no contacts available.</em>
+						</div>
+					</div>
+
+				</table>
+				<div class="table-pagination-counter" ng-hide="!vm.deals || !vm.deals.length" >Showing {{startDealCounter}} to {{endDealCounter}} of {{totalDeals}}</div><dir-pagination-controls ng-hide="!vm.deals || !vm.deals.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			</div>
+		</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

@@ -15,7 +15,13 @@
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/dashboards/dashboard-funnel.html'
+					templateUrl : function ($stateParams) {
+						var constUrl = '/static/templates/dashboards/';
+						if ($stateParams.type == 'funnel')
+							return constUrl + 'dashboard-funnel.html';
+						else if ($stateParams.type == 'social')
+							return constUrl + 'dashboard-social.html';
+					}
 				})
 		        .state(
 				'fbok-test',

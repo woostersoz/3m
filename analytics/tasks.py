@@ -24,9 +24,10 @@ from collab.models import Notification
 from social.models import PublishedTweet, FbAdInsight, FbPageInsight
 from analytics.models import AnalyticsData, AnalyticsIds
 from websites.models import Traffic
-from superadmin.models import SuperUrlMapping
+from superadmin.models import SuperUrlMapping, SuperIntegration
 
 from django.utils.timezone import get_current_timezone
+from dashboards.tasks import _str_from_date
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -55,7 +56,7 @@ def _str_from_date(dateTime, format=None): # returns a datetime object from a ti
 
 @app.task
 def calculateMktoAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie}
+    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie, "waterfall_chart": mkto_waterfall}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -783,7 +784,7 @@ def mkto_contacts_sources_pie(user_id, company_id, chart_name, mode, start_date)
 #                     analyticsIds.results[source] = []
 #                     leads = Lead.objects(**querydict).only('hspt_id').all()
 #                     for lead in leads:
-#                         analyticsIds.results[source].append(lead.hspt_id)
+#                         analyticsIds.results[source].append(lead['hspt_id'])
              
             #print 'time 3 is ' + str(time.time())
             for key in source_distr.keys():
@@ -968,6 +969,109 @@ def mkto_contacts_revenue_sources_pie(user_id, company_id, chart_name, mode, sta
         print 'exception is ' + str(e) + ' and type is ' + str(type(e))
         return JsonResponse({'Error' : str(e)})
     
+# chart- Waterfall chart
+def mkto_waterfall(user_id, company_id, chart_name, mode, start_date):
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        delta = timedelta(days=1)
+        e = local_end_date
+#         days_list = []
+#         delta = local_end_date - local_start_date
+#         for i in range(delta.days + 1):
+#             days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+       
+        #get all CRM systems
+        crm_systems = SuperIntegration.objects(system_type='CRM').only('code')
+        if crm_systems is None:
+            return
+        crm_systems_list = [d['code'] for d in crm_systems]
+        crm_system_code = None
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        #check which CRM system for this company
+        if existingIntegration is None or 'integrations' not in existingIntegration:
+            raise ValueError('No integration data found'
+                             )
+        for key, value in existingIntegration['integrations'].items():
+            if key in crm_systems_list:
+                crm_system_code = key
+                break
+        if crm_system_code is None:
+            return []
+        
+        #general variables
+        sync_to_sfdc_activity_type_id = 19 #mkto activity type id
+        change_value_activity_type_id = 13 #mkto activity type id
+        collection = Lead._get_collection()
+        
+        #get all the leads that were transferred to Salesforce for this company
+        if crm_system_code == 'sfdc':
+            mkto_leads_mql = collection.find({'company_id' : int(company_id), 'activities.mkto.activityTypeId' : sync_to_sfdc_activity_type_id})
+            mkto_leads_mql_list = list(mkto_leads_mql)
+            print 'found  mql leads ' + str(len(mkto_leads_mql_list))
+        
+        #daily loop begins
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            
+            if crm_system_code == 'sfdc': #if Salesforce
+                #find all leads in MKTO that did not come from SFDC and were created today 
+                mkto_leads_raw = collection.find({'company_id' : int(company_id), 'leads.mkto.sfdcLeadId' : {'$exits': False}, 'source_created_date': {'$gte' : utc_day_start, '$lte': utc_day_end}})
+        
+                #find all leads that were synched to CRM today (successfully - which means Lead Status activity has to occur at the same time as the sync
+                utc_date_string_start = _str_from_date(utc_day_start)
+                utc_date_string_end = _str_from_date(utc_day_end)
+                print 'utc start string is ' + utc_date_string_start
+                print 'utc end string is ' + utc_date_string_end
+                # get all leads with sync to SFDC activities for today
+                sync_activities_list = []
+                for lead in mkto_leads_mql_list :
+                    this_lead_done = False
+                    for d in lead['activities']['mkto']:
+                        if d['activityTypeId'] == sync_to_sfdc_activity_type_id and d['activityDate'] >= utc_date_string_start and d['activityDate'] <= utc_date_string_end:
+                            for c in lead['activities']['mkto']:
+                                if c['activityTypeId'] == change_value_activity_type_id and c['activityDate'] == d['activityDate']:
+                                    sync_activities_list.append({'lead_id': lead['mkto_id'], 'activity': d})
+                                    this_lead_done = True
+                                if this_lead_done:
+                                    break #stop processing this lead if one activity already found
+                        
+                 
+                print 'sync activities are ' + str(sync_activities_list)       
+#                 sync_activities_list = [lead for lead in mkto_leads_mql_list for d in lead['activities']['mkto'] if d['activityTypeId'] == sync_to_sfdc_activity_type_id and d['activityDate'] >= utc_date_string_start and d['activityDate'] <= utc_date_string_end 
+#                                         for c in d['activities']['mkto'] if c['activityTypeId'] == change_value_activity_type_id and c['activityDate'] == d['activityDate']]
+#                 print 'original sync activities are ' + str(sync_activities_list)
+#                 # now check that there was a successful lead status change for the same time as the sync activity else the sync failed
+#                 if sync_activities_list:
+#                     sync_activities_list[:] = [d for d in sync_activities_list for c in d['activities']['mkto'] if c['activityTypeId'] == change_value_activity_type_id and c['activityDate'] == d['activityDate']]
+#                     print 'lead id is ' + str(lead['mkto_id'])
+#                     print 'revised sync activities are ' + str(sync_activities_list)
+                        
+            
+            else: # if not Salesforce
+                return []
+            
+        else:
+            return []
+        
+    except Exception as e:
+        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
+        return JsonResponse({'Error' : str(e)})
 # begin HSPT analytics
 # first chart - 'Timeline"
 def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date): 
@@ -986,9 +1090,9 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
         else:
             #start_date = datetime.utcnow() + timedelta(-30)
             start_date = start_date
-            firstDate = Lead.objects(**querydict).only('source_created_date').order_by('source_created_date').first()
-            print 'date string is ' + str(firstDate['source_created_date'])
-            start_date = firstDate['source_created_date']
+            #firstDate = Lead.objects(**querydict).only('source_created_date').order_by('source_created_date').first()
+            print 'date string is ' + str(start_date)
+            #start_date = firstDate['source_created_date']
         end_date = datetime.utcnow()
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
@@ -1015,12 +1119,16 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
         #print 'co is ' + str(company_id)
         #start_date_created_field_qry = 'leads__hspt__properties__createdate__gte'
         end_date_created_field_qry = 'source_created_date__lte'
+        start_date_created_field_qry = 'source_created_date__gte'
         system_field_qry = 'leads__hspt__exists'
         
-        querydict = {system_field_qry: True, company_field_qry: company_id, end_date_created_field_qry: local_end_date} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-            
-        existingLeads = Lead.objects(**querydict)
-        #print ' count of leads ' + str(len(existingLeads))
+        #querydict = {system_field_qry: True, company_field_qry: company_id, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        #existingLeads = Lead.objects(**querydict)
+        
+        collection = Lead._get_collection()
+        existingLeads = collection.find({'company_id': int(company_id), 'source_created_date': {'$lte': local_end_date}}, batch_size=1000) #'$gte': local_start_date, 
+        
+        print ' count of leads ' + str(existingLeads.count())
         if existingLeads is None:
             return 
         delta = timedelta(days=1)
@@ -1029,11 +1137,18 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
         date_field_map = { "subscriber" : 'hspt_subscriber_date', "lead" : 'hspt_lead_date', "marketingqualifiedlead" : 'hspt_mql_date', "salesqualifiedlead" : 'hspt_sql_date', "opportunity" : 'hspt_opp_date', "customer" : 'hspt_customer_date' } 
         this_lead_done_for_day = False
         
+        lead_counter = 0
         for lead in existingLeads:
-            print 'lead id is ' + str(lead.hspt_id)
+            print 'lead id is ' + str(lead['hspt_id'])
+            lead_counter += 1
+            print 'leadcount is ' + str(lead_counter)
             s = local_start_date - timedelta(days=1)
             #properties = lead.leads['hspt']['properties']
-            current_stage = lead.source_stage
+            current_stage = lead['source_stage']
+            if current_stage not in date_field_map or current_stage is None: #if the stage is not defined in our map, skip the lead
+                continue
+            if date_field_map[current_stage] not in lead: #weird case where there's no date for current stage
+                continue
             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
             current_stage_date = current_stage_date.astimezone(get_current_timezone())
             #print 'current stage date is ' + str(current_stage_date) + ' and stage is ' + current_stage
@@ -1041,7 +1156,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                 #print 's is ' + str(s) + ' and e is ' + str(e)
                 s += delta #increment the day counter
                 this_lead_done_for_day = False
-                current_stage = lead.source_stage # needs to be repeated here since current_stage is changed in the steps below
+                current_stage = lead['source_stage'] # needs to be repeated here since current_stage is changed in the steps below
                 #current_stage = properties['lifecyclestage']
                 
                 #print 'enter date loop with start ' + str(s) + ' and end ' + str(e)
@@ -1060,7 +1175,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                             customer_values_temp_array[array_key] = 1
                         if not array_key in customer_ids_temp_array:
                             customer_ids_temp_array[array_key] = []
-                        customer_ids_temp_array[array_key].append(lead.hspt_id)
+                        customer_ids_temp_array[array_key].append(lead['hspt_id'])
                         this_lead_done_for_day = True
                         continue  
                     if this_lead_done_for_day == False:
@@ -1075,7 +1190,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     opp_values_temp_array[array_key] = 1
                                 if not array_key in opp_ids_temp_array:
                                     opp_ids_temp_array[array_key] = []
-                                opp_ids_temp_array[array_key].append(lead.hspt_id)
+                                opp_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True  
                                 continue
                     if this_lead_done_for_day == False:   
@@ -1090,7 +1205,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     sql_values_temp_array[array_key] = 1
                                 if not array_key in sql_ids_temp_array:
                                     sql_ids_temp_array[array_key] = []
-                                sql_ids_temp_array[array_key].append(lead.hspt_id)
+                                sql_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True  
                                 continue
                     if this_lead_done_for_day == False:   
@@ -1105,7 +1220,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     mql_values_temp_array[array_key] = 1
                                 if not array_key in mql_ids_temp_array:
                                     mql_ids_temp_array[array_key] = []
-                                mql_ids_temp_array[array_key].append(lead.hspt_id)
+                                mql_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False: 
@@ -1120,7 +1235,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     lead_values_temp_array[array_key] = 1
                                 if not array_key in lead_ids_temp_array:
                                     lead_ids_temp_array[array_key] = []
-                                lead_ids_temp_array[array_key].append(lead.hspt_id)
+                                lead_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False:                 
@@ -1135,7 +1250,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     subscriber_values_temp_array[array_key] = 1
                                 if not array_key in subscriber_ids_temp_array:
                                     subscriber_ids_temp_array[array_key] = []
-                                subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                                subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                 
@@ -1151,7 +1266,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 opp_values_temp_array[array_key] = 1
                             if not array_key in opp_ids_temp_array:
                                 opp_ids_temp_array[array_key] = []
-                            opp_ids_temp_array[array_key].append(lead.hspt_id)
+                            opp_ids_temp_array[array_key].append(lead['hspt_id'])
                             this_lead_done_for_day = True  
                             continue
                     if this_lead_done_for_day == False:   
@@ -1166,7 +1281,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     sql_values_temp_array[array_key] = 1
                                 if not array_key in sql_ids_temp_array:
                                     sql_ids_temp_array[array_key] = []
-                                sql_ids_temp_array[array_key].append(lead.hspt_id)
+                                sql_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True  
                                 continue
                     if this_lead_done_for_day == False:   
@@ -1181,7 +1296,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     mql_values_temp_array[array_key] = 1
                                 if not array_key in mql_ids_temp_array:
                                     mql_ids_temp_array[array_key] = []
-                                mql_ids_temp_array[array_key].append(lead.hspt_id)
+                                mql_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False: 
@@ -1196,7 +1311,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     lead_values_temp_array[array_key] = 1
                                 if not array_key in lead_ids_temp_array:
                                     lead_ids_temp_array[array_key] = []
-                                lead_ids_temp_array[array_key].append(lead.hspt_id)
+                                lead_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False:                 
@@ -1211,7 +1326,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     subscriber_values_temp_array[array_key] = 1
                                 if not array_key in subscriber_ids_temp_array:
                                     subscriber_ids_temp_array[array_key] = []
-                                subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                                subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                  
@@ -1227,7 +1342,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 sql_values_temp_array[array_key] = 1
                             if not array_key in sql_ids_temp_array:
                                 sql_ids_temp_array[array_key] = []
-                            sql_ids_temp_array[array_key].append(lead.hspt_id)
+                            sql_ids_temp_array[array_key].append(lead['hspt_id'])
                             this_lead_done_for_day = True  
                             continue
                     if this_lead_done_for_day == False:   
@@ -1242,7 +1357,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     mql_values_temp_array[array_key] = 1
                                 if not array_key in mql_ids_temp_array:
                                     mql_ids_temp_array[array_key] = []
-                                mql_ids_temp_array[array_key].append(lead.hspt_id)
+                                mql_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False: 
@@ -1257,7 +1372,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     lead_values_temp_array[array_key] = 1
                                 if not array_key in lead_ids_temp_array:
                                     lead_ids_temp_array[array_key] = []
-                                lead_ids_temp_array[array_key].append(lead.hspt_id)
+                                lead_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False:                 
@@ -1272,7 +1387,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     subscriber_values_temp_array[array_key] = 1
                                 if not array_key in subscriber_ids_temp_array:
                                     subscriber_ids_temp_array[array_key] = []
-                                subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                                subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                  
@@ -1287,7 +1402,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 mql_values_temp_array[array_key] = 1
                             if not array_key in mql_ids_temp_array:
                                 mql_ids_temp_array[array_key] = []
-                            mql_ids_temp_array[array_key].append(lead.hspt_id)
+                            mql_ids_temp_array[array_key].append(lead['hspt_id'])
                             this_lead_done_for_day = True 
                             continue
                     if this_lead_done_for_day == False: 
@@ -1302,7 +1417,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     lead_values_temp_array[array_key] = 1
                                 if not array_key in lead_ids_temp_array:
                                     lead_ids_temp_array[array_key] = []
-                                lead_ids_temp_array[array_key].append(lead.hspt_id)
+                                lead_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                     if this_lead_done_for_day == False:                 
@@ -1317,7 +1432,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     subscriber_values_temp_array[array_key] = 1
                                 if not array_key in subscriber_ids_temp_array:
                                     subscriber_ids_temp_array[array_key] = []
-                                subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                                subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                 
@@ -1332,7 +1447,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 lead_values_temp_array[array_key] = 1
                             if not array_key in lead_ids_temp_array:
                                 lead_ids_temp_array[array_key] = []
-                            lead_ids_temp_array[array_key].append(lead.hspt_id)
+                            lead_ids_temp_array[array_key].append(lead['hspt_id'])
                             this_lead_done_for_day = True 
                             continue
                     if this_lead_done_for_day == False:                 
@@ -1347,7 +1462,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                     subscriber_values_temp_array[array_key] = 1
                                 if not array_key in subscriber_ids_temp_array:
                                     subscriber_ids_temp_array[array_key] = []
-                                subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                                subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                                 this_lead_done_for_day = True 
                                 continue
                                     
@@ -1362,7 +1477,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 subscriber_values_temp_array[array_key] = 1
                             if not array_key in subscriber_ids_temp_array:
                                 subscriber_ids_temp_array[array_key] = []
-                            subscriber_ids_temp_array[array_key].append(lead.hspt_id)
+                            subscriber_ids_temp_array[array_key].append(lead['hspt_id'])
                             this_lead_done_for_day = True 
                             continue
         
@@ -1688,7 +1803,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['Customers'] = 1
                             if 'Customers' not in ids_array[range]:
                                 ids_array[range]['Customers'] = []
-                            ids_array[range]['Customers'].append(lead.hspt_id)  
+                            ids_array[range]['Customers'].append(lead['hspt_id'])  
                             this_lead_done_for_range = True              
                             
                     if not this_lead_done_for_range and 'hs_lifecyclestage_opportunity_date' in properties:
@@ -1701,7 +1816,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['Opportunities'] = 1
                             if 'Opportunities' not in ids_array[range]:
                                 ids_array[range]['Opportunities'] = []
-                            ids_array[range]['Opportunities'].append(lead.hspt_id)  
+                            ids_array[range]['Opportunities'].append(lead['hspt_id'])  
                             this_lead_done_for_range = True      
                             
                     if not this_lead_done_for_range and 'hs_lifecyclestage_salesqualifiedlead_date' in properties:
@@ -1714,7 +1829,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['SQLs'] = 1
                             if 'SQLs' not in ids_array[range]:
                                 ids_array[range]['SQLs'] = []
-                            ids_array[range]['SQLs'].append(lead.hspt_id) 
+                            ids_array[range]['SQLs'].append(lead['hspt_id']) 
                             this_lead_done_for_range = True
         
                     if not this_lead_done_for_range and 'hs_lifecyclestage_marketingqualifiedlead_date' in properties:
@@ -1727,7 +1842,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['MQLs'] = 1
                             if 'MQLs' not in ids_array[range]:
                                 ids_array[range]['MQLs'] = []
-                            ids_array[range]['MQLs'].append(lead.hspt_id) 
+                            ids_array[range]['MQLs'].append(lead['hspt_id']) 
                             this_lead_done_for_range = True
                             
                     if not this_lead_done_for_range and 'hs_lifecyclestage_lead_date' in properties:
@@ -1740,7 +1855,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['Leads'] = 1
                             if 'Leads' not in ids_array[range]:
                                 ids_array[range]['Leads'] = []
-                            ids_array[range]['Leads'].append(lead.hspt_id) 
+                            ids_array[range]['Leads'].append(lead['hspt_id']) 
                             this_lead_done_for_range = True
                      
                     if not this_lead_done_for_range and 'hs_lifecyclestage_subscriber_date' in properties:
@@ -1753,7 +1868,7 @@ def hspt_contacts_distr_chart_deprecated(user_id, company_id, chart_name, mode, 
                                 date_array[range]['Subscribers'] = 1
                             if 'Subscribers' not in ids_array[range]:
                                 ids_array[range]['Subscribers'] = []
-                            ids_array[range]['Subscribers'].append(lead.hspt_id) 
+                            ids_array[range]['Subscribers'].append(lead['hspt_id']) 
                             this_lead_done_for_range = True
                     
                     if not 'Customers' in date_array[range]:
@@ -1967,10 +2082,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "O->C" not in transitions_ids["Customers"]:
                                     transitions_ids["Customers"]["O->C"] = []
-                                transitions_ids["Customers"]["O->C"].append(lead.hspt_id)
+                                transitions_ids["Customers"]["O->C"].append(lead['hspt_id'])
                                 if "O->C" not in transitions_ids["all"]:
                                     transitions_ids["all"]["O->C"] = []
-                                transitions_ids["all"]["O->C"].append(lead.hspt_id)
+                                transitions_ids["all"]["O->C"].append(lead['hspt_id'])
                             
                             stage_date2 = lead_props.get('hs_lifecyclestage_salesqualifiedlead_date')
                             if stage_date2 is not None and stage_date1 is not None:
@@ -1981,10 +2096,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->O" not in transitions_ids["Customers"]:
                                     transitions_ids["Customers"]["S->O"] = []
-                                transitions_ids["Customers"]["S->O"].append(lead.hspt_id)
+                                transitions_ids["Customers"]["S->O"].append(lead['hspt_id'])
                                 if "S->O" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->O"] = []
-                                transitions_ids["all"]["S->O"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->O"].append(lead['hspt_id'])
                             
                             stage_date3 = lead_props.get('hs_lifecyclestage_marketingqualifiedlead_date')
                             if stage_date3 is not None and stage_date2 is not None:
@@ -1995,10 +2110,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "M->S" not in transitions_ids["Customers"]:
                                     transitions_ids["Customers"]["M->S"] = []
-                                transitions_ids["Customers"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["Customers"]["M->S"].append(lead['hspt_id'])
                                 if "M->S" not in transitions_ids["all"]:
                                     transitions_ids["all"]["M->S"] = []
-                                transitions_ids["all"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["all"]["M->S"].append(lead['hspt_id'])
                             
                             stage_date4 = lead_props.get('hs_lifecyclestage_lead_date')
                             if stage_date4 is not None and stage_date3 is not None: 
@@ -2009,10 +2124,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "L->M" not in transitions_ids["Customers"]:
                                     transitions_ids["Customers"]["L->M"] = []
-                                transitions_ids["Customers"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["Customers"]["L->M"].append(lead['hspt_id'])
                                 if "L->M" not in transitions_ids["all"]:
                                     transitions_ids["all"]["L->M"] = []
-                                transitions_ids["all"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["all"]["L->M"].append(lead['hspt_id'])
                             
                             stage_date5 = lead_props.get('hs_lifecyclestage_subscriber_date')
                             if stage_date5 is not None and stage_date4 is not None: 
@@ -2023,10 +2138,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->L" not in transitions_ids["Customers"]:
                                     transitions_ids["Customers"]["S->L"] = []
-                                transitions_ids["Customers"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["Customers"]["S->L"].append(lead['hspt_id'])
                                 if "S->L" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->L"] = []
-                                transitions_ids["all"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->L"].append(lead['hspt_id'])
                         
                         elif stage == "Opportunities":
                             stage_date2 = lead_props.get('hs_lifecyclestage_salesqualifiedlead_date')
@@ -2038,10 +2153,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->O" not in transitions_ids["Opportunities"]:
                                     transitions_ids["Opportunities"]["S->O"] = []
-                                transitions_ids["Opportunities"]["S->O"].append(lead.hspt_id)
+                                transitions_ids["Opportunities"]["S->O"].append(lead['hspt_id'])
                                 if "S->O" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->O"] = []
-                                transitions_ids["all"]["S->O"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->O"].append(lead['hspt_id'])
                             
                             stage_date3 = lead_props.get('hs_lifecyclestage_marketingqualifiedlead_date')
                             if stage_date3 is not None and stage_date2 is not None:
@@ -2052,10 +2167,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "M->S" not in transitions_ids["Opportunities"]:
                                     transitions_ids["Opportunities"]["M->S"] = []
-                                transitions_ids["Opportunities"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["Opportunities"]["M->S"].append(lead['hspt_id'])
                                 if "M->S" not in transitions_ids["all"]:
                                     transitions_ids["all"]["M->S"] = []
-                                transitions_ids["all"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["all"]["M->S"].append(lead['hspt_id'])
                             
                             stage_date4 = lead_props.get('hs_lifecyclestage_lead_date')
                             if stage_date4 is not None and stage_date3 is not None: 
@@ -2066,10 +2181,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "L->M" not in transitions_ids["Opportunities"]:
                                     transitions_ids["Opportunities"]["L->M"] = []
-                                transitions_ids["Opportunities"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["Opportunities"]["L->M"].append(lead['hspt_id'])
                                 if "L->M" not in transitions_ids["all"]:
                                     transitions_ids["all"]["L->M"] = []
-                                transitions_ids["all"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["all"]["L->M"].append(lead['hspt_id'])
                             
                             stage_date5 = lead_props.get('hs_lifecyclestage_subscriber_date')
                             if stage_date5 is not None and stage_date4 is not None: 
@@ -2080,10 +2195,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->L" not in transitions_ids["Opportunities"]:
                                     transitions_ids["Opportunities"]["S->L"] = []
-                                transitions_ids["Opportunities"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["Opportunities"]["S->L"].append(lead['hspt_id'])
                                 if "S->L" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->L"] = []
-                                transitions_ids["all"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->L"].append(lead['hspt_id'])
                             
                         elif stage == "SQLs":
                             stage_date3 = lead_props.get('hs_lifecyclestage_marketingqualifiedlead_date')
@@ -2095,10 +2210,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "M->S" not in transitions_ids["SQLs"]:
                                     transitions_ids["SQLs"]["M->S"] = []
-                                transitions_ids["SQLs"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["SQLs"]["M->S"].append(lead['hspt_id'])
                                 if "M->S" not in transitions_ids["all"]:
                                     transitions_ids["all"]["M->S"] = []
-                                transitions_ids["all"]["M->S"].append(lead.hspt_id)
+                                transitions_ids["all"]["M->S"].append(lead['hspt_id'])
                             
                             stage_date4 = lead_props.get('hs_lifecyclestage_lead_date')
                             if stage_date4 is not None and stage_date3 is not None: 
@@ -2109,10 +2224,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "L->M" not in transitions_ids["SQLs"]:
                                     transitions_ids["SQLs"]["L->M"] = []
-                                transitions_ids["SQLs"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["SQLs"]["L->M"].append(lead['hspt_id'])
                                 if "L->M" not in transitions_ids["all"]:
                                     transitions_ids["all"]["L->M"] = []
-                                transitions_ids["all"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["all"]["L->M"].append(lead['hspt_id'])
                             
                             stage_date5 = lead_props.get('hs_lifecyclestage_subscriber_date')
                             if stage_date5 is not None and stage_date4 is not None: 
@@ -2123,10 +2238,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->L" not in transitions_ids["SQLs"]:
                                     transitions_ids["SQLs"]["S->L"] = []
-                                transitions_ids["SQLs"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["SQLs"]["S->L"].append(lead['hspt_id'])
                                 if "S->L" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->L"] = []
-                                transitions_ids["all"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->L"].append(lead['hspt_id'])
                             
                         elif stage == "MQLs":
                             stage_date4 = lead_props.get('hs_lifecyclestage_lead_date')
@@ -2138,10 +2253,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "L->M" not in transitions_ids["MQLs"]:
                                     transitions_ids["MQLs"]["L->M"] = []
-                                transitions_ids["MQLs"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["MQLs"]["L->M"].append(lead['hspt_id'])
                                 if "L->M" not in transitions_ids["all"]:
                                     transitions_ids["all"]["L->M"] = []
-                                transitions_ids["all"]["L->M"].append(lead.hspt_id)
+                                transitions_ids["all"]["L->M"].append(lead['hspt_id'])
                             
                             stage_date5 = lead_props.get('hs_lifecyclestage_subscriber_date')
                             if stage_date5 is not None and stage_date4 is not None: 
@@ -2152,10 +2267,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->L" not in transitions_ids["MQLs"]:
                                     transitions_ids["MQLs"]["S->L"] = []
-                                transitions_ids["MQLs"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["MQLs"]["S->L"].append(lead['hspt_id'])
                                 if "S->L" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->L"] = []
-                                transitions_ids["all"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->L"].append(lead['hspt_id'])
                             
                         elif stage == "Leads":
                             stage_date5 = lead_props.get('hs_lifecyclestage_subscriber_date')
@@ -2167,10 +2282,10 @@ def hspt_contacts_pipeline_duration(user_id, company_id, chart_name, mode, start
                                 
                                 if "S->L" not in transitions_ids["Leads"]:
                                     transitions_ids["Leads"]["S->L"] = []
-                                transitions_ids["Leads"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["Leads"]["S->L"].append(lead['hspt_id'])
                                 if "S->L" not in transitions_ids["all"]:
                                     transitions_ids["all"]["S->L"] = []
-                                transitions_ids["all"]["S->L"].append(lead.hspt_id)
+                                transitions_ids["all"]["S->L"].append(lead['hspt_id'])
                     
                         #now that we have gone through all leads in this stage, calculate the average days in the current stage
                         if len(leads) > 0:
@@ -2332,7 +2447,7 @@ def hspt_contacts_sources_pie(user_id, company_id, chart_name, mode, start_date)
 #                     analyticsIds.results[source] = []
 #                     leads = Lead.objects(**querydict).only('hspt_id').all()
 #                     for lead in leads:
-#                         analyticsIds.results[source].append(lead.hspt_id)
+#                         analyticsIds.results[source].append(lead['hspt_id'])
              
             #print 'time 3 is ' + str(time.time())
             for key in source_distr.keys():
@@ -2605,7 +2720,7 @@ def hspt_contacts_sources_pie_deprecated(user_id, company_id, chart_name, mode, 
 #                     analyticsIds.results[source] = []
 #                     leads = Lead.objects(**querydict).only('hspt_id').all()
 #                     for lead in leads:
-#                         analyticsIds.results[source].append(lead.hspt_id)
+#                         analyticsIds.results[source].append(lead['hspt_id'])
              
             #print 'time 3 is ' + str(time.time())
             for key in source_distr.keys():
@@ -3059,8 +3174,8 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
             
             results['Social'] = {}
             results['Social']['Facebook'] = {}
-            results['Social']['LinkedIn'] = {}
-            results['Social']['Twitter'] = {}
+            #results['Social']['LinkedIn'] = {}
+            #results['Social']['Twitter'] = {}
             results['Website'] = {}
             
             #get FB Paid data
@@ -3140,6 +3255,8 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
                     results['Website']['Hubspot'][channelKey]['Revenue'] = 0
                     if channelKey == 'social':
                         for subchannel in channelData['breakdowns']:
+                            if subchannel is None or subchannel['breakdown'] != 'Facebook':
+                                continue
                             if subchannel['breakdown'] not in results['Website']['Hubspot'][channelKey]:
                                 results['Website']['Hubspot'][channelKey][subchannel['breakdown']] = {}
                             if 'Paid' not in results['Website']['Hubspot'][channelKey][subchannel['breakdown']]:
@@ -3174,6 +3291,8 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
                             
                             results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Revenue'] = 0
                             results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Revenue'] = 0
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Deals'] = []
+                            results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Deals'] = []
                             results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Revenue'] = 0
                             
                             
@@ -3199,10 +3318,15 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
                                                 if opp['properties']['closedate']['timestamp'] >= int(utc_day_start_epoch) and opp['properties']['closedate']['timestamp'] <= int(utc_day_end_epoch):
                                                     print 'opp found'
                                                     deal_amount = float(opp['properties']['amount']['value'])
+                                                    deal_name = opp['properties']['dealname']['value']
+                                                    opp_object = {'lead_id' : lead['hspt_id'], 'deal_id': opp['dealId'], 'deal_amount': deal_amount, 'deal_close_date' : opp['properties']['closedate']['timestamp'], 'deal_name' : deal_name}
+                                                    
                                                     if campaign['breakdown'] == 'c90e6907-e895-479c-8689-0d22fa660677': #hardcode? Check this
                                                         results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Revenue'] += deal_amount
+                                                        results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Organic']['Deals'].append(opp_object)
                                                     else:
                                                         results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Revenue'] += deal_amount
+                                                        results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Paid']['Deals'].append(opp_object)
                                                     results['Website']['Hubspot'][channelKey][subchannel['breakdown']]['Revenue'] += deal_amount
                                                     results['Website']['Hubspot'][channelKey]['Revenue'] += deal_amount
                                                     results['Website']['Hubspot']['Revenue'] += deal_amount

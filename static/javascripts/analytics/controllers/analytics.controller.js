@@ -242,7 +242,7 @@
 			$scope.options['chart'][chartType]['dispatch'] = {
 					elementClick : function(e) {
 						$scope.clickedElement = e;
-						handleElementClick(e);
+						handleElementClick(e, false);
 					}
 			};
 
@@ -258,11 +258,16 @@
 		
 		
 		
-		function handleElementClick(e) {
+		function handleElementClick(e, fromPageChange) {
 			
 			$scope.filterBySource = false;
 			$scope.filterByRevenueSource = false;
 			$scope.filterByTweetInteractions = false;
+			if (!fromPageChange)
+			{
+				$scope.pagination = { current: 1 };
+				$scope.currentPage = 1;
+			}
 			
 			if ($scope.chartName == "sources_bar")
 			{
@@ -505,13 +510,40 @@
 			    	
 				}
 			} // if google analytics
+			else if ($scope.chartName == "facebook_organic_engagement")
+			{
+				var account = Authentication
+				.getAuthenticatedAccount();
+				if (account) {
+					
+					$scope.filterBySource = false;
+					$scope.filterByRevenueSource = false;
+					$scope.filterByTweetInteractions = false;
+					
+					var startDate = 0;
+					var endDate = 0;
+					$scope.filterTitle = '(filtered for '
+					    + e.data.x
+						+ ')';
+					startDate = moment(e.data.x)
+					.startOf('day').unix();
+					endDate = moment(e.data.x).endOf('day')
+					.unix();
+					
+					/* Websites.getWebsitesByFilter(account.company,
+							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, $scope.selectedFilterValues)
+							.then(WebsitesSuccessFn, WebsitesErrorFn); */
+					
+			    	
+				}
+			} // if google analytics
 			
 		} 
 	
 		
 		$scope.pageChanged = function(newPage) {
 			$scope.currentPage = newPage;
-			handleElementClick($scope.clickedElement);
+			handleElementClick($scope.clickedElement, true);
 	    }
 		
 		$scope.$watch('groupDates.date', function(newDate, oldDate) { 
@@ -613,6 +645,7 @@
 				}
 				else
 					$scope.data = data.data;
+				
 			}
 		}
 
@@ -639,6 +672,12 @@
 				$scope.showLeadsDuration = false;
 				$scope.showTweets = false;
 				$scope.showWebsiteVisitors = false;
+				
+				if (data.data.portal_id) { // drilldown into HSPT
+					$scope.portal_id = data.data.portal_id;
+					$scope.source_system = 'hspt';
+					
+				}
 				
 				$timeout(function() {
 					$location.hash('leaddrilldown');
@@ -1001,6 +1040,8 @@
         		var resultsPosition = 0;
         		for (var i=0; i < chartFilters.length; i++) {
     				$scope.filterValues[chartFilters[i]] = results[resultsPosition].data.results;
+    				if (results[resultsPosition].data.defaultValue)
+    				   $scope.selectedFilterValues[results[resultsPosition].data.defaultMetric] = results[resultsPosition].data.defaultValue;
     				resultsPosition++;
     			}
         	});

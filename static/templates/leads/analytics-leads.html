@@ -1,12 +1,12 @@
 <div class="row" ng-show="showLeads" id="leaddrilldown">
 	<div class="col-md-12">
 		<!-- BEGIN TABLE PORTLET-->
-		<div class="portlet light"  style="padding-left:0px !important; padding-right:0px !important">
+		<div class="portlet light"  style="">
 			<div class="portlet-title">
-				<div class="caption">
-					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Leads</span><span class="font-blue-madison font-md"> {{filterTitle}}</span>
+				<div class="caption class="col-sm-8">
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Drilldown</span><span class="font-blue-madison font-md"> {{filterTitle}}</span>
 				</div>
-				<div class="btn-group col-sm-6 pull-right chart-tools">
+				<div class="btn-group col-sm-4 pull-right chart-tools">
 				    
 					<a href="#" class="btn btn-sm green-jungle pull-right"
 						ng-click="downloadLeadsCsv()" title="Download as CSV">
@@ -37,15 +37,17 @@
 					id="leads_table" ng-cloak>
 					<thead ng-show="showLeads"> <!-- ng-hide="showLeadsDuration && showLeads" && !showLeadsDuration -->
 						<tr>
-							<th class="center"></th>
+							<th ng-hide="hideDetailColumn" class="center"></th>
+							<th class="center">ID</th>
 							<th class="center">First Name</th>
 							<th class="center">Last Name</th>
 							<th class="center">Email</th>
-							<th class="center">Company</th>
+							<!--  th class="center">Company</th -->
 							<th ng-hide="filterBySource || filterByRevenueSource" class="center">Source</th>
-							<th ng-show="filterBySource || filterByRevenueSource" class="center">Source Detail</th>
+							<th class="center">Source Detail</th>
+							<th class="center">Campaign</th>
 							<th ng-show="filterByRevenueSource" class="center">Revenue</th>
-							<th ng-hide="filterBySource || filterByRevenueSource" class="center">System</th>
+							<!-- th ng-hide="filterBySource || filterByRevenueSource" class="center">System</th -->
 						</tr>
 					</thead>
 					
@@ -68,13 +70,16 @@
 
 					<tbody>
 						<tr dir-paginate-start="lead in vm.leads | itemsPerPage:10" total-items="totalLeads" current-page="pagination.current">
-							<td class="center">
+							<td class="center" ng-hide=hideDetailColumn>
 							<a ng-hide="showingContact[lead.id]" ng-click="showContactDetails(lead)" href="javascript:;">
 							   <span class="row-details row-details-close"></span>
 							</a>
 							<a ng-show="showingContact[lead.id]" ng-click="hideContactDetails(lead)" href="javascript:;">
 							   <span class="row-details row-details-open"></span>
 							</a>
+							</td>
+							<td class="center">
+							<a ng-if="source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{lead.id}}">{{ lead.id }}</a>
 							</td>
 							<td class="center">
 							{{ lead.FirstName }}
@@ -85,16 +90,19 @@
 							<td class="center">
 							{{ lead.Email }}
 							</td>							
-							<td class="center">
-							{{ lead.Company }}</td>
+							<!-- td class="center">
+							{{ lead.Company }}</td -->
 							<td ng-hide="filterBySource || filterByRevenueSource"  class="center">
 							{{ lead.sourceChannel }}
 							</td>
-							<td ng-hide="filterBySource || filterByRevenueSource"  class="center">
+							<!-- td ng-hide="filterBySource || filterByRevenueSource"  class="center">
 							{{ lead.sourceSystem }}
-							</td>
-							<td ng-show="filterBySource || filterByRevenueSource"  class="center">
+							</td -->
+							<td class="center">
 							{{ lead.sourceChannelDetail }}
+							</td>
+							<td class="center">
+							{{ lead.sourceChannelCampaign }}
 							</td>
 							<td ng-show="filterByRevenueSource"  class="center">
 							{{ lead.properties.total_revenue | number : 0 }}
@@ -155,7 +163,7 @@
 					
 					<div ng-hide="vm.leads && vm.leads.length">
 						<div class="col-sm-12 no-symbols-here">
-							<em>There are no leads available.</em>
+							<em>There are no contacts available.</em>
 						</div>
 					</div>
 

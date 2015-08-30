@@ -584,6 +584,119 @@
 	
 		};
 		
+		scope_options.facebook_organic_engagement = {
+				chart : {
+					type : 'multiBarChart',
+					height : 450,
+					margin : {
+						top : 20,
+						right : 20,
+						bottom : 60,
+						left : 45
+					},
+					clipEdge : true,
+					staggerLabels : false,
+					transitionDuration : 500,
+					stacked : false,
+					xAxis : {
+						
+					},
+					yAxis : {
+						axisLabel : 'Numbers',
+						axisLabelDistance : 40,
+						tickFormat : function(d) {
+							return d3.format(',f')(d);
+						}
+					},
+					tooltip: {
+						contentGenerator : function(input) { //key, x, y, e, graph
+					
+						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+						+ input.data.key
+						+ '</h4>'
+						+ '<p>'
+						+ input.data.y
+						+ ' on '
+						+ input.data.x
+						+ '</p></div>'
+						}
+					},
+					multibar : {
+						/*dispatch : {
+							elementClick : function(e) {
+								$scope.clickedElement = e;
+								handleElementClick(e);	
+							}
+						}*/
+					},
+					legend : {
+	
+					}
+	
+				},
+				title : {
+					enable : true,
+					text : 'Facebook Organic Engagement'
+				}
+	
+		};
+		
+		scope_options.facebook_paid_engagement = {
+				chart : {
+					type : 'multiBarChart',
+					height : 450,
+					margin : {
+						top : 20,
+						right : 20,
+						bottom : 60,
+						left : 45
+					},
+					clipEdge : true,
+					staggerLabels : false,
+					transitionDuration : 500,
+					stacked : false,
+					xAxis : {
+						
+					},
+					yAxis : {
+						axisLabel : 'Numbers',
+						axisLabelDistance : 40,
+						tickFormat : function(d) {
+							return d3.format(',f')(d);
+						}
+					},
+					tooltip: {
+						contentGenerator : function(input) { //key, x, y, e, graph
+					
+						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+						+ input.data.key
+						+ '</h4>'
+						+ '<p>'
+						+ input.data.y
+						+ ' on '
+						+ input.data.x
+						+ '</p></div>'
+						}
+					},
+					multibar : {
+						/*dispatch : {
+							elementClick : function(e) {
+								$scope.clickedElement = e;
+								handleElementClick(e);	
+							}
+						}*/
+					},
+					legend : {
+	
+					}
+	
+				},
+				title : {
+					enable : true,
+					text : 'Facebook Paid Engagement'
+				}
+	
+		};
 		/*scope_options.google_analytics = {
 				chart : {
 					type : 'candlestickBarChart',

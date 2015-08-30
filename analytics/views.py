@@ -28,7 +28,7 @@ from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 
 from leads.models import Lead
-from integrations.views import Marketo, Salesforce #, get_sfdc_test
+from integrations.views import Marketo, Salesforce, FacebookPage #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, BinderTemplate, Binder
@@ -58,6 +58,52 @@ def retrieveFilters(request, company_id): #,
             goog_accounts = googIntegration.get('accounts', None)
             result = {'results': goog_accounts}
             return JsonResponse(result, safe=False)
+        
+        elif filter_name == 'facebook_pages':
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+            fbokIntegration = existingIntegration.integrations['fbok']
+            fbok_pages = fbokIntegration.get('pages', None)
+            fbok_access_token = fbokIntegration['access_token']
+            
+            if fbok_access_token is not None:
+                fb = FacebookPage(fbok_access_token)
+                fb_page_details = fb.get_pages()['data']
+                print 'fb details ' + str(fb_page_details)
+            
+            results = []
+            for fbok_page in fbok_pages:
+                obj = {'id': fbok_page['id'], 'name' : ''}
+                for fb_page_detail in fb_page_details:
+                    if fb_page_detail['id'] == fbok_page['id']:
+                        obj['name'] = fb_page_detail['name']
+                results.append(obj)    
+            if len(results) == 1: #if there's only one entry, set that as the default filter value
+                default_page_id = results[0]['id']
+            else:
+                default_page_id = None
+            result = {'results': results, 'defaultValue': default_page_id, 'defaultMetric': 'facebook_page'}
+            return JsonResponse(result, safe=False)
+        
+        elif filter_name == 'facebook_accounts':
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+            fbokIntegration = existingIntegration.integrations['fbok']
+            fbok_acounts = fbokIntegration.get('accounts', None)
+            
+            if len(fbok_acounts) == 1: #if there's only one entry, set that as the default filter value
+                default_account_id = fbok_acounts[0]['id']
+            else:
+                default_account_id = None
+            result = {'results': fbok_acounts, 'defaultValue': default_account_id, 'defaultMetric': 'facebook_account'}
+            return JsonResponse(result, safe=False)
+        
+        elif filter_name == 'comparison_periods':
+            results = []
+            results.append({'id': 1, 'name': 1})
+            results.append({'id': 2, 'name': 2})
+            results.append({'id': 3, 'name': 3})
+            result = {'results': results, 'defaultValue': 1, 'defaultMetric': 'comparison_period'}
+            return JsonResponse(result, safe=False)
+        
         return JsonResponse(None, safe=False)
     except Exception as e:
         print 'exception is ' + str(e)
@@ -84,7 +130,8 @@ def calculateAnalytics(request, company_id): #,
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
-            #print 'found code' + str(code)
+        
+        print 'found code' + str(code)
                   
         if code is  None:
             raise ValueError("No integrations defined")  
@@ -138,6 +185,8 @@ def retrieveAnalytics(request, company_id):
             result = retrieveBufrAnalytics(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, chart_name=chart_name, filters=filters)
         elif code == 'goog': 
             result = retrieveGoogAnalytics(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, chart_name=chart_name, filters=filters)
+        elif code == 'fbok': 
+            result = retrieveFbokAnalytics(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, chart_name=chart_name, filters=filters)
         else:
             result =  'Nothing to report'
         return JsonResponse(result, safe=False)
@@ -249,6 +298,12 @@ def retrieveGoogAnalytics(user_id=None, company_id=None, chart_name=None, start_
     method_map = { "google_analytics" : google_analytics_bar_chart}
     result = method_map[chart_name](user_id, company_id, start_date, end_date, chart_name, filters)
     return result
+
+def retrieveFbokAnalytics(user_id=None, company_id=None, chart_name=None, start_date=None, end_date=None, filters=None):
+    method_map = { "facebook_organic_engagement" : facebook_engagement_bar_chart, "facebook_paid_engagement" : facebook_engagement_bar_chart}
+    result = method_map[chart_name](user_id, company_id, start_date, end_date, chart_name, filters)
+    return result
+
 
 # start of MKTO
 # first chart - 'Timeline"
@@ -1149,6 +1204,167 @@ def tw_performance_bar_chart(user_id, company_id, start_date, end_date, chart_na
     except Exception as e:
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})  
+
+
+#Facebook charts    
+# For chart - 'Website Traffic"
+def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
+    #print 'orig start' + str(start_date)
+    try:
+        filterPage = json.loads(filters).get('facebook_page', None)
+        filterAccount = json.loads(filters).get('facebook_account', None)
+        comparisonPeriod = json.loads(filters).get('comparison_period', None)
+        
+        if chart_name == 'facebook_organic_engagement':
+            if filterPage is None or comparisonPeriod is None:
+                return []
+            
+        if chart_name == 'facebook_paid_engagement':
+            if filterAccount is None or comparisonPeriod is None:
+                return []
+     
+        comparisonPeriod = int(comparisonPeriod)
+        
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        
+        days_list = {}
+        days_list['1'] = []
+        if comparisonPeriod > 1:
+            days_list['2'] = []
+        if comparisonPeriod > 2:
+            days_list['3'] = []
+        
+        delta = local_end_date - local_start_date
+        
+        second_end_date = local_start_date - timedelta(days=1)
+        second_start_date = second_end_date - timedelta(days=delta.days)
+        third_end_date = second_start_date - timedelta(days=1)
+        third_start_date = third_end_date - timedelta(days=delta.days)
+         
+        for i in range(delta.days + 1):
+            days_list['1'].append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            if comparisonPeriod > 1:
+                days_list['2'].append((second_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            if comparisonPeriod > 2:
+                days_list['3'].append((third_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+         
+        
+        first_end_date_string = local_end_date.strftime('%Y-%m-%d')
+        first_start_date_string = local_start_date.strftime('%Y-%m-%d')
+        if comparisonPeriod > 1:
+            second_end_date_string = second_end_date.strftime('%Y-%m-%d')
+            second_start_date_string = second_start_date.strftime('%Y-%m-%d')
+        if comparisonPeriod > 2:
+            third_end_date_string = third_end_date.strftime('%Y-%m-%d')
+            third_start_date_string = third_start_date.strftime('%Y-%m-%d')
+        
+        keys = {}
+        keys['1'] = first_start_date_string + ' - ' + first_end_date_string
+        if comparisonPeriod > 1:
+            keys['2'] = second_start_date_string + ' - ' + second_end_date_string
+        if comparisonPeriod > 2:
+            keys['3'] = third_start_date_string + ' - ' + third_end_date_string
+        
+        result = []
+         
+        #query variables
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+        data = {}
+        
+        #other variables
+        chart_namex = 'social_roi'
+        
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        fbokIntegration = existingIntegration.integrations['fbok']
+        
+        if chart_name == 'facebook_organic_engagement':
+            fbok_pages = fbokIntegration.get('pages', None)
+            fbok_page_id = None
+            if fbok_pages is None:
+                return
+            for fbok_page in fbok_pages:
+                print 'fp is ' + str(filterPage)
+                if filterPage is not None: 
+                    if filterPage == fbok_page['id']:
+                        fbok_page_id = filterPage
+                else:
+                    fbok_page_id = fbok_page['id'] #take the first FB Page ID available
+                    break
+            
+            if fbok_page_id is None:
+                return
+            
+        elif chart_name == 'facebook_paid_engagement':
+            fbok_accounts = fbokIntegration.get('accounts', None)
+            fbok_account_id = None
+            if fbok_accounts is None:
+                return
+            for fbok_account in fbok_accounts:
+                print 'fp is ' + str(filterAccount)
+                if filterAccount is not None: 
+                    if filterAccount == fbok_account['id']:
+                        fbok_account_id = filterAccount
+                else:
+                    fbok_account_id = fbok_account['id'] #take the first FB Page ID available
+                    break
+            
+            if fbok_account_id is None:
+                return
+            
+        for keyx, valuex in days_list.items(): # loop through each of the three date sets
+            array_key = keys[keyx] #keyx will be 1 or 2 or 3
+            data[array_key] = {'Likes': 0, 'Clicks': 0, 'Comments': 0, 'Shares': 0}
+            
+            for day in days_list[keyx]:
+                querydict = {chart_name_qry: chart_namex, company_field_qry: company_id, date_query: day} 
+                existingData = AnalyticsData.objects(**querydict).only('results').first()
+                if existingData is None:
+                    continue
+                try:
+                    if chart_name == 'facebook_organic_engagement':
+                        dataRecords = existingData['results']['Social']['Facebook']['Organic'] 
+                        x = fbok_page_id
+                    elif chart_name == 'facebook_paid_engagement':
+                        dataRecords = existingData['results']['Social']['Facebook']['Paid'] #should be an array
+                        x = fbok_account_id
+                    for dataRecord in dataRecords:
+                        for idx in dataRecord.keys():
+                            if idx != x:
+                                continue
+                            for key, value in dataRecord.items():
+                                if chart_name == 'facebook_organic_engagement':
+                                    data[array_key]['Likes'] += value.get('like', 0)
+                                    data[array_key]['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
+                                    #data[array_key]['Impressions'] += value.get('page_impressions', 0)
+                                    data[array_key]['Comments'] += value.get('comment', 0)
+                                    data[array_key]['Shares'] += value.get('link', 0)
+                                elif chart_name == 'facebook_paid_engagement':
+                                    data[array_key]['Likes'] += value.get('like', 0) + value.get('post_like', 0)
+                                    data[array_key]['Clicks'] += value.get('website_clicks', 0) 
+                                    #data[array_key]['Impressions'] += int(value.get('impressions', 0))
+                                    data[array_key]['Comments'] += value.get('comment', 0)
+                                    data[array_key]['Shares'] += value.get('link', 0)
+                except Exception as e:
+                    continue
+                
+        #at this point, the data object should have all the values needed
+        for data_key, data_value in sorted(data.items()): 
+            obj_array = []
+            for key in data_value.keys():
+                obj = {'x' : key, 'y': data[data_key][key]}
+                obj_array.append(obj)  
+            result.append({'key' : data_key, 'values': obj_array })                   
+        return result
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
 
 #Google charts    
 # For chart - 'Website Traffic"

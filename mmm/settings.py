@@ -231,7 +231,8 @@ SOCIAL_AUTH_TWITTER_SECRET = 'rXAGnErm3Gpgfji0UxAx6DdW0o5y9YXzTx6Ki5K3qnQfW4B2nY
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
-    )
+    ),
+    'DATETIME_FORMAT': None
 }
 #AUTH_USER_MODEL = 'authentication.Account'
 AUTH_USER_MODEL = ('mongo_auth.MongoUser')

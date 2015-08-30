@@ -50,6 +50,8 @@ class CustomUserSerializer(DocumentSerializer):
 
             return instance
         
+        
+        
 class CompanySerializer(DocumentSerializer):
     
     class Meta:

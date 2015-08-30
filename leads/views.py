@@ -2,6 +2,7 @@ import datetime, json, time
 from datetime import timedelta, date, datetime
 import pytz
 import urllib
+#import logging
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
@@ -111,23 +112,35 @@ def _get_code(company_id, system_type):
 #@renderer_classes((JSONRenderer,))    
 def getAllLeads(request, id):
     try:
+        #log = logging.getLogger(__name__)
         company_id = request.user.company_id
         page_number = int(request.GET.get('page_number'))
         items_per_page = int(request.GET.get('per_page'))
         offset = (page_number - 1) * items_per_page
         collection = Lead._get_collection()
-        total = collection.find({'company_id' : company_id}).count()
-        total_with_company = collection.find({'company_id' : company_id, 'source_company' : {'$ne' : None}}).count()
+        total = collection.find({'company_id': int(company_id)}).hint('company_id_1').count()
+        #print 'got count'
+        total_with_company = 0 #collection.find({'company_id' : company_id, 'source_company' : {'$ne' : None}}).hint('source_sourcedata1_index').count()
+        #print 'got count w company'
         #total = Lead.objects.filter(company_id=company_id).count()
         #total_with_company = Lead.objects.filter(Q(company_id=company_id) & Q(source_company__ne=None)).count()
         total_without_company = total - total_with_company
-        #queryset = Lead.objects.filter(company_id=company_id).skip(offset).limit(items_per_page)
-        queryset = Lead.objects().filter(company_id=company_id).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name')
+        queryset = Lead.objects(company_id=company_id).skip(offset).limit(items_per_page)
+        
+        #leads_cursor = collection.find({'company_id': int(company_id)}).hint('co_fname_lname').sort([('source_first_name', 1), ('source_last_name', 1)]) 
+        #queryset = list(leads_cursor)
+        #queryset = queryset[offset: offset + items_per_page]
+        #total = collection.find({'company_id': int(company_id)}).hint('company_id_1').count()
+            
+        
+        #queryset = Lead.objects().filter(company_id=company_id).order_by('-source_first_name', '-source_last_name').skip(offset).limit(items_per_page)
+        #print 'got qset'
         stages = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
         sources = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
         serializer = LeadSerializer(queryset, many=True)   
         return JsonResponse({'count' : total, 'results': serializer.data, 'total_with_company': total_with_company, 'total_without_company': total_without_company, 'stages':stages, 'sources':sources})    
     except Exception as e:
+        print 'exception while getting all leads ' + str(e)
         return JsonResponse({'Error' : str(e)})
     
 @api_view(['GET'])
@@ -156,6 +169,8 @@ def filterLeads(request, id):
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
+                    client_secret = existingIntegration['integrations'][code]['client_secret']
+                    print 'cs is ' + client_secret
             #print 'found code' + str(code)
                   
         if code is  None:
@@ -167,10 +182,12 @@ def filterLeads(request, id):
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
             result = filterLeadsHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name)
+            result['portal_id'] = client_secret
         else:
             result =  'Nothing to report'
-        return result
+        return JsonResponse(result, safe=False)
     except Exception as e:
+        print 'exception while retrieving leads ' + str(e)
         return JsonResponse({'Error' : str(e)})
 
 #filter leads for Pipeline Duration chart
@@ -594,7 +611,7 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             
             results_qry = '$results.' + lead_type + '.' + series_type
             print 'results q is ' + results_qry
-            querydict = {company_field_qry: company_id, system_type_qry: system_type, start_date_qry: start_label, end_date_qry: end_label, chart_name_qry: chart_name}
+            querydict = {company_field_qry: company_id, start_date_qry: start_label, end_date_qry: end_label, chart_name_qry: chart_name}
             cursor = AnalyticsIds.objects(**querydict).aggregate( { '$unwind': results_qry }, { '$group': { '_id': None, 'list': { '$push': results_qry } } } )
             ids = None
             
@@ -607,35 +624,42 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             if ids is None:
                 return []
             
-            leads = Lead.objects(hspt_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+            
+            collection = Lead._get_collection()
+            leads_cursor = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+            leads = list(leads_cursor)
+            total = len(leads)
             #print 'start5 is ' + str(time.time())
             #now do the calculations
-            total = Lead.objects(hspt_id__in=ids).count() #len(leads)
+            #total = Lead.objects(hspt_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
             serializer = LeadSerializer(leads, many=True)   
-            return JsonResponse({'count' : total, 'results': serializer.data})   
+            return {'count' : total, 'results': serializer.data}   
     
         else: #not done. need to loop through leads to find which leads truly meet the criteria
             system_type_qry = 'system_type'
             date_qry = 'date'
-            querydict = {company_field_qry: company_id, system_type_qry: system_type, date_qry: local_start_date, chart_name_qry: chart_name}
+            querydict = {company_field_qry: company_id, date_qry: local_start_date, chart_name_qry: chart_name}
             print 'qd is ' + str(querydict)
-            analyticsIds = AnalyticsIds.objects(**querydict).only('results').first()
+            analyticsIds = AnalyticsIds.objects(**querydict).first()
             #print 'start3 is ' + str(time.time())
             if analyticsIds is None:
                 return []
-            print 'lead type is ' + lead_type
+            #print 'lead type is ' + lead_type
             ids = analyticsIds['results'].get(lead_type, None)
-            print 'ids is ' + str(ids)
-            leads = Lead.objects(hspt_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+            #print 'ids is ' + str(ids)
+            leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('source_first_name', 'source_last_name').skip(offset).limit(items_per_page).hint('co_hspt_id_fname_lname')
+            total = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).hint('co_hspt_id_fname_lname').count()
+            #total = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).count()
+            #leads = Lead.objects(hspt_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
             #print 'start5 is ' + str(time.time())
             #now do the calculations
-            total = Lead.objects(hspt_id__in=ids).count() #len(leads)
+            #total = Lead.objects(hspt_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
         serializer = LeadSerializer(leads, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data})   
+        return {'count' : total, 'results': serializer.data}
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     

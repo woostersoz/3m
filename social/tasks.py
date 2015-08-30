@@ -281,6 +281,7 @@ def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=N
         fbok = FacebookPage(integration['access_token'])
         if fbok is None:
             raise Exception('Facebook Page object could not be created')
+        definedPages = integration.get('pages', None)
         
         print 'calling pages'
         pages = fbok.get_pages()['data']
@@ -288,6 +289,8 @@ def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=N
         for page in pages:
             page_token = page['access_token']
             page_id = page['id']
+            if not any(d['id'] == page_id for d in definedPages): #if page not defined in company instance, skip it
+                continue
             print 'page id is ' + str(page_id) + ' and token is ' + str(page_token)
             page_insights = fbok.get_page_insights(page_id, page_token, sinceTimestamp, untilTimestamp)
             #print 'page insights for ' + page['name'] + ': ' + str(page_insights)
@@ -322,11 +325,9 @@ def saveFbokPageStatsToMaster(user_id=None, company_id=None, job_id=None, run_ty
         fb_stats = TempData.objects(Q(company_id=company_id) & Q(record_type='fb_page_stat') & Q(source_system='fbok') & Q(job_id=job_id) ).only('source_record')
     else:
         fb_stats = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='fb_page_stat') & Q(source_system='fbok') & Q(job_id=job_id) ).only('source_record')
-  
-  
+
     fbList = list(fb_stats)
     fbList = [i['source_record'] for i in fbList]
-    
     try:
         for i in range(len(fbList)):
             fb_record = {}
@@ -336,7 +337,6 @@ def saveFbokPageStatsToMaster(user_id=None, company_id=None, job_id=None, run_ty
                 fb_record = insight
                 source_metric_id = fb_record['id']
                 source_metric_name = fb_record['name']
-               
                 fbPageInsight = FbPageInsight.objects(Q(company_id=company_id) & Q(source_metric_id=source_metric_id)& Q(source_page_id=source_page_id)).first()
                 if fbPageInsight is None:
                     fbPageInsight = FbPageInsight(data=fb_record, company_id=company_id, source_metric_id=source_metric_id, source_metric_name=source_metric_name, source_page_id=source_page_id)
@@ -344,11 +344,17 @@ def saveFbokPageStatsToMaster(user_id=None, company_id=None, job_id=None, run_ty
                     fbPageInsight['source_metric_name'] = source_metric_name
                     fbValuesList = fbPageInsight['data']['values']
                     for entry in fb_record['values']: #iterate through each new date value of metric to see if it already exists
-                        if fb_record['period'] == 'lifetime':
-                            fbPageInsight['data']['values'][0]['value'] = entry['value']
-                        else:
-                            if not any(d['end_time'] == entry['end_time'] for d in fbValuesList): # does this already exist?
-                                fbValuesList.extend(entry) #if not, add the date entry to the existing record
+                        #if fb_record.get('period', None) == 'lifetime':
+                        #if insight.get('period', None) == 'lifetime':
+                        #    fbPageInsight['data']['values'][0]['value'] = entry['value']
+                        #else:
+                        #print 'metric for page is ' + source_metric_name + ' - ' + str(source_page_id)
+                        #print 'entry is ' + str(entry)
+                        #print 'fbvas 1 ' + str(fbValuesList)
+                        if not any(d['end_time'] == entry['end_time'] for d in fbValuesList): # does this already exist?
+                            #print 'not found'
+                            fbValuesList.append(entry) #if not, add the date entry to the existing record
+                            #print 'fbvals ' + str(fbValuesList)
                 fbPageInsight.save()
             
     except Exception as e:

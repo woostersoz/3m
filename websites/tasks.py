@@ -68,15 +68,16 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
                     detailedTraffic = hspt.get_detailed_traffic(channel, utc_day_start_epoch, utc_day_start_epoch)
                     record['breakdowns'] = detailedTraffic.get('breakdowns', None)
                     for entry in record['breakdowns']: # get the campaign based breakdown
-                        detailedTrafficByCampaign = hspt.get_detailed_traffic_by_campaign(channel, entry['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
-                        entry['campaigns'] = detailedTrafficByCampaign.get('breakdowns', None)
-                        for campaign in entry['campaigns']:
-                            contacts = hspt.get_contacts_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
-                            campaign['contacts'] = contacts
-                            customers = hspt.get_customers_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
-                            campaign['customers'] = customers
-                            leads = hspt.get_leads_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
-                            campaign['leads'] = leads
+                        if entry['breakdown'] == 'Facebook':
+                            detailedTrafficByCampaign = hspt.get_detailed_traffic_by_campaign(channel, entry['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                            entry['campaigns'] = detailedTrafficByCampaign.get('breakdowns', None)
+                            for campaign in entry['campaigns']:
+                                contacts = hspt.get_contacts_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                campaign['contacts'] = contacts
+                                customers = hspt.get_customers_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                campaign['customers'] = customers
+                                leads = hspt.get_leads_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                campaign['leads'] = leads
         saveHsptWebsiteTraffic(user_id=user_id, company_id=company_id, trafficList=trafficList, job_id=job_id, run_type=run_type)
         
         try:

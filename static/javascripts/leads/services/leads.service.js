@@ -97,96 +97,113 @@
     	var currRecord = '';
     	var leads = [];
 		for (var i=0; i < results.length; i++)
-	    {
-			currRecord = results[i].leads;
-			if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a lead record
+	    {   
+			if (results[i].leads)
 			{
-			    
-			    if (currRecord['hspt'])
-			    {
-			    	currRecord['hspt']['sourceSystem'] = 'HSPT';
-			    	currRecord['hspt']['Email'] = currRecord['hspt']['email_address'];
-			    	currRecord['hspt']['FirstName'] = currRecord['hspt']['properties']['firstname'];
-			    	currRecord['hspt']['LastName'] = currRecord['hspt']['properties']['lastname'];
-			    	currRecord['hspt']['sourceChannel'] = currRecord['hspt']['properties']['hs_analytics_source'];
-			    	currRecord['hspt']['sourceChannelDetail'] = currRecord['hspt']['properties']['hs_analytics_source_data_1'];
-			    	
-			    	currRecord['hspt']['id'] = currRecord['hspt']['vid'];
-			    	// duration related fields below
-			    	if (currRecord['hspt']['properties']['SL']) 
-			    		currRecord['hspt']['SL'] = currRecord['hspt']['properties']['SL'];
-			    	if (currRecord['hspt']['properties']['LM']) 
-			    		currRecord['hspt']['LM'] = currRecord['hspt']['properties']['LM'];
-			    	if (currRecord['hspt']['properties']['MS']) 
-			    		currRecord['hspt']['MS'] = currRecord['hspt']['properties']['MS'];
-			    	if (currRecord['hspt']['properties']['SO']) 
-			    		currRecord['hspt']['SO'] = currRecord['hspt']['properties']['SO'];
-			    	if (currRecord['hspt']['properties']['OC']) 
-			    		currRecord['hspt']['OC'] = currRecord['hspt']['properties']['OC'];
-			    	if (currRecord['hspt']['properties']['last_stage']) 
-			    		currRecord['hspt']['last_stage'] = currRecord['hspt']['properties']['last_stage'];
-			    	if (currRecord['hspt']['properties']['days_in_this_stage']) 
-			    		currRecord['hspt']['days_in_this_stage'] = currRecord['hspt']['properties']['days_in_this_stage'];
-			    	leads.push(currRecord['hspt']);
-			    }
-			    else if (currRecord['mkto'])
-			    {   
-			    	for (var key in currRecord['mkto']) // convert first letter to lower case
-			    	{
-			    		currRecord['mkto'][ucFirst(key)] = currRecord['mkto'][key];	
-			    	}
-			    	currRecord['mkto']['sourceSystem'] = 'MKTO';
-			    	currRecord['mkto']['id'] = currRecord['mkto']['id'];
-			    	currRecord['mkto']['source_status'] = results[i]['source_status'];
-			    	currRecord['mkto']['source_created_date'] = results[i]['source_created_date'];
-			    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
-			    	var currActivities = results[i].activities;
-			    	if (currActivities['mkto'] && currActivities['mkto'].length > 0) {
-			    		currRecord['mkto']['activities'] = currActivities['mkto'];
-			    	}
-			    	var currStatuses = results[i].statuses;
-			    	if (currStatuses['mkto'] && currStatuses['mkto'].length > 0) {
-			    		currRecord['mkto']['statuses'] = currStatuses['mkto'];
-			    		currRecord['mkto']['statuses'].sort(dynamicSort('-date')); // sort the statuses in descending order of date
-			    	}
-			    	if (currRecord['mkto']['activities'] && currRecord['mkto']['activities'].length > 0) {
-			    		currRecord['mkto']['activities'] = currRecord['mkto']['activities'].filter(deleteActivity);
-			    	}
-			    	/*if (calculateStatusDuration)
-			    	{ 
-			    		var startDate = new Date(), toDate = new Date();
-			    		for (var i=0, len = currRecord['mkto']['statuses'].length; i < len; i++)
-			    		{
-			    			if (currRecord['mkto']['statuses'][i].status == fromStatus) // we have found the first status
-			    			{
-			    				startDate = moment(new Date(currRecord['mkto']['statuses'][i].date));
-			    				for (var j = 0; j < i; j++) // look for the toStatus AFTER the fromStatus
-			    				{
-			    					if (currRecord['mkto']['statuses'][j].status == toStatus)
-			    					{
-			    						toDate = moment(new Date(currRecord['mkto']['statuses'][j].date));
-			    					}
-			    				}
-			    			}
-			    		}
-			    		
-			    		//console.log(startDate + 'XX' + toDate );
-			    		var durationInDays = toDate.diff(startDate, 'days');
-			    		currRecord['mkto']['statusChangeDuration'] = durationInDays;
-			    		currRecord['mkto']['statusChangeColumnLabel'] = fromStatus + '->' + toStatus;
-			    	}*/
-			    	
-			    	leads.push(currRecord['mkto']);
-			    }	
-			    else if (currRecord['sfdc'])
-			    {
-			    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
-			    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
-			    	leads.push(currRecord['sfdc']);
-			    }
-			    else
-			    	toastr.error('Something fishy going on!');
-			} // if lead record
+				currRecord = results[i].leads;
+				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a lead record
+				{
+				    
+				    if (currRecord['hspt'])
+				    {
+				    	currRecord['hspt']['sourceSystem'] = 'HSPT';
+				    	currRecord['hspt']['Email'] = currRecord['hspt']['email_address'];
+				    	currRecord['hspt']['FirstName'] = currRecord['hspt']['properties']['firstname'];
+				    	currRecord['hspt']['LastName'] = currRecord['hspt']['properties']['lastname'];
+				    	currRecord['hspt']['sourceChannel'] = currRecord['hspt']['properties']['hs_analytics_source'];
+				    	currRecord['hspt']['sourceChannelDetail'] = currRecord['hspt']['properties']['hs_analytics_source_data_1'];
+				    	
+				    	currRecord['hspt']['id'] = currRecord['hspt']['vid'];
+				    	// duration related fields below
+				    	if (currRecord['hspt']['properties']['SL']) 
+				    		currRecord['hspt']['SL'] = currRecord['hspt']['properties']['SL'];
+				    	if (currRecord['hspt']['properties']['LM']) 
+				    		currRecord['hspt']['LM'] = currRecord['hspt']['properties']['LM'];
+				    	if (currRecord['hspt']['properties']['MS']) 
+				    		currRecord['hspt']['MS'] = currRecord['hspt']['properties']['MS'];
+				    	if (currRecord['hspt']['properties']['SO']) 
+				    		currRecord['hspt']['SO'] = currRecord['hspt']['properties']['SO'];
+				    	if (currRecord['hspt']['properties']['OC']) 
+				    		currRecord['hspt']['OC'] = currRecord['hspt']['properties']['OC'];
+				    	if (currRecord['hspt']['properties']['last_stage']) 
+				    		currRecord['hspt']['last_stage'] = currRecord['hspt']['properties']['last_stage'];
+				    	if (currRecord['hspt']['properties']['days_in_this_stage']) 
+				    		currRecord['hspt']['days_in_this_stage'] = currRecord['hspt']['properties']['days_in_this_stage'];
+				    	leads.push(currRecord['hspt']);
+				    }
+				    else if (currRecord['mkto'])
+				    {   
+				    	for (var key in currRecord['mkto']) // convert first letter to lower case
+				    	{
+				    		currRecord['mkto'][ucFirst(key)] = currRecord['mkto'][key];	
+				    	}
+				    	currRecord['mkto']['sourceSystem'] = 'MKTO';
+				    	currRecord['mkto']['id'] = currRecord['mkto']['id'];
+				    	currRecord['mkto']['source_status'] = results[i]['source_status'];
+				    	currRecord['mkto']['source_created_date'] = results[i]['source_created_date'];
+				    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
+				    	var currActivities = results[i].activities;
+				    	if (currActivities['mkto'] && currActivities['mkto'].length > 0) {
+				    		currRecord['mkto']['activities'] = currActivities['mkto'];
+				    	}
+				    	var currStatuses = results[i].statuses;
+				    	if (currStatuses['mkto'] && currStatuses['mkto'].length > 0) {
+				    		currRecord['mkto']['statuses'] = currStatuses['mkto'];
+				    		currRecord['mkto']['statuses'].sort(dynamicSort('-date')); // sort the statuses in descending order of date
+				    	}
+				    	if (currRecord['mkto']['activities'] && currRecord['mkto']['activities'].length > 0) {
+				    		currRecord['mkto']['activities'] = currRecord['mkto']['activities'].filter(deleteActivity);
+				    	}
+				    	/*if (calculateStatusDuration)
+				    	{ 
+				    		var startDate = new Date(), toDate = new Date();
+				    		for (var i=0, len = currRecord['mkto']['statuses'].length; i < len; i++)
+				    		{
+				    			if (currRecord['mkto']['statuses'][i].status == fromStatus) // we have found the first status
+				    			{
+				    				startDate = moment(new Date(currRecord['mkto']['statuses'][i].date));
+				    				for (var j = 0; j < i; j++) // look for the toStatus AFTER the fromStatus
+				    				{
+				    					if (currRecord['mkto']['statuses'][j].status == toStatus)
+				    					{
+				    						toDate = moment(new Date(currRecord['mkto']['statuses'][j].date));
+				    					}
+				    				}
+				    			}
+				    		}
+				    		
+				    		//console.log(startDate + 'XX' + toDate );
+				    		var durationInDays = toDate.diff(startDate, 'days');
+				    		currRecord['mkto']['statusChangeDuration'] = durationInDays;
+				    		currRecord['mkto']['statusChangeColumnLabel'] = fromStatus + '->' + toStatus;
+				    	}*/
+				    	
+				    	leads.push(currRecord['mkto']);
+				    }	
+				    else if (currRecord['sfdc'])
+				    {
+				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
+				    	leads.push(currRecord['sfdc']);
+				    }
+				    else
+				    	toastr.error('Something fishy going on!');
+				} // if lead record
+			}
+			else if (results[i].isContact){ // lead data coming in from Dashboard drilldown
+				currRecord = results[i];
+				currRecord['sourceSystem'] = 'HSPT';
+		    	currRecord['Email'] = currRecord['email'];
+		    	currRecord['FirstName'] = currRecord['firstname'];
+		    	currRecord['LastName'] = currRecord['lastname'];
+		    	currRecord['sourceChannel'] = currRecord['hs_analytics_source'];
+		    	currRecord['sourceChannelDetail'] = currRecord['hs_analytics_source_data_1'];
+		    	currRecord['sourceChannelCampaign'] = currRecord['hs_analytics_source_data_2'];
+		    	
+		    	currRecord['id'] = currRecord['vid'];
+		    	leads.push(currRecord);
+				
+			}
 			else  // contact record
 			{
 				currRecord =  results[i].contacts

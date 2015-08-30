@@ -144,14 +144,43 @@ def getDashboards(request, company_id):
 
 #@app.task
 def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : hspt_funnel}
+    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
+@api_view(['GET'])
+@renderer_classes((JSONRenderer,))    
+def drilldownDashboards(request, company_id):
+    
+    system_type = request.GET.get('system_type')
+    
+    user_id = request.user.id
+    company_id = request.user.company_id
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    try:   
+        code = None
+        if existingIntegration is not None:
+            for source in existingIntegration.integrations.keys():
+                defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
+                if defined_system_type is not None:
+                    code = source
+                    client_secret = existingIntegration['integrations'][code]['client_secret']
+            #print 'found code' + str(code)
+                  
+        if code is  None:
+            raise ValueError("No integrations defined")  
+        elif code == 'hspt': 
+            result = drilldownHsptDashboards(request=request, company_id=company_id)
+            result['portal_id'] = client_secret
+        else:
+            result =  'Nothing to report'
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        return JsonResponse({'Error' : str(e)})
 
 
 # start of HSPT
-# first dashboard - 'Funnel"
+# dashboard - 'Funnel"
 def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name): 
     try:
         original_start_date = start_date
@@ -189,12 +218,12 @@ def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
         created_date_end_qry = 'source_created_date__lte'
         created_date_start_qry = 'source_created_date__gte'
         
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_end_qry: local_start_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_end_qry: local_start_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_existed_source = Lead.objects(**querydict).item_frequencies('source_source')
         leads_existed_stage = Lead.objects(**querydict).item_frequencies('source_stage')
         existed_count = Lead.objects(**querydict).count()
         #get all leads that were created in this time period by source
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_created_source = Lead.objects(**querydict).item_frequencies('source_source')
         leads_created_stage = Lead.objects(**querydict).item_frequencies('source_stage')
         created_count = Lead.objects(**querydict).count()
@@ -203,60 +232,76 @@ def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
         else:
             percentage_increase = 0
         #get all leads that were created in this time period and still exist as subscribers
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_subscribers = Lead.objects(**querydict).count()
         #find average duration they have been subscribers
         leads_avg_subscriber_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_subscriber_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_subscribers' : { '$avg' : '$diff'}}})
-        leads_avg_subscriber_duration = list(leads_avg_subscriber_duration)[0]['averageDuration_subscribers']
-        leads_avg_subscriber_duration = abs(round(float(leads_avg_subscriber_duration / 1000 / 60 / 60 / 24 ), 0))
+        listx = list(leads_avg_subscriber_duration)
+        if len(listx) > 0:
+            leads_avg_subscriber_duration = listx[0]['averageDuration_subscribers']
+            leads_avg_subscriber_duration = abs(round(float(leads_avg_subscriber_duration / 1000 / 60 / 60 / 24 ), 0))
+        else:
+            leads_avg_subscriber_duration = 'N/A'
         #get all leads that were created in this time period and are now Leads
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_leads = Lead.objects(**querydict).count()
         #find average duration they have been leads
-        leads_avg_lead_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_lead_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_leads' : { '$avg' : '$diff'}}})
-        leads_avg_lead_duration = list(leads_avg_lead_duration)[0]['averageDuration_leads']
-        leads_avg_lead_duration = abs(round(float(leads_avg_lead_duration / 1000 / 60 / 60 / 24 ), 0))
-        
+        listx = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_lead_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_leads' : { '$avg' : '$diff'}}})
+        listx = list(listx)
+        if len(listx) > 0:
+            leads_avg_lead_duration = listx[0]['averageDuration_leads']
+            leads_avg_lead_duration = abs(round(float(leads_avg_lead_duration / 1000 / 60 / 60 / 24 ), 0))
+        else:
+            leads_avg_lead_duration = 'N/A'
         #get all leads that were created in this time period and are now MQLS
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_mqls = Lead.objects(**querydict).count()
         #find average duration they have been MQLs
-        leads_avg_mql_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_mql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_mqls' : { '$avg' : '$diff'}}})
-        leads_avg_mql_duration = list(leads_avg_mql_duration)[0]['averageDuration_mqls']
-        leads_avg_mql_duration = abs(round(float(leads_avg_mql_duration / 1000 / 60 / 60 / 24 ), 0))
-        
+        listy = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_mql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_mqls' : { '$avg' : '$diff'}}})
+        listz = list(listy)
+        if len(listz) > 0:
+            leads_avg_mql_duration = listz[0]['averageDuration_mqls']
+            leads_avg_mql_duration = abs(round(float(leads_avg_mql_duration / 1000 / 60 / 60 / 24 ), 0))
+        else:
+            leads_avg_mql_duration = 'N/A'
         #get all leads that were created in this time period and are now SQLS
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_sqls = Lead.objects(**querydict).count()
         #find average duration they have been SQLs
-        leads_avg_sql_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_sql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_sqls' : { '$avg' : '$diff'}}})
-        leads_avg_sql_duration = list(leads_avg_sql_duration)[0]['averageDuration_sqls']
-        leads_avg_sql_duration = abs(round(float(leads_avg_sql_duration / 1000 / 60 / 60 / 24 ), 0))
-        
+        lista = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_sql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_sqls' : { '$avg' : '$diff'}}})
+        listb = list(lista) 
+        if len(listb) > 0:
+            leads_avg_sql_duration = listb[0].get('averageDuration_sqls', None)
+            leads_avg_sql_duration = abs(round(float(leads_avg_sql_duration / 1000 / 60 / 60 / 24 ), 0))
+        else:
+            leads_avg_sql_duration = 'N/A'
         #get all leads that were created in this time period and are now Opps
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_opps = Lead.objects(**querydict).count()
         #find average duration they have been Opps
-        leads_avg_opp_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_opp_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_opps' : { '$avg' : '$diff'}}})
-        leads_avg_opp_duration = list(leads_avg_opp_duration)[0]['averageDuration_opps']
-        leads_avg_opp_duration = abs(round(float(leads_avg_opp_duration / 1000 / 60 / 60 / 24 ), 0))
-        
+        listc = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_opp_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_opps' : { '$avg' : '$diff'}}})
+        listd = list(listc)
+        if len(listd) > 0:
+            leads_avg_opp_duration = listd[0]['averageDuration_opps']
+            leads_avg_opp_duration = abs(round(float(leads_avg_opp_duration / 1000 / 60 / 60 / 24 ), 0))
+        else:
+            leads_avg_opp_duration = 'N/A'
         #get all leads that were created in this time period and are now Opps
-        querydict = {company_field_qry: company_id, hspt_id_qry: True, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_customer_customer_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_customer_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_customer_customer_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_customer_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         leads_customers = Lead.objects(**querydict).count()
         #get all deals closed in this time period
         hspt_opp_qry = 'opportunities__hspt__properties__dealstage__value'
         hspt_opp_close_date_start_qry = 'opportunities__hspt__properties__closedate__value__gte'
         hspt_opp_close_date_end_qry = 'opportunities__hspt__properties__closedate__value__lte'
         #print 'original start date is ' + str(int(original_start_date) * 1000)
-        querydict = {company_field_qry: company_id, hspt_opp_qry: 'closedwon', hspt_opp_close_date_start_qry: str(int(original_start_date) * 1000), hspt_opp_close_date_end_qry: str(int(original_end_date) * 1000)} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+        querydict = {company_field_qry: company_id, hspt_opp_close_date_start_qry: str(int(original_start_date) * 1000), hspt_opp_close_date_end_qry: str(int(original_end_date) * 1000)} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
         deals_total_value = Lead.objects(**querydict).aggregate({'$unwind': '$opportunities.hspt'}, {'$group': {'_id' : '$_id', 'totalDealValue' : { '$max' : '$opportunities.hspt.properties.amount.value'}}})
         closed_deal_value = 0
         max_deal_value = 0
         for deal in list(deals_total_value):
-            closed_deal_value += int(deal['totalDealValue'])
-            if int(deal['totalDealValue']) > max_deal_value:
-                max_deal_value = int(deal['totalDealValue'])
+            closed_deal_value += float(deal['totalDealValue'])
+            if float(deal['totalDealValue']) > max_deal_value:
+                max_deal_value = float(deal['totalDealValue'])
         #print 'deal val is ' + str(closed_deal_value)
         #put all the results together
         results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'existed_count': existed_count, 'created_count': created_count, 'existed_source' : leads_existed_source, 'created_source' : leads_created_source, 'existed_stage' : leads_existed_stage, 'created_stage' : leads_created_stage, 'percentage_increase' : percentage_increase, 'leads_subscribers': leads_subscribers, 'leads_leads': leads_leads, 'leads_mqls': leads_mqls, 'leads_sqls': leads_sqls, 'leads_opps': leads_opps, 'leads_customers': leads_customers, 'leads_avg_subscriber_duration': leads_avg_subscriber_duration, 'leads_avg_lead_duration': leads_avg_lead_duration, 'leads_avg_mql_duration': leads_avg_mql_duration, 'leads_avg_sql_duration': leads_avg_sql_duration, 'leads_avg_opp_duration': leads_avg_opp_duration, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value}
@@ -345,622 +390,172 @@ def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})        
 
-#second chart - "Contacts  Distribution"   
-def hspt_contacts_distr_chart(user_id, company_id, start_date, end_date, chart_name): 
-    #print 'orig start' + str(start_date)
+      
+# dashboard - 'Social"
+def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name): 
     try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date))
+        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
         
-        e = local_end_date
-        s = local_start_date - timedelta(days=1)
-        end_key = e.strftime('%Y-%m-%d')
-         
-        all_values = {}
-        all_dates = []
-        all_totals = {}
-        all_inflows = {}
-        all_outflows = {}
-        delta = timedelta(days=1)
-        result = []
-       
-        company_field_qry = 'company_id'
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+        #query parameters
+        company_id_qry = 'company_id'
         chart_name_qry = 'chart_name'
-        date_query = 'date'
-           
-        while s < (e - delta):
-            s += delta #increment the day counter
-            start_key = s.strftime('%Y-%m-%d')
+        date_qry = 'date__in'
+        chart_name = 'social_roi'
+        
+        #all return variables
+        social= {}
+        social['Facebook'] = {}
+        social['Facebook']['Organic'] = {'Likes': 0, 'Clicks': 0, 'Impressions': 0, 'Comments': 0, 'Shares': 0}
+        social['Facebook']['Paid'] = {'Likes': 0, 'Clicks': 0, 'Impressions': 0, 'Comments': 0, 'Shares': 0}
+        website = {}
+        website['Facebook'] = {}
+        website['Facebook']['Organic'] = {'Deals' : 0, 'Visits': 0, 'Contacts': 0, 'Leads': 0, 'Customers': 0}
+        website['Facebook']['Paid']= {'Deals' : 0, 'Visits': 0, 'Contacts': 0, 'Leads': 0, 'Customers': 0}
+        roi = {}
+        roi['Facebook'] = {}
+        roi['Facebook']['Organic']=  {'Spend': 0, 'Revenue': 0}
+        roi['Facebook']['Paid']= {'Spend': 0, 'Revenue': 0}
+        
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        for day in days:
+            data = day['results']
+            social_data = data.get('Social', None)
+            website_data = data.get('Website', None)
+            fb_data = social_data.get('Facebook', None)
             
-            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: start_key} 
+            if fb_data is not None:
+                fb_organic_data = fb_data.get('Organic', None)
+                if fb_organic_data is not None:
+                    for record in fb_organic_data:
+                        for key, value in record.items():
+                            social['Facebook']['Organic']['Likes'] += value.get('like', 0)
+                            social['Facebook']['Organic']['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
+                            social['Facebook']['Organic']['Impressions'] += value.get('page_impressions', 0)
+                            social['Facebook']['Organic']['Comments'] += value.get('comment', 0)
+                            social['Facebook']['Organic']['Shares'] += value.get('link', 0)
+                fb_paid_data = fb_data.get('Paid', None)
+                if fb_paid_data is not None:
+                    for record in fb_paid_data:
+                        for key, value in record.items():
+                            social['Facebook']['Paid']['Likes'] += value.get('like', 0) + value.get('post_like', 0)
+                            social['Facebook']['Paid']['Clicks'] += value.get('website_clicks', 0) 
+                            social['Facebook']['Paid']['Impressions'] += int(value.get('impressions', 0))
+                            social['Facebook']['Paid']['Comments'] += value.get('comment', 0)
+                            social['Facebook']['Paid']['Shares'] += value.get('link', 0)
+                            roi['Facebook']['Paid']['Spend'] += float(value.get('spend', 0))
             
-            existingData = AnalyticsData.objects(**querydict).only('results').first()
-            if existingData is None: #  no results found for day so move to next day
-                continue
-            data = existingData['results']
+            if website_data is not None:
+                hspt = website_data.get('Hubspot', None)
+                if hspt is not None:
+                    social_data = hspt.get('social', None)
+                    if social_data is not None:
+                        fb_data = social_data.get('Facebook', None)
+                        if fb_data is not None:
+                            sections = {'Organic', 'Paid'}
+                            for section in sections:
+                                fb_section_data = fb_data.get(section, None)
+                                if fb_section_data is not None:
+                                    website['Facebook'][section]['Visits'] += fb_section_data['Total Visits']
+                                    website['Facebook'][section]['Deals'] += len(fb_section_data['Deals'])
+                                    roi['Facebook'][section]['Revenue'] += fb_section_data['Revenue']
+                                    leads = fb_section_data.get('Leads', None)
+                                    if leads is not None:
+                                        website['Facebook'][section]['Leads'] += leads['Total']
+                                    contacts = fb_section_data.get('Contacts', None)
+                                    if contacts is not None:
+                                        website['Facebook'][section]['Contacts'] += contacts['Total']
+                                    customers = fb_section_data.get('Customers', None)
+                                    if customers is not None:
+                                        website['Facebook'][section]['Customers'] += customers['Total']
                         
-            for key in data.keys():
-                if key == 'Unassigned' or key == 'Open':
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'social' : social, 'website' : website, 'roi' : roi}
+        return results
+        
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
+      
+
+def drilldownHsptDashboards(request, company_id):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    object = request.GET.get('object').capitalize()
+    section = request.GET.get('section').capitalize()
+    channel = request.GET.get('channel').capitalize()
+    page_number = int(request.GET.get('page_number'))
+    items_per_page = int(request.GET.get('per_page'))
+    offset = (page_number - 1) * items_per_page
+    
+    user_id = request.user.id
+    company_id = request.user.company_id
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    
+    #query parameters
+    company_id_qry = 'company_id'
+    chart_name_qry = 'chart_name'
+    date_qry = 'date__in'
+    chart_name = 'social_roi'
+    
+    #variables
+    people = []
+    deals = []
+        
+    try:     
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date))
+        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        #Contacts, Leads and Customers
+        if (object == 'Contacts' or object == 'Leads' or object == 'Customers'):
+            for day in days:
+                data = day['results']
+                try: 
+                    people.extend(data['Website']['Hubspot']['social'][channel][section][object]['People'])
+                except Exception as e:
                     continue
-                if  s == local_start_date:
-                    all_totals[key]= data[key]['total']   
-                print 's is ' + str(s) + ' and e is ' + str(e - delta)     
-                if start_key == end_key:
-                    print 'last date'
-                    if  key not in all_totals:
-                        all_totals[key]= data[key]['total'] 
-                        #raise ValueError('This should never happen'
-                    else:
-                        all_totals[key] -= data[key]['total'] 
-                if  key not in all_inflows:
-                    all_inflows[key]= data[key]['inflows']  
-                else:
-                    all_inflows[key] += data[key]['inflows']  
-                if  key not in all_outflows:
-                    all_outflows[key]= data[key]['outflows'] 
-                else:
-                    all_outflows[key] += data[key]['outflows'] 
             
-                
-        #print 'all vals is ' + str(all_values)
-        values = []    
-        for stage in all_totals.keys():
-            values.append({'label' : stage, 'value' : all_totals[stage]})
-        result.append({'key' : 'Total', 'values': values })                   
-        
-        values = []    
-        for stage in all_inflows.keys():
-            values.append({'label' : stage, 'value' : all_inflows[stage]})
-        result.append({'key' : 'Inflow', 'values': values, 'color': '#bedb39' }) 
-        
-        values = []    
-        for stage in all_outflows.keys():
-            values.append({'label' : stage, 'value' : all_outflows[stage]})
-        result.append({'key' : 'Outflow', 'values': values, 'color': '#fd7400' }) 
-        #print str(result)
-        return result
-    except Exception as e:
-        print 'exception is ' + str(e) 
-        return JsonResponse({'Error' : str(e)}) 
-#         start_key = local_start_date.strftime('%Y-%m-%d')
-#         end_key = local_end_date.strftime('%Y-%m-%d')
-#         date_range = start_key + ' - ' + end_key
-#         print 'date range is ' + date_range
-#         company_field_qry = 'company_id'
-#         chart_name_qry = 'chart_name'
-#         date_range_qry = 'date_range'
-#         
-#         querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_range_qry: date_range} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-#         existingData = AnalyticsData.objects(**querydict).only('results').first()
-#         result = []
-#         
-#         if existingData is None:
-#             return result
-#         else:
-#             existingData = existingData['results']     
-# 
-#         
-#         subscriber_object = {'label' : 'Subscribers', 'value': existingData['Subscribers']}
-#         lead_object = {'label' : 'Leads', 'value': existingData['Leads']}
-#         mql_object = {'label' : 'MQLs', 'value': existingData['MQLs']}
-#         sql_object = {'label' : 'SQLs', 'value': existingData['SQLs']}
-#         opp_object = {'label' : 'Opportunities', 'value': existingData['Opportunities']}
-#         customer_object = {'label' : 'Customers', 'value': existingData['Customers']}
-#         
-#         result.append(subscriber_object)
-#         result.append(lead_object)
-#         result.append(mql_object)
-#         result.append(sql_object)
-#         result.append(opp_object)
-#         result.append(customer_object)
-#         
-#         result_final = {}
-#         result_final["key"] = "Contacts Distribution"
-#         result_final["values"] = result
-#         
-#         result_final_array = []
-#         result_final_array.append(result_final)
-#         #print str(result)
-#         return result_final_array
-#     except Exception as e:
-#         print 'exception is ' + str(e) 
-#         return JsonResponse({'Error' : str(e)})       
-  
-  
-def hspt_contacts_pipeline_duration(user_id, company_id, start_date, end_date, chart_name):
-    
-    try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-        start_key = local_start_date.strftime('%m-%d-%Y')
-        end_key = local_end_date.strftime('%m-%d-%Y')
-        date_range = start_key + ' - ' + end_key
-        
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_range_qry = 'date_range'
-        
-        querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_range_qry: date_range} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        existingData = AnalyticsData.objects(**querydict).only('results').first()
-        result = [] 
-        
-        if existingData is None:
-            return result
-        else:
-            existingData = existingData['results']    
-        
-          
-        for key in existingData.keys():
-            color='#bedb39' if key == 'Days in current status' else None
-            area=True if key == 'Days in current status' else False
-            color='#004358' if key =='All' else None
-            result.append({'values': existingData[key], 'key': key, 'color': color, 'area': area})
-
-        return result
-        
-    except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
-        return JsonResponse({'Error' : str(e)})
-    
-       
-def hspt_contacts_sources_pie(user_id, company_id, start_date, end_date, chart_name):
-    
-    try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-        #utc_current_date = datetime.utcnow()   
-        
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_qry = 'date'
-       
-        result = [] 
-        source_distr = {}
-        delta = timedelta(days=1)
-        e = local_end_date
-        
-        s = local_start_date - timedelta(days=1)
-        while s < (e - delta):
-            s += delta #increment the day counter
-            date = s.strftime('%Y-%m-%d')
-            print 'date is ' + str(date)
-            querydict = {date_qry: date, chart_name_qry: chart_name, company_field_qry: company_id} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-            existingData = AnalyticsData.objects(**querydict).first()
-            if existingData is None:
-                continue
-            
-            for key in existingData['results']:
-                decoded_key = decodeKey(key)
-                if decoded_key in source_distr.keys():
-                    source_distr[decoded_key] += existingData['results'][key]
-                else:
-                    source_distr[decoded_key] = existingData['results'][key]
-                              
-       
-        for key in source_distr.keys():
-            result.append({'x': key, 'y':source_distr[key]})
-            
-        return result
-    
-    except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
-        return JsonResponse({'Error' : str(e)})
-
-def hspt_contacts_revenue_sources_pie(user_id, company_id, start_date, end_date, chart_name):
-    
-    try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-        #utc_current_date = datetime.utcnow()   
-        
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_qry = 'date'
-       
-        result = [] 
-        source_distr = {}
-        delta = timedelta(days=1)
-        e = local_end_date
-        
-        s = local_start_date - timedelta(days=1)
-        while s < (e - delta):
-            s += delta #increment the day counter
-            date = s.strftime('%Y-%m-%d')
-            print 'date is ' + str(date)
-            querydict = {date_qry: date, chart_name_qry: chart_name, company_field_qry: company_id} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-            existingData = AnalyticsData.objects(**querydict).first()
-            if existingData is None:
-                continue
-            
-            for key in existingData['results']:
-                print 'found value ' + str(existingData['results'][key]['closed'])
-                decoded_key = decodeKey(key)
-                if decoded_key in source_distr.keys():
-                    source_distr[decoded_key] += existingData['results'][key]['closed']
-                else:
-                    source_distr[decoded_key] = existingData['results'][key]['closed']
-                              
-        print 'r is ' + str(source_distr)
-        for key in source_distr.keys():
-            result.append({'x': key, 'y':source_distr[key]})
-            
-        return result
-    
-    except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
-        return JsonResponse({'Error' : str(e)})
-    
-# For chart - 'Website Traffic"
-def hspt_website_traffic_bar(user_id, company_id, start_date, end_date, chart_name): 
-    #print 'orig start' + str(start_date)
-    try:
-     
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-    
-        e = local_end_date
-        s = local_start_date - timedelta(days=1)
-         
-        all_values = {}
-        all_dates = []
-        delta = timedelta(days=1)
-        result = []
-         
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_query = 'date'
-        data = None
-        channels = {'email': 0, 'direct': 0, 'social': 0, 'paid': 0, 'other': 0} 
-           
-        while s < (e - delta):
-            s += delta #increment the day counter
-            array_key = s.strftime('%Y-%m-%d')
-            print 'date key is ' + array_key
-            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
-            
-            existingData = AnalyticsData.objects(**querydict).only('results').first()
-            if existingData is None: #  no results found for day so move to next day
-                continue
-            data = existingData['results']
-        
-            for key in channels.keys():
-                if  key not in all_values: #and key != 'offline'
-                    all_values[key]= {} 
-                if key in data.keys(): 
-                    if 'visits' in data[key]:
-                        all_values[key][array_key] = data[key]['visits']
-                    else:    
-                        all_values[key][array_key] = 0
-                else:    
-                        all_values[key][array_key] = 0
-                
-        #print 'all vals is ' + str(all_values)
-        if data is None:
-            return []
-           
-        for stage in channels.keys():
-            obj_array = []
-            for key in all_values[stage].keys():
-                obj = {'x' : key, 'y': all_values[stage][key]}
-                obj_array.append(obj)  
-            result.append({'key' : stage, 'values': obj_array })                   
-        #print str(result)
-        return result
-    except Exception as e:
-        print 'exception is ' + str(e) 
-        return JsonResponse({'Error' : str(e)})        
-
-
-def hspt_contacts_sources_pie_deprecated(user_id, company_id, start_date, end_date, chart_name):
-    
-    try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-        #utc_current_date = datetime.utcnow()   
-        
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_qry = 'date'
-       
-        result = [] 
-        source_distr = {}
-        delta = timedelta(days=1)
-        e = local_end_date
-        
-        s = local_start_date - timedelta(days=1)
-        while s < (e - delta):
-            s += delta #increment the day counter
-            date = s.strftime('%m-%d-%Y')
-            print 'date is ' + str(date)
-            querydict = {date_qry: date, chart_name_qry: chart_name, company_field_qry: company_id} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-            existingData = AnalyticsData.objects(**querydict).first()
-            if existingData is None:
-                continue
-            
-            for key in existingData['results']:
-                if key in source_distr.keys():
-                    source_distr[key] += existingData['results'][key]
-                else:
-                    source_distr[key] = existingData['results'][key]
-                              
-       
-        for key in source_distr.keys():
-            result.append({'x': key, 'y':source_distr[key]})
-            
-        return result
-    
-    except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
-        return JsonResponse({'Error' : str(e)})
-    
-    
-
-#get revenue (from HSPT) by source (from HSPT); needs the HSPT lead record to exist
-def hspt_contacts_revenue_sources_pie_deprecated(user_id, company_id, start_date, end_date, chart_name):
-    
-    try:
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-        #utc_current_date = datetime.utcnow()   
-        
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_qry = 'date'
-        
-        result = [] 
-        source_distr = {}
-        delta = timedelta(days=1)
-        e = local_end_date
-        
-        s = local_start_date - timedelta(days=1)
-        while s < (e - delta):
-            s += delta #increment the day counter
-            date = s.strftime('%m-%d-%Y')
-            print 'date is ' + str(date)
-            querydict = {date_qry: date, chart_name_qry: chart_name, company_field_qry: company_id} #, start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-            existingData = AnalyticsData.objects(**querydict).first()
-            
-            for key in existingData['results']:
-                if key in source_distr.keys():
-                    source_distr[key] += existingData['results'][key]
-                else:
-                    source_distr[key] = existingData['results'][key]
-                              
-       
-        for key in source_distr.keys():
-            result.append({'x': key, 'y':source_distr[key]})
-            
-        return result
-    
-    except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
-        return JsonResponse({'Error' : str(e)})
-    
-# start of BUFR
-# first chart - 'Tw Performance"
-def tw_performance_bar_chart(user_id, company_id, start_date, end_date, chart_name):
-    try:
-     
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-    
-        e = local_end_date
-        s = local_start_date - timedelta(days=1)
-         
-        all_values = {}
-        all_dates = []
-        delta = timedelta(days=1)
-        result = []
-         
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_query = 'date'
-        data = None
-           
-        while s < (e - delta):
-            s += delta #increment the day counter
-            array_key = s.strftime('%Y-%m-%d')
              
-            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
+            results = {'results': people[offset:offset + items_per_page], 'count' : len(people) }   
+            return results
+        #Deals
+        elif (object == 'Deals'):
+            for day in days:
+                data = day['results']
+                try: 
+                    deals.extend(data['Website']['Hubspot']['social'][channel][section]['Deals'])
+                except Exception as e:
+                    continue
             
-            existingData = AnalyticsData.objects(**querydict).only('results').first()
-            if existingData is None: #  no results found for day so move to next day
-                continue
-            data = existingData['results']
-                        
-            for key in data.keys():
-                if  key not in all_values:
-                        all_values[key]= {}    
-                all_values[key][array_key] = data[key]
-                
-        #print 'all vals is ' + str(all_values)
-        if data is None:
-            return []
-           
-        for stage in data.keys():
-            obj_array = []
-            for key in all_values[stage].keys():
-                obj = {'x' : key, 'y': all_values[stage][key]}
-                obj_array.append(obj)  
-            result.append({'key' : stage, 'values': obj_array })                   
-        #print str(result)
-        return result
+             
+            results = {'results': deals[offset:offset + items_per_page], 'count' : len(deals) }   
+            return results
+        
+        
     except Exception as e:
         print 'exception is ' + str(e) 
-        return JsonResponse({'Error' : str(e)})  
-
-#Google charts    
-# For chart - 'Website Traffic"
-def google_analytics_bar_chart(user_id, company_id, start_date, end_date, chart_name): 
-    #print 'orig start' + str(start_date)
-    try:
-     
-        start_date = datetime.fromtimestamp(float(start_date) / 1000)
-        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
-        
-        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
-        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-    
-        e = local_end_date
-        s = local_start_date - timedelta(days=1)
-         
-        all_values = {}
-        all_dates = []
-        delta = timedelta(days=1)
-        result = []
-         
-        company_field_qry = 'company_id'
-        chart_name_qry = 'chart_name'
-        date_query = 'date'
-        data = None
-        userTypes = {'New': 0, 'Returning': 0} 
-           
-        while s < (e - delta):
-            s += delta #increment the day counter
-            array_key = s.strftime('%Y-%m-%d')
-            print 'date key is ' + array_key
-            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
-            
-            existingData = AnalyticsData.objects(**querydict).only('results').first()
-            if existingData is None: #  no results found for day so move to next day
-                data = {'New' : 0, 'Returning' : 0}
-            else:
-                data = existingData['results']
-        
-            for key in userTypes.keys():
-                if  key not in all_values: #and key != 'offline'
-                    all_values[key]= {} 
-                if key in data.keys(): 
-                    all_values[key][array_key] = data[key]
-                else:    
-                    all_values[key][array_key] = 0
-                
-        #print 'all vals is ' + str(all_values)
-        if data is None:
-            return []
-           
-        for type in userTypes.keys():
-            obj_array = []
-            for key in all_values[type].keys():
-                obj = {'x' : key, 'y': all_values[type][key]}
-                obj_array.append(obj)  
-            result.append({'key' : type, 'values': obj_array })                   
-        #print str(result)
-        return result
-    except Exception as e:
-        print 'exception is ' + str(e) 
-        return JsonResponse({'Error' : str(e)})        
-
-#end of analytics
-    
-class SingleBinderTemplate(viewsets.ModelViewSet):  
-    
-    serializer_class = BinderTemplateSerializer
-        
-    def create(self, request, company_id=None):
-        try:
-            company = Company.objects.filter(company_id=company_id).first()
-            
-            data = json.loads(request.body)
-            binder = data.get('binderTemplate', None)
-            print 'binder is ' + str(binder)
-            binderTemplate = BinderTemplate(owner=request.user.id, company=company) #
-            binderTemplate.name = binder['name']
-            binderTemplate.pages = binder['pages']
-            binderTemplate.orientation = binder['orientation']
-            binderTemplate.frequency = binder['frequency']
-            binderTemplate.frequency_day = binder.get('frequency_day', None)
-            binderTemplate.binder_count = 0;
-            binderTemplate.save()
-            if binderTemplate.frequency == 'One Time':
-                print 'saving binder instance'
-                singleBinder = SingleBinder()
-                singleBinder.create(request, company_id, binderTemplate.id)
-                if binderTemplate.binder_count is None:
-                    binderTemplate.binder_count = 0;
-                binderTemplate.binder_count += 1; #increment the count of binders for this template
-                binderTemplate.save()
-            binderTemplates = BinderTemplates() # get all binder templates
-            return BinderTemplates.list(binderTemplates, request, company_id)
-        except Exception as e:
-            return Response(str(e))
-            
-            
-class BinderTemplates(viewsets.ModelViewSet):  
-    
-    serializer_class = BinderTemplateSerializer
-        
-    def list(self, request, company_id=None):
-        try:
-            company = Company.objects.filter(company_id=company_id).first()    
-            results = BinderTemplate.objects(company=company).all()
-            serializedList = BinderTemplateSerializer(results, many=True)
-            totalCount = BinderTemplate.objects(company=company.id).count()
-            return JsonResponse({'results' : serializedList.data, 'count': totalCount})
-        except Exception as e:
-                return Response(str(e))    
-            
-            
-class SingleBinder(viewsets.ModelViewSet):  
-    serializer_class = BinderSerializer
-          
-    def create(self, request, company_id=None, binder_template_id=None):
-        try:
-            if binder_template_id is None: # this should never happen
-                return JsonResponse({'message' : 'Cannot create binder without template ID'})
-            company = Company.objects.filter(company_id=company_id).first()
-            
-            data = json.loads(request.body)
-            binder = data.get('binder', None)
-            if binder is None: # this will happen, for e.g., when the binder is being created auto from a One Time binder template 
-                binder = Binder(owner=request.user.id, company=company) #
-                binderTemplate = BinderTemplate.objects(id=binder_template_id).first()
-                if binderTemplate is None:
-                    return JsonResponse({'message' : 'Cannot create binder without template'})
-                binder.name = binderTemplate.name
-                binder.pages = binderTemplate.pages
-                binder.binder_template = binderTemplate
-                binder.save()
-                results = BinderSerializer(binder, many=False)
-                return JsonResponse({'results' : results})
-        except Exception as e:
-            return Response(str(e))
-            
- 
-class Binders(viewsets.ModelViewSet):  
-    
-    serializer_class = BinderSerializer
-        
-    def list(self, request, company_id=None, binder_template_id=None):
-        try:
-            company = Company.objects.filter(company_id=company_id).first()    
-            results = Binder.objects(Q(company=company) & Q(binder_template=binder_template_id))
-            serializedList = BinderSerializer(results, many=True)
-            #totalCount = BinderTemplate.objects(company=company.id).count()
-            return JsonResponse({'results' : serializedList.data})
-        except Exception as e:
-                return Response(str(e))       
+        return JsonResponse({'Error' : str(e)})   
