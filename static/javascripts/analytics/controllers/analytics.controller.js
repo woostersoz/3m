@@ -196,7 +196,7 @@
 			$scope.showChart = true;
 			$scope.stopSpin();
 			$scope.startSpin();
-			angular.element('.analytics-charts li').removeClass('slick-selected');
+			angular.element('.analytics-charts li div').removeClass('slick-selected');
 			angular.element($event.currentTarget).parent().addClass(
 			'slick-selected');
 			$scope.data = [];

@@ -29,7 +29,7 @@ from mmm.views import _str_from_date
 
 from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, tempDataCleanup
 from contacts.tasks import retrieveSfdcContacts, saveSfdcContactsToMaster
-from activities.tasks import retrieveMktoActivities, retrieveSfdcActivities, saveMktoActivitiesToMaster
+from activities.tasks import retrieveMktoActivities, retrieveSfdcHistory, saveMktoActivitiesToMaster, saveSfdcHistoryToMaster
 from opportunities.tasks import retrieveMktoOpportunities, retrieveSfdcOpportunities, saveSfdcOpportunitiesToMaster, retrieveHsptOpportunities, saveHsptOpportunitiesToMaster
 from campaigns.tasks import retrieveHsptCampaigns, retrieveMktoCampaigns, saveMktoCampaignsToMaster, retrieveSfdcCampaigns, saveSfdcCampaignsToMaster
 from accounts.tasks import retrieveSfdcAccounts, saveSfdcAccountsToMaster
@@ -160,20 +160,22 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #             _superJobMonitorAddTask(superJobMonitor, "Claritix", str(count) + " Accounts deleted")
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
-        task_map = {#"mkto" : [retrieveMktoActivities, retrieveMktoLeads,  retrieveMktoCampaigns], \
-#                    "hspt" : [retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], # , ],
-#                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts],  \
-#                     "bufr" : [retrieveBufrTwInteractions], \
-#                     "goog" : [retrieveGoogWebsiteTraffic], \
-#                      "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
+        task_map = {
+                    "mkto" : [retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns],  #
+                    "hspt" : [retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], # , ],
+                    "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcHistory],
+                    "bufr" : [retrieveBufrTwInteractions], 
+                    "goog" : [retrieveGoogWebsiteTraffic], \
+                    "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
-        final_task_map = {#"mkto" : [saveMktoLeadsToMaster, saveMktoCampaignsToMaster, saveMktoActivitiesToMaster], \
-#                    "hspt" : [saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], # , ], 
-#                     "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster],  \
-#                     "bufr" : [saveBufrTwInteractionsToMaster], \
-#                     "goog": [saveGoogleWebsiteTrafficToMaster], \
-#                      "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
+        final_task_map = {
+                    "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster], # 
+                    "hspt" : [saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], # , ], 
+                    "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcHistoryToMaster],  # 
+                    "bufr" : [saveBufrTwInteractionsToMaster], 
+                    "goog": [saveGoogleWebsiteTrafficToMaster], 
+                    "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
                     }
 #         #
 # #         #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, 
@@ -241,16 +243,17 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                
         # call chart calculate tasks
         charts = [\
-                     #{'chart_name': 'sources_bar', 'system_type': 'MA', 'chart_title':'Timeline', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'sources_bar', 'system_type': 'MA', 'chart_title':'Timeline', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'pipeline_duration', 'system_type': 'MA', 'chart_title':'Pipeline Duration', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'contacts_distr', 'system_type': 'MA', 'chart_title':'Contacts Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'source_pie', 'system_type': 'MA', 'chart_title':'Source Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'revenue_source_pie', 'system_type': 'MA', 'chart_title':'Revenue by Source', 'mode': run_type, 'start_date': sinceDateTime}, \
                      #{'chart_name': 'multichannel_leads', 'system_type': 'MA', 'chart_title':'Multichannel Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
-                     #{'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-                     #{'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
-                    #{'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-                    {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
                
                 ]
         

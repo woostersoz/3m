@@ -8,6 +8,7 @@ from mmm.celery import app
 from django.http import HttpResponse, JsonResponse
 from rest_framework.response import Response
 from mongoengine.queryset.visitor import Q
+from bson.objectid import ObjectId
 
 from leads.models import Lead
 from company.models import CompanyIntegration, TempData, TempDataDelta
@@ -131,38 +132,63 @@ def retrieveMktoActivities(user_id=None, company_id=None, job_id=None, run_type=
 #              success=False,
 #              message=str(e)
 #             ))   
-
 @app.task    
-def retrieveSfdcActivities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
+def retrieveSfdcHistory(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
     try:
+        #job_id = ObjectId("55e379e756ea06290ae1759f")
+
         #for leads
-        leads = TempData.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        if run_type == 'initial':
+            leads = TempData.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        else:
+            leads = TempDataDelta.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
         leadListTemp = list(leads)
+        if not leadListTemp:
+            print 'no leads found'
+            return
         leadList = [i['source_record'] for i in leadListTemp]
-        lead_list = '('
-        for lead in leadList:
-            lead_list += '\'' + lead['Id'] + '\'' + ', '
-        lead_list = lead_list[:-2]
-        lead_list += ')'
-        sfdc = Salesforce()
-        activitiesList = sfdc.get_activities_for_lead_delta(user_id, company_id, lead_list, _str_from_date(sinceDateTime))
-        print 'got back activities for leads ' + str(len(activitiesList))
-        saveSfdcActivities(user_id=user_id, company_id=company_id, activitiesList=activitiesList, job_id=job_id, run_type=run_type)
         
-        #for contacts
-        contacts = TempData.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
-        contactListTemp = list(contacts)
-        contactList = [i['source_record'] for i in contactListTemp]
-        contact_list = '('
-        for contact in contactList:
-            contact_list += '\'' + contact['Id'] + '\'' + ', '
-        contact_list = contact_list[:-2]
-        contact_list += ')'
         sfdc = Salesforce()
-        activitiesList = sfdc.get_activities_for_contact_delta(user_id, company_id, contact_list, _str_from_date(sinceDateTime))
-        print 'got back activities for contacts ' + str(len(activitiesList))
-        saveSfdcActivities(user_id=user_id, company_id=company_id, activitiesList=activitiesList, job_id=job_id, run_type=run_type)
         
+        batch_size = 500  #10 Activity Types at a time
+        activitiesList = []
+        
+        for i in range(0, len(leadList), batch_size):
+            lead_list = '('
+            for lead in leadList[i:i+batch_size]:
+                lead_list += '\'' + lead['Id'] + '\'' + ', '
+            lead_list = lead_list[:-2]
+            lead_list += ')'
+            activitiesList.extend(sfdc.get_history_for_lead(user_id, company_id, lead_list, _str_from_date(sinceDateTime)))
+        
+        print 'got back history for SFDC leads ' + str(len(activitiesList))
+        saveSfdcHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
+        
+#         #for contacts
+#         if run_type == 'initial':
+#             contacts = TempData.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+#         else:
+#             contacts = TempDataDelta.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+#             
+#         contactListTemp = list(contacts)
+#         contactList = [i['source_record'] for i in contactListTemp]
+#         
+#         sfdc = Salesforce()
+#         
+#         batch_size = 500  #10 Activity Types at a time
+#         activitiesList = []
+#         
+#         for i in range(0, len(contactList), batch_size):
+#             contact_list = '('
+#             for contact in contactList[i:i+batch_size]:
+#                 contact_list += '\'' + contact['Id'] + '\'' + ', '
+#             contact_list = contact_list[:-2]
+#             contact_list += ')'
+#             activitiesList.extend(sfdc.get_history_for_contact(user_id, company_id, contact_list, _str_from_date(sinceDateTime)))
+# 
+#         print 'got back history for SFDC contacts ' + str(len(activitiesList))
+#         saveSfdcHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
+#         
         
         try:
             message = 'Activities retrieved from Salesforce'
@@ -184,7 +210,62 @@ def retrieveSfdcActivities(user_id=None, company_id=None, job_id=None, run_type=
                 ))    
         return leadList
     except Exception as e:
+        print 'exception while retrieving SFDC history: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))   
+        
+# @app.task    
+# def retrieveSfdcActivities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
+#     try:
+#         #for leads
+#         leads = TempData.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+#         leadListTemp = list(leads)
+#         leadList = [i['source_record'] for i in leadListTemp]
+#         lead_list = '('
+#         for lead in leadList:
+#             lead_list += '\'' + lead['Id'] + '\'' + ', '
+#         lead_list = lead_list[:-2]
+#         lead_list += ')'
+#         sfdc = Salesforce()
+#         activitiesList = sfdc.get_activities_for_lead_delta(user_id, company_id, lead_list, _str_from_date(sinceDateTime))
+#         print 'got back activities for leads ' + str(len(activitiesList))
+#         saveSfdcActivities(user_id=user_id, company_id=company_id, activitiesList=activitiesList, job_id=job_id, run_type=run_type)
+#         
+#         #for contacts
+#         contacts = TempData.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+#         contactListTemp = list(contacts)
+#         contactList = [i['source_record'] for i in contactListTemp]
+#         contact_list = '('
+#         for contact in contactList:
+#             contact_list += '\'' + contact['Id'] + '\'' + ', '
+#         contact_list = contact_list[:-2]
+#         contact_list += ')'
+#         sfdc = Salesforce()
+#         activitiesList = sfdc.get_activities_for_contact_delta(user_id, company_id, contact_list, _str_from_date(sinceDateTime))
+#         print 'got back activities for contacts ' + str(len(activitiesList))
+#         saveSfdcActivities(user_id=user_id, company_id=company_id, activitiesList=activitiesList, job_id=job_id, run_type=run_type)
+#         
+#         
+#         try:
+#             message = 'Activities retrieved from Salesforce'
+#             notification = Notification()
+#             #notification.company_id = company_id
+#             notification.owner = user_id
+#             notification.module = 'Leads'
+#             notification.type = 'Background task' 
+#             notification.method = os.path.basename(__file__)
+#             notification.message = message
+#             notification.success = True
+#             notification.read = False
+#             notification.save()
+#         except Exception as e:
+#             send_notification(dict(
+#                  type='error',
+#                  success=False,
+#                  message=str(e)
+#                 ))    
+#         return leadList
+#     except Exception as e:
+#         send_notification(dict(type='error', success=False, message=str(e)))   
         
 # @app.task    
 # def retrieveSfdcActivitiesDaily(user_id=None, company_id=None, job_id=None, sinceDateTime=None): #needs to be changed - satya
@@ -262,12 +343,23 @@ def saveMktoActivities(user_id=None, company_id=None, activityList=None, activit
 #         saveTempDataDelta(company_id=company_id, record_type="activity", source_system="mkto", source_record=activity, job_id=job_id)
 
 def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #job_id = ObjectId("55e353b656ea0616f2d02cd6") 
+    
+    
     if run_type == 'initial':   
-        activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+        #activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+        collection = TempData._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'mkto', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
     else:
-        activities = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
-    activityListTemp = list(activities)
-    activityList = [i['source_record'] for i in activityListTemp]
+        collection = TempDataDelta._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'mkto', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
+        #activities = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+    
+    
+#     activityListTemp = list(activities)
+#     activityList = [i['source_record'] for i in activityListTemp]
     
     existingIntegration = CompanyIntegration.objects(company_id = company_id).first()
     if existingIntegration is not None:
@@ -282,12 +374,14 @@ def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_t
                 changeActivityId = activityTypeArray[i]['id']
         print 'change id is ' + str(changeActivityId)
         
-        for newActivity in activityList: 
+        for activity in activities: 
             
+            newActivity = activity['source_record']
             addThisActivity = True
             
             #company_id = request.user.company_id
             mkto_id = str(newActivity['leadId'])
+            print 'doing lead ' + mkto_id
             
             existingLead = Lead.objects(Q(mkto_id = str(mkto_id)) & Q(company_id = company_id)).first()
             if existingLead is not None: # we found this lead to attach the activities
@@ -341,8 +435,18 @@ def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_t
              message=str(e)
             ))   
     
-def saveSfdcActivities(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
-    print 'saving sfdc activities for leads'
+# def saveSfdcActivities(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
+#     print 'saving sfdc activities for leads'
+#     if run_type == 'initial':
+#         for activity in activityList:
+#             saveTempData(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
+#     else:
+#         for activity in activityList:
+#             saveTempDataDelta(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
+#     
+
+def saveSfdcHistory(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
+    print 'saving sfdc activities for leads and contacts'
     if run_type == 'initial':
         for activity in activityList:
             saveTempData(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
@@ -351,5 +455,59 @@ def saveSfdcActivities(user_id=None, company_id=None, activityList=None, job_id=
             saveTempDataDelta(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
     
 
+def saveSfdcHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #job_id = ObjectId("55e379e756ea06290ae1759f")
 
+    if run_type == 'initial':   
+        #activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+        collection = TempData._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
+    else:
+        collection = TempDataDelta._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+    
+    try:
+        print 'got activities ' + str(activities.count())
+        for activity in activities: 
+                
+            newActivity = activity['source_record']
+            addThisActivity = True
+            print 'act is ' + str(newActivity)
+            leadId = newActivity["LeadId"]
+            if leadId is not None:
+                print 'trying to get lead'
+                existingLead = Lead.objects(Q(company_id = company_id) & Q(sfdc_id = leadId)).first()
+                print 'lead is ' + str(existingLead)
+            else:
+                continue
+            if existingLead is None:
+                continue
+            
+            if 'sfdc' in existingLead['activities']: # there are activities from SFDC for this leadId
+                for existingActivity in existingLead['activities']['sfdc']:
+                    if existingActivity['Id'] == newActivity['Id']: # this activity already exists so exit the loop
+                        addThisActivity = False
+                        break
+                if addThisActivity:
+                    existingLead['activities']['sfdc'].append(newActivity)
+                    existingLead.save()
+                    print 'saved new activity 1'
+            else:
+                print 'no sfdc acts'
+                addThisActivity = True
+                sfdc = []
+                print 'appending'
+                sfdc.append(newActivity)
+                print 'appended'
+                existingLead['activities']['sfdc'] = sfdc
+                existingLead.save()
+                print 'saved new activity 2'
 
+    except Exception as e:
+        print 'exception ' + str(e)
+        send_notification(dict(
+         type='error',
+         success=False,
+         message=str(e)
+        ))               

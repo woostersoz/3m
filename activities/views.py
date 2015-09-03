@@ -26,7 +26,7 @@ from integrations.views import Marketo, Salesforce #, get_sfdc_test
 # from activities.serializers import ActivitySerializer
 # from activities.models import Activity
 
-from activities.tasks import retrieveMktoActivities, retrieveSfdcActivities
+from activities.tasks import retrieveMktoActivities, retrieveSfdcHistory
 # get leads 
 
 #@api_view(['GET'])

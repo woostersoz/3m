@@ -26,6 +26,7 @@
 		var vm = this;
 		vm.dashboards = [];
 		vm.leads = [];
+		$scope.parseInt = parseInt;
 		$scope.leads = [];
 	    $scope.totalLeads = 0;
 	    $scope.leadsPerPage = 10;
@@ -79,7 +80,7 @@
 		$scope.end_date = '';
 		$scope.stageNames = {};
 		$scope.stageNames = {'marketingqualifiedlead' : 'MQL', 'salesqualifiedlead' : 'SQL', 'customer' : 'Customer', 'subscriber' : 'Subscriber', 'lead' : 'Lead', 'opportunity' : 'Opportunity'};
-		$scope.sourceNames = {'DIRECT_TRAFFIC' : 'Direct', 'EMAIL_MARKETING': 'Email', 'OFFLINE': 'Offline', 'ORGANIC_SEARCH': 'Organic', 'REFERRALS': 'Referrals', 'SOCIAL_MEDIA': 'Social', 'PAID_SEARCH': 'Paid', 'OTHER_CAMPAIGNS': 'Others'};
+		$scope.sourceNames = {'DIRECT_TRAFFIC' : 'Direct', 'EMAIL_MARKETING': 'Email', 'OFFLINE': 'Offline', 'ORGANIC_SEARCH': 'Organic', 'REFERRALS': 'Referrals', 'SOCIAL_MEDIA': 'Social', 'PAID_SEARCH': 'Paid', 'OTHER_CAMPAIGNS': 'Others', 'Unknown': 'Unknown'};
 		
 		$scope.groupDates = {};
 		$scope.groupDates.date = {
@@ -112,13 +113,21 @@
 			$scope.start_date = moment().subtract(30, "days").startOf("day").unix();
 			$scope.end_date = moment().endOf("day").unix();
 			$scope.results = {};
-			$scope.results.created_source = {'DIRECT_TRAFFIC' : 2180, 'EMAIL_MARKETING': 143, 'OFFLINE': 3782, 'ORGANIC_SEARCH': 209876, 'REFERRALS': 152432, 'SOCIAL_MEDIA': 13334445, 'PAID_SEARCH': 28976, 'OTHER_CAMPAIGNS': 5};
+			//$scope.results.created_source = {'DIRECT_TRAFFIC' : 2180, 'EMAIL_MARKETING': 143, 'OFFLINE': 3782, 'ORGANIC_SEARCH': 209876, 'REFERRALS': 152432, 'SOCIAL_MEDIA': 13334445, 'PAID_SEARCH': 28976, 'OTHER_CAMPAIGNS': 5};
 			
-			//Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
+			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
 		}
 		
 		if ($state.params.type == 'social') {
 			$scope.dashboard_name = 'social';
+			$scope.system_type = 'MA';
+			$scope.start_date = moment().subtract(90, "days").startOf("day").unix();
+			$scope.end_date = moment().endOf("day").unix();
+			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
+		}
+		
+		if ($state.params.type == 'waterfall') {
+			$scope.dashboard_name = 'waterfall';
 			$scope.system_type = 'MA';
 			$scope.start_date = moment().subtract(90, "days").startOf("day").unix();
 			$scope.end_date = moment().endOf("day").unix();

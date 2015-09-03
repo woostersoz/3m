@@ -64,7 +64,7 @@ def retrieveSfdcContacts(user_id=None, company_id=None, job_id=None, run_type=No
         if sinceDateTime is None:
             sinceDateTime = datetime.now() - timedelta(days=30) #change to 365
         contactList = sdfc.get_contacts(user_id, company_id) #, _str_from_date(sinceDateTime))
-        print 'got back contacts ' + str(len(contactList))
+        print 'got back contacts ' + str(len(contactList['records']))
         saveSfdcContacts(user_id=user_id, company_id=company_id, contactList=contactList, job_id=job_id, run_type=run_type)
         try:
             message = 'Contacts retrieved from Salesforce'
@@ -214,7 +214,7 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
                 if existingLeadMkto is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
                     print 'found mkto lead' + existingLeadMkto.mkto_id
                     existingLeadMkto.sfdc_contact_id = sfdc_contact_Id
-                    existingLeadMkto.contacts = {}
+                    #existingLeadMkto.contacts = {}
                     existingLeadMkto.contacts['sfdc'] = newContact
                     existingLeadMkto.save()
                 existingLeadHspt = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__salesforcecontactid=sfdc_contact_Id)).first()
@@ -248,6 +248,7 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
 #                 oldLead.leads["sfdc"] = newLead 
 #                 Lead.objects(derived_id = lead.derived_id).update(oldLead)
     except Exception as e:
+        print 'exception while saving SFDC contact ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
 
 #save the data in the temp table

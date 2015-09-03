@@ -21,6 +21,8 @@
 							return constUrl + 'dashboard-funnel.html';
 						else if ($stateParams.type == 'social')
 							return constUrl + 'dashboard-social.html';
+						else if ($stateParams.type == 'waterfall')
+							return constUrl + 'dashboard-waterfall.html';
 					}
 				})
 		        .state(

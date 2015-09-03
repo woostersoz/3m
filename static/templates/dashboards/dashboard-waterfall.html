@@ -1,0 +1,129 @@
+<div class="row">
+	<div class="col-md-12">
+	
+	<!--  dashboard -->
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption  col-md-6">
+      <i class="fa fa-random font-blue-madison"></i>
+      <span class="caption-subject bold uppercase font-blue-madison">Funnel Waterfall
+      From <span class="label label-info">{{ results.start_date }}</span> to <span class="label label-info">{{ results.end_date }}</span>
+      </span>
+    </div>   
+    
+    <div class="col-md-6">
+	    <div class="input-group col-sm-7 pull-right">
+				<span class="input-group-addon"><span
+					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+					date-range-picker class="form-control date-picker"
+					style="font-size: 0.7rem !important; width: 75% !important"
+					name="groupDates.date" ng-model="groupDates.date" options="opts"
+					placeholder="Select date range" />
+		</div>
+	</div>
+    
+  </div>
+  
+  <div class="main-body">
+     <div id="top-half" class="text-center" style="background-color:#fff; margin-left:auto; margin-right: auto; margin-top:20px">
+     <div class="col-md-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Marketing</div>
+     <div class="col-md-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Sales</div>
+<div style="display:inline-block; margin-top:20px">
+  <div class="cont">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'raw_leads')">{{ results.num_mktg_raw_leads | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(results.num_mktg_raw_leads) === 0 ? "N/A " : (parseInt(results.num_mql) / parseInt(results.num_mktg_raw_leads) * 100 | number:1)  }}%)</div></div>
+    <div class="taper-center" style="width: 300px;">
+      <div class="part-b">
+         <div class="background"></div>
+                <div class="col-md-12"><a href=""><i class="fa fa-user dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header">Raw Leads</div> 
+	            <div class="col-md-12 info-metric"><a href="#" ng-click="drilldown('leads', 'all', 'raw_leads')">{{ results.num_mktg_raw_leads + results.num_sales_raw_leads | number:0 }}</a></div>
+    </div>
+    
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'raw_leads')">{{ results.num_sales_raw_leads | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(results.num_sales_raw_leads) === 0 ? "N/A " : (parseInt(results.num_sales_sal) / parseInt(results.num_sales_raw_leads) * 100  | number:1)  }}%)</div></div>
+</div>
+<div class="spacer"></div>
+<div class="cont" style="margin-left: 25px;">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'mql')">{{ results.num_mql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(results.num_mql) === 0 ? "N/A " : (parseInt(results.num_mktg_sal) / parseInt(results.num_mql) * 100  | number:1) }}%)</div></div>
+    <div class="taper-center" style="width: 250px;">
+    <div class="part-b">
+         <div class="background"></div>
+	            <div class="col-md-12"><a href=""><i class="fa fa-bullhorn dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header">MQLs</div> 
+	            <div class="col-md-12 info-metric"><a href="#" ng-click="drilldown('leads', 'all', 'mql')">{{ results.num_mql | number:0 }}</a></div>
+    </div>
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric">N/A</div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+</div>
+<div class="spacer"></div>
+<div class="cont" style="margin-left: 50px;">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sal')">{{ results.num_mktg_sal | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(results.num_mktg_sal) === 0 ? "N/A " : (parseInt(results.num_mktg_sql) / parseInt(results.num_mktg_sal) * 100  | number:1) }}%)</div></div>
+    <div class="taper-center" style="width: 200px;">
+    <div class="part-b">
+         <div class="background"></div>
+	            <div class="col-md-12"><a href=""><i class="fa fa-check-square-o dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header">SALs</div> 
+	            <div class="col-md-12 info-metric"><a href="#" ng-click="drilldown('leads', 'all', 'sal')">{{ results.num_mktg_sal + results.num_sales_sal | number:0 }}</a></div>
+    </div>
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sal')">{{ results.num_sales_sal | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(results.num_sales_sal) === 0 ? "N/A " : (parseInt(results.num_sales_sql) / parseInt(results.num_sales_sal) * 100  | number:1) }}%)</div></div>
+</div>
+<div class="spacer"></div>
+<div class="cont" style="margin-left: 75px;">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sql')">{{ results.num_mktg_sql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(results.num_mktg_sql) === 0 ? "N/A " : (parseInt(results.num_mktg_opps) / parseInt(results.num_mktg_sql) * 100  | number:1) }}%)</div></div>
+    <div class="taper-center" style="width: 150px;">
+    <div class="part-b">
+         <div class="background"></div>
+	            <div class="col-md-12"><a href=""><i class="fa fa-thumbs-o-up dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header">SQLs</div> 
+	            <div class="col-md-12 info-metric"><a href="#" ng-click="drilldown('leads', 'all', 'sql')">{{ results.num_sales_sql + results.num_mktg_sql | number:0 }}</a></div>
+    </div>
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sql')">{{ results.num_sales_sql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(results.num_sales_sql) === 0 ? "N/A " : (parseInt(results.num_sales_opps) / parseInt(results.num_sales_sql) * 100 | number:1) }}%)</div></div>
+</div>
+<div class="spacer"></div>
+<div class="cont" style="margin-left: 100px;">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'opps')">{{ results.num_mktg_opps | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(results.num_mktg_opps) === 0 ? "N/A " : (parseInt(results.num_mktg_closed_deals) / parseInt(results.num_mktg_opps) * 100  | number:1) }}%)</div></div>
+    <div class="taper-center" style="width: 100px;">
+    <div class="part-b">
+         <div class="background"></div>
+	            <div class="col-md-12"><a href=""><i class="fa fa-money dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header">Deals</div> 
+	            <div class="col-md-12 info-metric"><a href="#" ng-click="drilldown('leads', 'all', 'opps')">{{ results.num_mktg_opps + results.num_sales_opps | number:0 }}</a></div>
+    </div>
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'opps')">{{ results.num_sales_opps | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(results.num_sales_opps) === 0 ? "N/A " : (parseInt(results.num_sales_closed_deals) / parseInt(results.num_sales_opps) * 100 | number:1)  }}%)</div></div>
+</div>
+<div class="spacer"></div>
+<div class="cont" style="margin-left: 125px;">
+    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'closed_deals')">{{ results.num_mktg_closed_deals | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+    <div class="taper-center" style="width: 50px;">
+    <div class="part-b">
+         <div class="background"></div>
+	            <div class="col-md-12"><a href=""><i class="fa fa-heart dark-blue-font"></i></a></div>
+	            <div class="col-md-12 info-label info-header" style="padding-left:5px">Won</div> 
+	            <div class="col-md-12 info-metric"  style="padding-left:15px"><a href="#" ng-click="drilldown('leads', 'all', 'closed_deals')">{{ results.num_mktg_closed_deals + results.num_sales_closed_deals | number:0 }}</a></div>
+    </div>
+    </div>
+    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'closed_deals')">{{ results.num_sales_closed_deals | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+</div>
+
+</div>
+      </div> <!--  end of top half -->
+      
+    </div> <!--  end portlet body -->
+    
+    <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+  
+</div>  
+<!--  end of dashboard -->
+
+    <div ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+	<div ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+		
+	
+		
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

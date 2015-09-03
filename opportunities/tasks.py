@@ -4,6 +4,7 @@ import os
 
 from celery import shared_task
 from mmm.celery import app
+from bson.objectid import ObjectId
 
 from django.http import HttpResponse, JsonResponse
 from rest_framework.response import Response
@@ -470,6 +471,7 @@ def saveHsptOpportunities(user_id=None, company_id=None, oppList=None, job_id=No
        
 #saves Hspt Deals to Lead collection
 def saveHsptOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, run_type=None):  
+    #job_id = ObjectId("55e6b0198afb002ef6a8c292")
     print 'saving hspt opps to master'
     if run_type == 'initial':
         opps = TempData.objects(Q(company_id=company_id) & Q(record_type='opportunity') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 

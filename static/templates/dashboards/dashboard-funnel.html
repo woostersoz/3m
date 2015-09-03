@@ -2,7 +2,7 @@
 	<div class="col-md-12">
 	
 	<!--  dashboard -->
-<div class="portlet light" style="overflow:hidden" ng-cloak>
+<div class="portlet light">
   
   <div class="portlet-title">
     <div class="caption  col-md-6">
@@ -12,19 +12,429 @@
       </span>
     </div>   
     
+    <div class="col-md-6">
+	    <div class="input-group col-sm-7 pull-right">
+				<span class="input-group-addon"><span
+					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+					date-range-picker class="form-control date-picker"
+					style="font-size: 0.7rem !important; width: 75% !important"
+					name="groupDates.date" ng-model="groupDates.date" options="opts"
+					placeholder="Select date range" />
+		</div>
+	</div>
+    
   </div>
   
-  <div id="dashboard-funnel-main" class="col-md-12" ng-style="{'background-image': 'url({{dashboardFunnelUrl}})', 'background-size': '100%', 'background-repeat': 'no-repeat'}">
-      
-      <h3 id="dashboard-funnel-newcontacts" class="info-metric"  style="color:#1f8a70" title="Number of new contacts in this time period">{{results.created_count | number:0}}</h3> <h4> ( {{ results.percentage_increase }}% ) </h4>
-      <!-- img ng-src="{{dashboardFunnelUrl}}" id="dashboard-funnel-image" / -->
-  
+  <div class="main-body">
+     <div id="top-half" style="background-color:#fff">
+ 
+  <div class="col-xs-5 text-center" style="min-height:50px; border-left:2px solid  #cce5e2; border-top:2px solid  #cce5e2; margin-top:125px; margin-left:50px; margin-right:-50px;">
+    &nbsp;
   </div>
+  
+  <div class="col-xs-2 text-center" style="margin-top:30px">
+    
+    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{results.created_count | number:0}}</h4> <h5> ( {{ results.percentage_increase | number:2 }}% ) </h5>
+    <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group fa-2x" style="color:#003d50; font-size:1.5em !important"></i>
+    </a>
+    <h5 class="info-label info-header" style="margin-top:0px;">Contacts</h5>
+  </div>
+  
+  <div class="col-xs-5 text-center" style="min-height:50px; border-right:2px solid #ffe1cd; border-top:2px solid #ffe1cd; margin-top:125px; margin-left:-50px; margin-right:50px;">
+    &nbsp;
+  </div>
+  
+ 
+ <div class="clearfix" style="clear:both; height:0px">
+ &nbsp;
+ </div>
+  
+  <div class="col-xs-12" style="display:flex; ; padding:0">
+  <div class="col-xs-1" style="min-height:50px; max-height:50px; border-left:2px solid #cce5e2; border-bottom:2px solid #cce5e2; margin-top:0px; margin-left:50px; margin-right:-50px;">
+  &nbsp;
+  </div>
+  <div class="col-xs-10 info-box-green">
+    <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Sources</h5>
+    <hr style="border-top:1px solid #8fc2bb; clear:both; margin-top:5px; margin-bottom:0px;">
+    <ul style="list-style:none; padding:0px" class="text-center">
+      <li ng-repeat='(key, value) in results.created_source' class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#007d6d;">
+            <i ng-show="key == 'EMAIL_MARKETING'" class="fa fa-envelope"></i>
+            <i ng-show="key == 'DIRECT_TRAFFIC'" class="fa fa-bullseye"></i>
+            <i ng-show="key == 'OFFLINE'" class="fa fa-flag-o"></i>
+            <i ng-show="key == 'ORGANIC_SEARCH'" class="fa fa-search"></i>
+            <i ng-show="key == 'REFERRALS'" class="fa fa-bullhorn"></i>
+            <i ng-show="key == 'SOCIAL_MEDIA'" class="fa fa-thumbs-o-up"></i>
+            <i ng-show="key == 'PAID_SEARCH'" class="fa fa-money"></i>
+            <i ng-show="key == 'OTHER_CAMPAIGNS'" class="fa fa-volume-up"></i>
+            <i ng-show="key == 'Unknown'" class="fa fa-question"></i>
+         </a>
+         <h6 class="info-label">{{ sourceNames[key] }}</h6>
+         <p class="info-label info-metric">{{ value | number:0 }}</p>
+      </li>
+    </ul>
+  </div>
+  <div class="col-xs-1" style="min-height:50px; border-right:2px solid  #ffe1cd; margin-top:0px;margin-left:-50px; margin-right:50px;">
+  &nbsp;
+  </div>
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+ &nbsp;
+ </div>
+ 
+  <div class="col-xs-1" style="min-height:50px; margin-top:0px">
+  &nbsp;
+  </div>
+  <div class="col-xs-10 info-box-orange" style="margin-top:15px;" >
+    <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Stages</h5>
+    <hr style="border-top:1px solid #fec6a3; clear:both; margin-top:5px; margin-bottom:0px;">
+    <ul style="list-style:none; padding:0px" class="text-center">
+      <ul style="list-style:none; padding-left:0px; margin-left:0px">
+      <li class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-user"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['subscriber'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['subscriber'] || 0 | number:0 }}</p>
+      </li>
+      <li class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-bullhorn"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['lead'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['lead'] || 0 | number:0 }}</p>
+      </li>
+      <li class="info-list-item-compressed text-center">
+        <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-check-square-o"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['marketingqualifiedlead'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
+      </li>
+      <li class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-thumbs-o-up"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['salesqualifiedlead'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
+      </li>
+      <li class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-money"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['opportunity'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['opportunity'] || 0 | number:0 }}</p>
+      </li>
+      <li class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#fd7400;">
+            <i class="fa fa-heart"></i>
+         </a>
+         <h6 class="info-label">{{ stageNames['customer'] }}</h6>
+         <p class="info-label info-metric">{{ results.created_stage['customer'] || 0 | number:0 }}</p>
+      </li>
+    </ul>
+  </div>
+   <div class="col-xs-1" style="min-height:75px; border-right:2px solid  #ffe1cd; border-bottom:2px solid  #ffe1cd; margin-top:0px; margin-left:-50px; margin-right:50px;">
+  &nbsp;
+  </div>
+  
 
+  
+ <div class="clearfix" style="clear:both; height:20px">
+    &nbsp;
+  </div>
+   
+   <div class="col-sm-12 info-label info-header text-center" style="clear:both; height:0px; margin-top:0px; text-transform:uppercase">
+ Full Report
+ </div>
  
+  <div class="clearfix" style="clear:both; height:20px">
+    &nbsp;
+  </div>
+  
+  <!--  detailed metrics begin here -->
+  <!--  Subscriber -->
+  <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ results.leads_inflow_count['subscriber'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider" >
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content" >
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-user info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['subscriber'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['subscriber'] | number:0}} days</h3>
+    
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider" >
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['subscriber'] | number:0  }} </h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+ <!-- end of Subscriber -->
  
+ <!--  Lead -->
+  <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ results.leads_inflow_count['lead'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content">
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-bullhorn info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['lead'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['lead'] | number:0}} days</h3>
     
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider" >
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['lead'] | number:0  }}</h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+  <!--  end of Lead -->
+  
+ <!--  MQL -->
+  <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content">
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-check-square-o info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['marketingqualifiedlead'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
     
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+ <!-- end of MQL -->
+  
+  
+  <!--  SQL -->
+   <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content">
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-thumbs-o-up info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['salesqualifiedlead'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
+    
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+ <!-- end of SQL -->
+  
+  
+  <!--  Opp -->
+ 
+    <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['opportunity'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content">
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-money info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="margin-left:-12px; font-size:110%; text-transform:uppercase">{{ stageNames['opportunity'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{results.leads_outflow_duration['opportunity'] | number:0}} days</h3>
+    
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['opportunity'] | number:0  }}</h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+ <!-- end of Opp --> 
+  <!--  Customer -->
+  
+    <div class="col-xs-12 funnel-detailed-row">
+  
+  <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+      <i class="fa fa-group info-icon"></i>
+    </a>
+    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['customer'] | number:0 }}</h4>
+  
+  </div>
+  
+  <div class="col-xs-2 left-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
+    <div class="text-center center-circle-content">
+    <a class="btn btn-lg text-center" style="color:#004358;">
+      <i class="fa fa-heart info-icon"></i>
+    </a>
+    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['customer'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{results.closed_deal_value | currency:"$" }}</h3>
+    
+    </div>
+  </div>
+  
+  <div class="col-xs-2 right-divider">
+    &nbsp;
+  </div>
+  
+  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
+    <a class="btn btn-lg text-center" style="color:#ff6800;">
+      <i class="fa fa-money info-icon"></i>
+    </a>
+   <h4 class="info-label" title="Highest value of deal closed in this time period">{{ results.max_deal_value | currency:"$"  }}</h4>
+  </div>
+  
+  </div>
+  
+  <div class="clearfix" style="clear:both; height:0px">
+    &nbsp;
+  </div>
+ <!-- end of Customer -->  
+ 
+  <div class="clearfix" style="clear:both">
+   &nbsp;
+  </div>
+    
+      </div> <!--  end of top half -->
+      
+    </div> <!--  end portlet body -->
+    
+    <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
   
 </div>  
 <!--  end of dashboard -->

@@ -344,6 +344,8 @@ def saveSfdcLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
             saveTempDataDelta(company_id=company_id, record_type="lead", source_system="sfdc", source_record=lead, job_id=job_id)
     
 def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    job_id = ObjectId("55e379e756ea06290ae1759f")
+    
     if run_type == 'initial':
         leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -351,6 +353,15 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
     
     leadListTemp = list(leads)
     leadList = [i['source_record'] for i in leadListTemp]
+    
+#     mkto_sync_user = None
+#     existingIntegration = CompanyIntegration.objects(company_id = company_id).first()
+#     if 'sfdc' in existingIntegration['integrations']:
+#         try:
+#             marketo_sync_user = existingIntegration['integrations']['mapping']['mkto_sync_user']
+#         except Exception as e:
+#             print 'Marketo Sync User not defined in SFDC integration'
+            
     
     try: 
         for newLead in leadList: #['records']:
@@ -378,7 +389,7 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                     existingLead.source_first_name = newLead['FirstName']
                     existingLead.source_last_name = newLead['LastName']
                     existingLead.source_email = newLead['Email']
-                    existingLead.source_created_date = str(newLead['CreatedDate'])
+                    existingLead.source_created_date = newLead['CreatedDate']
                     existingLead.source_source = newLead['LeadSource']
                     existingLead.source_status = newLead['Status']
                     existingLead.sfdc_account_id = sfdc_account_id
@@ -400,6 +411,14 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                     existingLeadMkto.sfdc_id = sfdc_Id
                     existingLeadMkto.sfdc_account_id = sfdc_account_id
                     existingLeadMkto.leads['sfdc'] = newLead
+                    if existingLeadMkto['originalSourceType'] == 'salesforce.com': #this lead origniated from SFDC
+                        existingLeadMkto.source_first_name = newLead['FirstName']
+                        existingLeadMkto.source_last_name = newLead['LastName']
+                        existingLeadMkto.source_email = newLead['Email']
+                        existingLeadMkto.source_created_date = newLead['CreatedDate']
+                        existingLeadMkto.source_source = newLead['LeadSource']
+                        existingLeadMkto.source_status = newLead['Status']
+                        existingLeadMkto.sfdc_account_id = sfdc_account_id
                     #print '3rd save'
                     existingLeadMkto.save()
                     
@@ -472,7 +491,7 @@ def saveHsptLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
 
     
 def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
-    #job_id = ObjectId("55dfd3408afb00066d74703f")
+    #job_id = ObjectId("55e6b0198afb002ef6a8c292")
     if run_type == 'initial':
         collection = TempData._get_collection()
         leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'hspt', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)

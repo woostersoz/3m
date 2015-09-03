@@ -131,6 +131,12 @@
 				    		currRecord['hspt']['days_in_this_stage'] = currRecord['hspt']['properties']['days_in_this_stage'];
 				    	leads.push(currRecord['hspt']);
 				    }
+				    else if (currRecord['sfdc'])
+				    {
+				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
+				    	leads.push(currRecord['sfdc']);
+				    }
 				    else if (currRecord['mkto'])
 				    {   
 				    	for (var key in currRecord['mkto']) // convert first letter to lower case
@@ -180,17 +186,12 @@
 				    	
 				    	leads.push(currRecord['mkto']);
 				    }	
-				    else if (currRecord['sfdc'])
-				    {
-				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
-				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
-				    	leads.push(currRecord['sfdc']);
-				    }
+				    
 				    else
 				    	toastr.error('Something fishy going on!');
 				} // if lead record
 			}
-			else if (results[i].isContact){ // lead data coming in from Dashboard drilldown
+			else if (results[i].isContact){ // HSPT lead data coming in from Dashboard drilldown
 				currRecord = results[i];
 				currRecord['sourceSystem'] = 'HSPT';
 		    	currRecord['Email'] = currRecord['email'];
@@ -202,6 +203,16 @@
 		    	
 		    	currRecord['id'] = currRecord['vid'];
 		    	leads.push(currRecord);
+				
+			}
+			else if (results[i].mkto_id.length > 0) { // MKTO lead data coming in from Dashboard drilldown 
+				currRecord = results[i];
+				currRecord['id'] = currRecord['mkto_id'];
+				
+			}
+			else if (results[i].sfdc_id.length > 0) { // MKTO lead data coming in from Dashboard drilldown 
+				currRecord = results[i];
+				currRecord['id'] = currRecord['sfdc_id'];
 				
 			}
 			else  // contact record

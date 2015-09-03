@@ -1053,6 +1053,40 @@ class Salesforce:
             
         except Exception as e:
             raise Exception("Could not retrieve tasks for contacts from Salesforce: " + str(e))
+        
+    def get_history_for_lead(self, user_id, company_id, lead_list, sinceDateTime):
+        try:
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+            else:
+                return []
+                #raise Exception('No integration found for SFDC')
+            query = 'SELECT Id, LeadId, CreatedById, CreatedDate, OldValue, NewValue from LeadHistory where CreatedDate > ' + sinceDateTime  + ' and LeadId in ' + lead_list
+            #print 'query is ' + str(query)
+            client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+            return client.query_all(query)['records']
+            
+        except Exception as e:
+            print 'exception while retrieving SFDC lead history: ' + str(e)
+            raise Exception("Could not retrieve history for leads from Salesforce: " + str(e))
+        
+    def get_history_for_contact(self, user_id, company_id, contact_list, sinceDateTime):
+        try:
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+            else:
+                return []
+                #raise Exception('No integration found for SFDC')
+            query = 'SELECT ContactId, CreatedById, CreatedDate, OldValue, NewValue from ContactHistory where CreatedDate > ' + sinceDateTime  + ' and ContactId in ' + contact_list
+            client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+            return client.query_all(query)['records']
+            
+        except Exception as e:
+            print 'exception while retrieving SFDC contact history: ' + str(e)
+            raise Exception("Could not retrieve history for contacts from Salesforce: " + str(e))
+        
     #Park the below code for now - use it later when trying to get the auth token, not during authorization
 #     def retrieve_auth_token(self): 
 #             if request.session.get('sfdc_access_token', False):

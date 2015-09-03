@@ -28,17 +28,19 @@ from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 
 from leads.models import Lead
+from leads.serializers import LeadSerializer
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
-from analytics.models import Snapshot, AnalyticsData, BinderTemplate, Binder
+from analytics.models import Snapshot, AnalyticsData, AnalyticsIds, BinderTemplate, Binder
 
 from superadmin.models import SuperIntegration, SuperAnalytics
 from superadmin.serializers import SuperAnalyticsSerializer
 
 from authentication.models import Company, CustomUser
 
-from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics
+from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics,\
+    mkto_waterfall
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -113,6 +115,8 @@ def retrieveDashboards(request, company_id):
             raise ValueError("No integrations defined")  
         elif code == 'hspt': 
             result = retrieveHsptDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name)
+        elif code == 'mkto': 
+            result = retrieveMktoDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name)
         else:
             result =  'Nothing to report'
         return JsonResponse(result, safe=False)
@@ -144,7 +148,12 @@ def getDashboards(request, company_id):
 
 #@app.task
 def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi}
+    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi, "waterfall" : None}
+    result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
+    return result
+
+def retrieveMktoDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
+    method_map = { "waterfall" : mkto_waterfall}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
@@ -172,6 +181,8 @@ def drilldownDashboards(request, company_id):
         elif code == 'hspt': 
             result = drilldownHsptDashboards(request=request, company_id=company_id)
             result['portal_id'] = client_secret
+        elif code == 'mkto': 
+            result = drilldownMktoDashboards(request=request, company_id=company_id)
         else:
             result =  'Nothing to report'
         return JsonResponse(result, safe=False)
@@ -181,7 +192,7 @@ def drilldownDashboards(request, company_id):
 
 # start of HSPT
 # dashboard - 'Funnel"
-def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name): 
+def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
     try:
         original_start_date = start_date
         original_end_date = end_date
@@ -190,122 +201,215 @@ def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
-    
-        subscriber_values_temp_array = {}
-        subscriber_values_array = []
-        lead_values_temp_array = {}
-        lead_values_array = []
-        mql_values_temp_array = {}
-        mql_values_array = []
-        sql_values_temp_array = {}
-        sql_values_array = []
-        opp_values_temp_array = {}
-        opp_values_array = []
-        customer_values_temp_array = {}
-        customer_values_array = []
-        all_dates = []
-        delta = timedelta(days=1)
-        e = local_end_date
-        #print 'local end date is ' + str(local_end_date)
-     
-        company_field_qry = 'company_id'
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+        #query parameters
+        company_id_qry = 'company_id'
         chart_name_qry = 'chart_name'
-        date_qry = 'date'
-        results = {}
+        date_qry = 'date__in'
+        chart_name = 'funnel'
         
-        #get all leads which were created before the start of the period by source
-        hspt_id_qry = 'hspt_id__exists'
-        created_date_end_qry = 'source_created_date__lte'
-        created_date_start_qry = 'source_created_date__gte'
-        
-        querydict = {company_field_qry: company_id, created_date_end_qry: local_start_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_existed_source = Lead.objects(**querydict).item_frequencies('source_source')
-        leads_existed_stage = Lead.objects(**querydict).item_frequencies('source_stage')
-        existed_count = Lead.objects(**querydict).count()
-        #get all leads that were created in this time period by source
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_created_source = Lead.objects(**querydict).item_frequencies('source_source')
-        leads_created_stage = Lead.objects(**querydict).item_frequencies('source_stage')
-        created_count = Lead.objects(**querydict).count()
-        if existed_count > 0:
-            percentage_increase = float( created_count / existed_count ) * 100
-        else:
-            percentage_increase = 0
-        #get all leads that were created in this time period and still exist as subscribers
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_subscribers = Lead.objects(**querydict).count()
-        #find average duration they have been subscribers
-        leads_avg_subscriber_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_subscriber_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_subscribers' : { '$avg' : '$diff'}}})
-        listx = list(leads_avg_subscriber_duration)
-        if len(listx) > 0:
-            leads_avg_subscriber_duration = listx[0]['averageDuration_subscribers']
-            leads_avg_subscriber_duration = abs(round(float(leads_avg_subscriber_duration / 1000 / 60 / 60 / 24 ), 0))
-        else:
-            leads_avg_subscriber_duration = 'N/A'
-        #get all leads that were created in this time period and are now Leads
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_leads = Lead.objects(**querydict).count()
-        #find average duration they have been leads
-        listx = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_lead_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_leads' : { '$avg' : '$diff'}}})
-        listx = list(listx)
-        if len(listx) > 0:
-            leads_avg_lead_duration = listx[0]['averageDuration_leads']
-            leads_avg_lead_duration = abs(round(float(leads_avg_lead_duration / 1000 / 60 / 60 / 24 ), 0))
-        else:
-            leads_avg_lead_duration = 'N/A'
-        #get all leads that were created in this time period and are now MQLS
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_mqls = Lead.objects(**querydict).count()
-        #find average duration they have been MQLs
-        listy = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_mql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_mqls' : { '$avg' : '$diff'}}})
-        listz = list(listy)
-        if len(listz) > 0:
-            leads_avg_mql_duration = listz[0]['averageDuration_mqls']
-            leads_avg_mql_duration = abs(round(float(leads_avg_mql_duration / 1000 / 60 / 60 / 24 ), 0))
-        else:
-            leads_avg_mql_duration = 'N/A'
-        #get all leads that were created in this time period and are now SQLS
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_sqls = Lead.objects(**querydict).count()
-        #find average duration they have been SQLs
-        lista = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_sql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_sqls' : { '$avg' : '$diff'}}})
-        listb = list(lista) 
-        if len(listb) > 0:
-            leads_avg_sql_duration = listb[0].get('averageDuration_sqls', None)
-            leads_avg_sql_duration = abs(round(float(leads_avg_sql_duration / 1000 / 60 / 60 / 24 ), 0))
-        else:
-            leads_avg_sql_duration = 'N/A'
-        #get all leads that were created in this time period and are now Opps
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_opps = Lead.objects(**querydict).count()
-        #find average duration they have been Opps
-        listc = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_opp_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_opps' : { '$avg' : '$diff'}}})
-        listd = list(listc)
-        if len(listd) > 0:
-            leads_avg_opp_duration = listd[0]['averageDuration_opps']
-            leads_avg_opp_duration = abs(round(float(leads_avg_opp_duration / 1000 / 60 / 60 / 24 ), 0))
-        else:
-            leads_avg_opp_duration = 'N/A'
-        #get all leads that were created in this time period and are now Opps
-        querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_customer_customer_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_customer_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        leads_customers = Lead.objects(**querydict).count()
-        #get all deals closed in this time period
-        hspt_opp_qry = 'opportunities__hspt__properties__dealstage__value'
-        hspt_opp_close_date_start_qry = 'opportunities__hspt__properties__closedate__value__gte'
-        hspt_opp_close_date_end_qry = 'opportunities__hspt__properties__closedate__value__lte'
-        #print 'original start date is ' + str(int(original_start_date) * 1000)
-        querydict = {company_field_qry: company_id, hspt_opp_close_date_start_qry: str(int(original_start_date) * 1000), hspt_opp_close_date_end_qry: str(int(original_end_date) * 1000)} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
-        deals_total_value = Lead.objects(**querydict).aggregate({'$unwind': '$opportunities.hspt'}, {'$group': {'_id' : '$_id', 'totalDealValue' : { '$max' : '$opportunities.hspt.properties.amount.value'}}})
+        #other variables
+        existed_count = 0
+        created_count = 0
+        leads_created_stage = {}
+        leads_created_source = {}
+        leads_inflow_count = {}
+        leads_outflow_count = {}
+        leads_outflow_duration = {}
+        percentage_increase = 0
         closed_deal_value = 0
         max_deal_value = 0
-        for deal in list(deals_total_value):
-            closed_deal_value += float(deal['totalDealValue'])
-            if float(deal['totalDealValue']) > max_deal_value:
-                max_deal_value = float(deal['totalDealValue'])
-        #print 'deal val is ' + str(closed_deal_value)
-        #put all the results together
-        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'existed_count': existed_count, 'created_count': created_count, 'existed_source' : leads_existed_source, 'created_source' : leads_created_source, 'existed_stage' : leads_existed_stage, 'created_stage' : leads_created_stage, 'percentage_increase' : percentage_increase, 'leads_subscribers': leads_subscribers, 'leads_leads': leads_leads, 'leads_mqls': leads_mqls, 'leads_sqls': leads_sqls, 'leads_opps': leads_opps, 'leads_customers': leads_customers, 'leads_avg_subscriber_duration': leads_avg_subscriber_duration, 'leads_avg_lead_duration': leads_avg_lead_duration, 'leads_avg_mql_duration': leads_avg_mql_duration, 'leads_avg_sql_duration': leads_avg_sql_duration, 'leads_avg_opp_duration': leads_avg_opp_duration, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value}
-        return results
+        
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        first_record_done = False
+        
+        for day in days:
+            day = day['results']
+            if first_record_done != True:
+                existed_count = day['existed_count']
+                first_record_done = True
+            
+            #increment all  variables
+            for item, value in day['created_stage'].items():
+                if item not in leads_created_stage:
+                    leads_created_stage[item] = 0
+                leads_created_stage[item] += value
+                
+            for item, value in day['created_source'].items():
+                if item not in leads_created_source:
+                    leads_created_source[item] = 0
+                leads_created_source[item] += value  
+                
+            for item, value in day['inflow_count'].items():
+                if item not in leads_inflow_count:
+                    leads_inflow_count[item] = 0
+                leads_inflow_count[item] += value 
+                
+            for item, value in day['outflow_count'].items():
+                if item not in leads_outflow_count:
+                    leads_outflow_count[item] = 0
+                if value != 'N/A':
+                    leads_outflow_count[item] += value  
+                    
+            for item, value in day['outflow_duration'].items():
+                if item not in leads_outflow_duration:
+                    leads_outflow_duration[item] = 0
+                if value != 'N/A':
+                    leads_outflow_duration[item] += value 
+                
+            created_count += day['created_count']
+            closed_deal_value += day['closed_deal_value']
+            if day['max_deal_value'] > max_deal_value:
+                max_deal_value = day['max_deal_value']
+         
+        # do post-processing
+        # get the average of the average outflow durations by dividing by the duration of the report
+        for item, value in leads_outflow_duration.items():   
+            leads_outflow_duration[item] = value / len(days_list)
+            
+        #get the percentage increase in number of contacts
+        if int(existed_count) > 0:
+            percentage_increase = (float(created_count) / existed_count) * 100
+        else:
+            percentage_increase = 0
+        
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'existed_count': existed_count, 'created_count': created_count,  'created_source' : leads_created_source,  'created_stage' : leads_created_stage, 'leads_inflow_count': leads_inflow_count, 'leads_outflow_count': leads_outflow_count, 'leads_outflow_duration': leads_outflow_duration, 'percentage_increase' : percentage_increase, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value}
+        return results 
+         
+#     try:
+#         original_start_date = start_date
+#         original_end_date = end_date
+#         start_date = datetime.fromtimestamp(float(start_date))
+#         end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+#         
+#         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+#         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+#     
+#         subscriber_values_temp_array = {}
+#         subscriber_values_array = []
+#         lead_values_temp_array = {}
+#         lead_values_array = []
+#         mql_values_temp_array = {}
+#         mql_values_array = []
+#         sql_values_temp_array = {}
+#         sql_values_array = []
+#         opp_values_temp_array = {}
+#         opp_values_array = []
+#         customer_values_temp_array = {}
+#         customer_values_array = []
+#         all_dates = []
+#         delta = timedelta(days=1)
+#         e = local_end_date
+#         #print 'local end date is ' + str(local_end_date)
+#      
+#         company_field_qry = 'company_id'
+#         chart_name_qry = 'chart_name'
+#         date_qry = 'date'
+#         results = {}
+#         
+#         #get all leads which were created before the start of the period by source
+#         hspt_id_qry = 'hspt_id__exists'
+#         created_date_end_qry = 'source_created_date__lte'
+#         created_date_start_qry = 'source_created_date__gte'
+#         
+#         querydict = {company_field_qry: company_id, created_date_end_qry: local_start_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_existed_source = Lead.objects(**querydict).item_frequencies('source_source')
+#         leads_existed_stage = Lead.objects(**querydict).item_frequencies('source_stage')
+#         existed_count = Lead.objects(**querydict).count()
+#         #get all leads that were created in this time period by source
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_created_source = Lead.objects(**querydict).item_frequencies('source_source')
+#         leads_created_stage = Lead.objects(**querydict).item_frequencies('source_stage')
+#         created_count = Lead.objects(**querydict).count()
+#         if existed_count > 0:
+#             percentage_increase = float( created_count / existed_count ) * 100
+#         else:
+#             percentage_increase = 0
+#         #get all leads that were created in this time period and still exist as subscribers
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_subscriber_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_subscribers = Lead.objects(**querydict).count()
+#         #find average duration they have been subscribers
+#         leads_avg_subscriber_duration = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_subscriber_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_subscribers' : { '$avg' : '$diff'}}})
+#         listx = list(leads_avg_subscriber_duration)
+#         if len(listx) > 0:
+#             leads_avg_subscriber_duration = listx[0]['averageDuration_subscribers']
+#             leads_avg_subscriber_duration = abs(round(float(leads_avg_subscriber_duration / 1000 / 60 / 60 / 24 ), 0))
+#         else:
+#             leads_avg_subscriber_duration = 'N/A'
+#         #get all leads that were created in this time period and are now Leads
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_lead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_leads = Lead.objects(**querydict).count()
+#         #find average duration they have been leads
+#         listx = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_lead_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_leads' : { '$avg' : '$diff'}}})
+#         listx = list(listx)
+#         if len(listx) > 0:
+#             leads_avg_lead_duration = listx[0]['averageDuration_leads']
+#             leads_avg_lead_duration = abs(round(float(leads_avg_lead_duration / 1000 / 60 / 60 / 24 ), 0))
+#         else:
+#             leads_avg_lead_duration = 'N/A'
+#         #get all leads that were created in this time period and are now MQLS
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_marketingqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_mqls = Lead.objects(**querydict).count()
+#         #find average duration they have been MQLs
+#         listy = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_mql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_mqls' : { '$avg' : '$diff'}}})
+#         listz = list(listy)
+#         if len(listz) > 0:
+#             leads_avg_mql_duration = listz[0]['averageDuration_mqls']
+#             leads_avg_mql_duration = abs(round(float(leads_avg_mql_duration / 1000 / 60 / 60 / 24 ), 0))
+#         else:
+#             leads_avg_mql_duration = 'N/A'
+#         #get all leads that were created in this time period and are now SQLS
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_salesqualifiedlead_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_sqls = Lead.objects(**querydict).count()
+#         #find average duration they have been SQLs
+#         lista = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_sql_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_sqls' : { '$avg' : '$diff'}}})
+#         listb = list(lista) 
+#         if len(listb) > 0:
+#             leads_avg_sql_duration = listb[0].get('averageDuration_sqls', None)
+#             leads_avg_sql_duration = abs(round(float(leads_avg_sql_duration / 1000 / 60 / 60 / 24 ), 0))
+#         else:
+#             leads_avg_sql_duration = 'N/A'
+#         #get all leads that were created in this time period and are now Opps
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_opportunity_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_opps = Lead.objects(**querydict).count()
+#         #find average duration they have been Opps
+#         listc = Lead.objects(**querydict).aggregate({ '$project': { 'diff': { '$subtract': ['$hspt_opp_date', local_end_date] } } }, {'$group': {'_id' : None, 'averageDuration_opps' : { '$avg' : '$diff'}}})
+#         listd = list(listc)
+#         if len(listd) > 0:
+#             leads_avg_opp_duration = listd[0]['averageDuration_opps']
+#             leads_avg_opp_duration = abs(round(float(leads_avg_opp_duration / 1000 / 60 / 60 / 24 ), 0))
+#         else:
+#             leads_avg_opp_duration = 'N/A'
+#         #get all leads that were created in this time period and are now Opps
+#         querydict = {company_field_qry: company_id, created_date_start_qry: local_start_date, created_date_end_qry: local_end_date, 'leads__hspt__properties__hs_customer_customer_date__gte': local_start_date, 'leads__hspt__properties__hs_lifecyclestage_customer_date__lte': local_end_date} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         leads_customers = Lead.objects(**querydict).count()
+#         #get all deals closed in this time period
+#         hspt_opp_qry = 'opportunities__hspt__properties__dealstage__value'
+#         hspt_opp_close_date_start_qry = 'opportunities__hspt__properties__closedate__value__gte'
+#         hspt_opp_close_date_end_qry = 'opportunities__hspt__properties__closedate__value__lte'
+#         #print 'original start date is ' + str(int(original_start_date) * 1000)
+#         querydict = {company_field_qry: company_id, hspt_opp_close_date_start_qry: str(int(original_start_date) * 1000), hspt_opp_close_date_end_qry: str(int(original_end_date) * 1000)} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+#         deals_total_value = Lead.objects(**querydict).aggregate({'$unwind': '$opportunities.hspt'}, {'$group': {'_id' : '$_id', 'totalDealValue' : { '$max' : '$opportunities.hspt.properties.amount.value'}}})
+#         closed_deal_value = 0
+#         max_deal_value = 0
+#         for deal in list(deals_total_value):
+#             print 'total deal val is ' + deal['totalDealValue']
+#             if not deal['totalDealValue']:
+#                 continue
+#             closed_deal_value += float(deal['totalDealValue'])
+#             if float(deal['totalDealValue']) > max_deal_value:
+#                 max_deal_value = float(deal['totalDealValue'])
+#         #print 'deal val is ' + str(closed_deal_value)
+#         #put all the results together
+#         results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'existed_count': existed_count, 'created_count': created_count, 'existed_source' : leads_existed_source, 'created_source' : leads_created_source, 'existed_stage' : leads_existed_stage, 'created_stage' : leads_created_stage, 'percentage_increase' : percentage_increase, 'leads_subscribers': leads_subscribers, 'leads_leads': leads_leads, 'leads_mqls': leads_mqls, 'leads_sqls': leads_sqls, 'leads_opps': leads_opps, 'leads_customers': leads_customers, 'leads_avg_subscriber_duration': leads_avg_subscriber_duration, 'leads_avg_lead_duration': leads_avg_lead_duration, 'leads_avg_mql_duration': leads_avg_mql_duration, 'leads_avg_sql_duration': leads_avg_sql_duration, 'leads_avg_opp_duration': leads_avg_opp_duration, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value}
+#         return results
         
 #         s = local_start_date - timedelta(days=1)
 #         
@@ -488,6 +592,50 @@ def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name):
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})   
       
+#Waterfall dashboard
+def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name): 
+    try:
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date))
+        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+        #query parameters
+        company_id_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date__in'
+        chart_name = 'waterfall'
+        
+        #other variables
+        results = {}
+        
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        for day in days:
+            day_results = day['results']
+            for key, value in day_results.items():
+                if key not in results:
+                    results[key] = 0
+                results[key] += value
+        results['start_date'] = local_start_date.strftime('%Y-%m-%d') 
+        results['end_date'] = local_end_date.strftime('%Y-%m-%d')      
+        return results
+            
+            
+            
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+
 
 def drilldownHsptDashboards(request, company_id):
     start_date = request.GET.get('start_date')
@@ -558,4 +706,103 @@ def drilldownHsptDashboards(request, company_id):
         
     except Exception as e:
         print 'exception is ' + str(e) 
-        return JsonResponse({'Error' : str(e)})   
+        return JsonResponse({'Error' : str(e)})  
+
+#Marketo dashboard drilldown    
+def drilldownMktoDashboards(request, company_id):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    object = request.GET.get('object')
+    section = request.GET.get('section')
+    channel = request.GET.get('channel')
+    page_number = int(request.GET.get('page_number'))
+    items_per_page = int(request.GET.get('per_page'))
+    offset = (page_number - 1) * items_per_page
+    
+    user_id = request.user.id
+    company_id = request.user.company_id
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    
+    #query parameters
+    company_id_qry = 'company_id'
+    chart_name_qry = 'chart_name'
+    date_qry = 'date__in'
+    chart_name = 'waterfall'
+    
+    #variables
+    people = {}
+    people['sales'] = []
+    people['mktg'] = []
+    deals = []
+        
+    try:     
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date))
+        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsIds.objects(**querydict)
+        #print 'obj is ' + str(channel)
+        #Contacts, Leads and Customers
+        if object == 'leads':
+            for day in days:
+                data = day['results']
+                if section == "all":
+                    try: 
+                        key = 'mktg_' + channel if channel != 'mql' else channel
+                        people['mktg'].extend(data[key])
+                        key = 'sales_' + channel if channel != 'mql' else channel
+                        people['sales'].extend(data[key])
+                    except Exception as e:
+                        print 'exception is ' + str(e)
+                        continue
+                else:
+                    try: 
+                        key = section + '_' + channel if channel != 'mql' else channel
+                        people[section].extend(data[key])
+                    except Exception as e:
+                        print 'exception is ' + str(e)
+                        continue
+            print 'got ids ' + str(time.time())
+            if section == "all":        
+                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                leads_list = list(leads)
+                leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                leads_list.extend(list(leads))
+            elif section == 'mktg':
+                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                leads_list = list(leads)
+            elif section == 'sales':
+                leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                leads_list = list(leads)
+            print 'got leads ' + str(time.time())
+            serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
+            print 'got results ' + str(time.time()) 
+            results = {'results': serializer.data, 'count' : len(leads_list) }   
+            return results
+        #Deals
+        elif (object == 'Deals'):
+            for day in days:
+                data = day['results']
+                try: 
+                    deals.extend(data['Website']['Hubspot']['social'][channel][section]['Deals'])
+                except Exception as e:
+                    continue
+            
+             
+            results = {'results': deals[offset:offset + items_per_page], 'count' : len(deals) }   
+            return results
+        
+        
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})    

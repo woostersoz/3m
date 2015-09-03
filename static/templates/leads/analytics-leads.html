@@ -80,6 +80,8 @@
 							</td>
 							<td class="center">
 							<a ng-if="source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{lead.id}}">{{ lead.id }}</a>
+							<a ng-if="lead.sourceSystem=='MKTO'" target="_blank" href="http://app-sj09.marketo.com/leadDatabase/loadLeadDetail?leadId={{lead.id}}">{{ lead.id }}</a>
+							<a ng-if="lead.sourceSystem=='SFDC'" target="_blank" href="https://na17.salesforce.com{{lead.id}}">{{ lead.id }}</a>
 							</td>
 							<td class="center">
 							{{ lead.FirstName }}

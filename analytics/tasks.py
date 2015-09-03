@@ -56,7 +56,7 @@ def _str_from_date(dateTime, format=None): # returns a datetime object from a ti
 
 @app.task
 def calculateMktoAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie, "waterfall_chart": mkto_waterfall}
+    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie, "funnel": hspt_funnel, "waterfall_chart": mkto_waterfall}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -84,7 +84,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall": mkto_waterfall}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -1010,29 +1010,57 @@ def mkto_waterfall(user_id, company_id, chart_name, mode, start_date):
         if crm_system_code is None:
             return []
         
+        #query variables
+        source_created_date_qry = 'source_created_date'
+        company_id_qry = 'company_id'
+        source_metric_name_qry = 'source_metric_name'
+        period_qry = 'data__period'
+        end_time_qry = 'data__values__end_time'
+        source_page_id_qry = 'source_page_id'
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date'
+        
         #general variables
+        chart_name = 'waterfall'
         sync_to_sfdc_activity_type_id = 19 #mkto activity type id
         change_value_activity_type_id = 13 #mkto activity type id
         collection = Lead._get_collection()
+        data = {}
+        ids = {}
         
         #get all the leads that were transferred to Salesforce for this company
         if crm_system_code == 'sfdc':
-            mkto_leads_mql = collection.find({'company_id' : int(company_id), 'activities.mkto.activityTypeId' : sync_to_sfdc_activity_type_id})
-            mkto_leads_mql_list = list(mkto_leads_mql)
-            print 'found  mql leads ' + str(len(mkto_leads_mql_list))
+            existingIntegration = CompanyIntegration.objects(company_id = company_id).first()   
+            if 'sfdc' in existingIntegration['integrations']:
+                try:
+                    sfdc_sal_status = existingIntegration['integrations']['sfdc']['mapping']['sal_status']
+                    sfdc_sql_status = existingIntegration['integrations']['sfdc']['mapping']['sql_status']
+                    mkto_sync_user = existingIntegration['integrations']['sfdc']['mapping']['mkto_sync_user']
+                except Exception as e:
+                    print 'Details not completely defined in SFDC integration'
+                    raise ValueError('Details not completely defined in SFDC integration')
+            
+            mkto_leads_mql_all = collection.find({'company_id' : int(company_id), 'activities.mkto.activityTypeId' : sync_to_sfdc_activity_type_id})
+            mkto_leads_mql_all_list = list(mkto_leads_mql_all)
+            print 'found  mql leads ' + str(len(mkto_leads_mql_all_list))
         
         #daily loop begins
         s = local_start_date - timedelta(days=1)
         while s < (e - delta):
             s += delta #increment the day counter
             date = s.strftime('%Y-%m-%d')
+            data = {'num_mktg_raw_leads' : 0, 'num_sales_raw_leads' : 0, 'num_mql': 0, 'num_mktg_sal': 0, 'num_sales_sal': 0, 'num_mktg_sql': 0, 'num_sales_sql': 0, 'num_mktg_opps': 0, 'num_sales_opps': 0, 'num_mktg_closed_deals' : 0, 'num_sales_closed_deals' : 0}
+            ids = {}
             utc_day_start = s.astimezone(pytz.timezone('UTC'))
             utc_day_end = utc_day_start + timedelta(seconds=86399)
             
             if crm_system_code == 'sfdc': #if Salesforce
-                #find all leads in MKTO that did not come from SFDC and were created today 
-                mkto_leads_raw = collection.find({'company_id' : int(company_id), 'leads.mkto.sfdcLeadId' : {'$exits': False}, 'source_created_date': {'$gte' : utc_day_start, '$lte': utc_day_end}})
-        
+                #find all leads in MKTO that did not come from SFDC or were not synched into SFDC and were created today 
+                mkto_leads_raw = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'leads.mkto.sfdcLeadId' : {'$exists': False}, 'source_created_date': {'$gte' : utc_day_start, '$lte': utc_day_end}})
+                mkto_leads_raw_list = list(mkto_leads_raw)
+                data['num_mktg_raw_leads'] = len(mkto_leads_raw_list) 
+                ids['mktg_raw_leads'] = [d['mkto_id'] for d in mkto_leads_raw_list]
                 #find all leads that were synched to CRM today (successfully - which means Lead Status activity has to occur at the same time as the sync
                 utc_date_string_start = _str_from_date(utc_day_start)
                 utc_date_string_end = _str_from_date(utc_day_end)
@@ -1040,7 +1068,7 @@ def mkto_waterfall(user_id, company_id, chart_name, mode, start_date):
                 print 'utc end string is ' + utc_date_string_end
                 # get all leads with sync to SFDC activities for today
                 sync_activities_list = []
-                for lead in mkto_leads_mql_list :
+                for lead in mkto_leads_mql_all_list :
                     this_lead_done = False
                     for d in lead['activities']['mkto']:
                         if d['activityTypeId'] == sync_to_sfdc_activity_type_id and d['activityDate'] >= utc_date_string_start and d['activityDate'] <= utc_date_string_end:
@@ -1050,9 +1078,56 @@ def mkto_waterfall(user_id, company_id, chart_name, mode, start_date):
                                     this_lead_done = True
                                 if this_lead_done:
                                     break #stop processing this lead if one activity already found
-                        
-                 
-                print 'sync activities are ' + str(sync_activities_list)       
+                print 'sync activities are ' + str(sync_activities_list) 
+                #now that all leads have been processed for MQL for today, count them
+                data['num_mql'] =  len(sync_activities_list)    
+                ids['mql'] = [d['lead_id'] for d in sync_activities_list]
+                print 'going to sales'
+                #branch to sfdc module for the rest of the metrics  
+                sales_data, sales_ids = sfdc_waterfall_sub(user_id = user_id, company_id = company_id, utc_day_start = utc_day_start, utc_day_end = utc_day_end, date = date, caller = 'mkto', sfdc_sal_status = sfdc_sal_status, sfdc_sql_status = sfdc_sql_status, mkto_sync_user = mkto_sync_user)
+                print 'back from sales'
+                for key, value in sales_data.items():
+                    data[key] = sales_data[key]
+                    
+                for key, value in sales_ids.items():
+                    ids[key] = sales_ids[key]
+                    
+                print 'data for ' + date + ': ' + str(data)
+             
+                #prepare analytics collections           
+                queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+                analyticsData = AnalyticsData.objects(**queryDict).first()
+                if analyticsData is None:
+                    analyticsData = AnalyticsData()
+                    analyticsData.system_type = 'MA'
+                    analyticsData.company_id = company_id  
+                    analyticsData.chart_name = chart_name
+                    analyticsData.date = date
+                    analyticsData.results = {}
+                    analyticsData.save()
+                      
+                analyticsIds = AnalyticsIds.objects(**queryDict).first()
+                if analyticsIds is None:
+                    analyticsIds = AnalyticsIds()
+                    analyticsIds.system_type = 'MA'
+                    analyticsIds.company_id = company_id  
+                    analyticsIds.chart_name = chart_name
+                    analyticsIds.date = date
+                    analyticsIds.results = {}
+                    analyticsIds.save()
+                     
+                #print 'results are ' + str(results)
+                analyticsData.results = data
+                analyticsIds.results = ids
+                print 'saving' 
+                try:
+                    AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                    AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+                except Exception as e:
+                    print 'exception while saving analytics data: ' + str(e)
+                    continue
+                print 'saved'       
+          
 #                 sync_activities_list = [lead for lead in mkto_leads_mql_list for d in lead['activities']['mkto'] if d['activityTypeId'] == sync_to_sfdc_activity_type_id and d['activityDate'] >= utc_date_string_start and d['activityDate'] <= utc_date_string_end 
 #                                         for c in d['activities']['mkto'] if c['activityTypeId'] == change_value_activity_type_id and c['activityDate'] == d['activityDate']]
 #                 print 'original sync activities are ' + str(sync_activities_list)
@@ -1065,13 +1140,77 @@ def mkto_waterfall(user_id, company_id, chart_name, mode, start_date):
             
             else: # if not Salesforce
                 return []
-            
-        else:
-            return []
+        
         
     except Exception as e:
         print 'exception is ' + str(e) + ' and type is ' + str(type(e))
         return JsonResponse({'Error' : str(e)})
+    
+def sfdc_waterfall_sub(user_id, company_id, utc_day_start, utc_day_end, date, caller,  sfdc_sal_status, sfdc_sql_status, mkto_sync_user):
+    try:
+        data = {'num_sales_raw_leads' : 0, 'num_mktg_sal': 0, 'num_mktg_sql': 0, 'num_sales_sal': 0, 'num_sales_sql': 0, 'num_mktg_opps': 0, 'num_sales_opps': 0, 'num_mktg_closed_deals' : 0, 'num_sales_closed_deals' : 0}
+        ids = {}
+        
+        #print 'sal status is ' + sfdc_sal_status    
+        #find all raw leads created directly in SFDC today
+        collection = Lead._get_collection()
+        if caller == 'sfdc':
+            sfdc_leads_raw = collection.find({'company_id' : int(company_id), 'source_created_date': {'$gte' : utc_day_start, '$lte': utc_day_end}})
+            sfdc_leads_raw_list = list(sfdc_leads_raw)
+            data['num_sales_raw_leads'] = len(sfdc_leads_raw_list) 
+            ids['sales_raw_leads'] = [d['sfdc_id'] for d in sfdc_leads_raw_list]
+        elif caller == 'mkto':
+            sfdc_leads_raw = collection.find({'company_id' : int(company_id), 'sfdc_id' : {'$exists': True}, 'source_created_date': {'$gte' : utc_day_start, '$lte': utc_day_end}, 'leads.sfdc.CreatedById' : {'$ne': mkto_sync_user}})
+            sfdc_leads_raw_list = list(sfdc_leads_raw)
+            data['num_sales_raw_leads'] = len(sfdc_leads_raw_list) 
+            print 'sfdc list is ' + str([d['_id'] for d in sfdc_leads_raw_list])
+            ids['sales_raw_leads'] = [d['sfdc_id'] for d in sfdc_leads_raw_list]
+            print 'passed'
+        
+        #convert dates to strings for SAL and SQL queries
+        utc_day_start_string = datetime.strftime(utc_day_start, '%Y-%m-%dT%H-%M-%S.000+0000')
+        utc_day_end_string = datetime.strftime(utc_day_end, '%Y-%m-%dT%H-%M-%S.000+0000')
+        # find all leads that went into SAL status today 
+        if caller == 'sfdc':
+            data['num_mktg_sal'] = 0
+            data['num_mktg_sql'] = 0
+            sfdc_sales_sal = collection.find({'company_id' : int(company_id), 'sfdc_id' : {'$exists': True}, 'activities.sfdc': {'$elemMatch' : {'NewValue' :sfdc_sal_status, 'CreatedDate' : {'$gte' : utc_day_start_string, '$lte': utc_day_end_string}}}})
+            sfdc_sales_sal_list = list(sfdc_sales_sal)
+            data['num_sales_sal'] = len(sfdc_sales_sal_list)
+            ids['sales_sal'] = [d['sfdc_id'] for d in sfdc_sales_sal_list]
+        elif caller == 'mkto':
+            sfdc_sales_sal = collection.find({'company_id' : int(company_id), 'sfdc_id' : {'$exists': True}, 'activities.sfdc': {'$elemMatch' : {'NewValue' :sfdc_sal_status, 'CreatedDate' : {'$gte' : utc_day_start_string, '$lte': utc_day_end_string}}}, 'leads.sfdc.CreatedById' : {'$ne': mkto_sync_user}})
+            sfdc_sales_sal_list = list(sfdc_sales_sal)
+            data['num_sales_sal'] = len(sfdc_sales_sal_list)
+            ids['sales_sal'] = [d['sfdc_id'] for d in sfdc_sales_sal_list]
+            sfdc_mktg_sal = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'activities.sfdc': {'$elemMatch' : {'NewValue' :sfdc_sal_status, 'CreatedDate' : {'$gte' : utc_day_start_string, '$lte': utc_day_end_string}}},  'leads.sfdc.CreatedById' : {'$eq': mkto_sync_user}})
+            sfdc_mktg_sal_list = list(sfdc_mktg_sal)
+            data['num_mktg_sal'] = len(sfdc_mktg_sal_list)
+            ids['mktg_sal'] = [d['mkto_id'] for d in sfdc_mktg_sal_list]
+            sfdc_sales_opps = collection.find({'company_id' : int(company_id), 'sfdc_id' : {'$exists': True}, 'opportunities.sfdc.CreatedDate' : {'$gte' : utc_day_start_string, '$lte': utc_day_end_string}, 'leads.sfdc.CreatedById' : {'$ne': mkto_sync_user}})
+            sfdc_sales_opps_list = list(sfdc_sales_opps)
+            data['num_sales_opps'] = len(sfdc_sales_opps_list)
+            ids['sales_opps'] = [d['sfdc_id'] for d in sfdc_sales_opps_list]
+            sfdc_mktg_opps = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'opportunities.sfdc.CreatedDate' : {'$gte' : utc_day_start_string, '$lte': utc_day_end_string}, 'leads.sfdc.CreatedById' : {'$eq': mkto_sync_user}})
+            sfdc_mktg_opps_list = list(sfdc_mktg_opps)
+            data['num_mktg_opps'] = len(sfdc_mktg_opps_list)
+            ids['mktg_opps'] = [d['mkto_id'] for d in sfdc_mktg_opps_list]
+            sfdc_sales_closed_deals = collection.find({'company_id' : int(company_id), 'sfdc_id' : {'$exists': True}, 'opportunities.sfdc.CloseDate' : date, 'opportunities.sfdc.IsWon': True, 'leads.sfdc.CreatedById' : {'$ne': mkto_sync_user}})
+            sfdc_sales_closed_deals_list = list(sfdc_sales_closed_deals)
+            data['num_sales_closed_deals'] = len(sfdc_sales_closed_deals_list)
+            ids['sales_closed_deals'] = [d['sfdc_id'] for d in sfdc_sales_closed_deals_list]
+            sfdc_mktg_closed_deals = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'opportunities.sfdc.CloseDate' : date, 'opportunities.sfdc.IsWon': True, 'leads.sfdc.CreatedById' : {'$eq': mkto_sync_user}})
+            sfdc_mktg_closed_deals_list = list(sfdc_mktg_closed_deals)
+            data['num_mktg_closed_deals'] = len(sfdc_mktg_closed_deals_list)
+            ids['mktg_closed_deals'] = [d['mkto_id'] for d in sfdc_mktg_closed_deals_list]
+            
+            
+        return data, ids   
+            
+    except Exception as e:
+        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
+        return JsonResponse({'Error' : str(e)})
+    
 # begin HSPT analytics
 # first chart - 'Timeline"
 def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date): 
@@ -1149,9 +1288,11 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                 continue
             if date_field_map[current_stage] not in lead: #weird case where there's no date for current stage
                 continue
+            if lead[date_field_map[current_stage]] is None:
+                continue
             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
             current_stage_date = current_stage_date.astimezone(get_current_timezone())
-            #print 'current stage date is ' + str(current_stage_date) + ' and stage is ' + current_stage
+            print 'current stage date is ' + str(current_stage_date) + ' and stage is ' + current_stage
             while s < (e - delta):
                 #print 's is ' + str(s) + ' and e is ' + str(e)
                 s += delta #increment the day counter
@@ -1180,7 +1321,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                         continue  
                     if this_lead_done_for_day == False:
                         current_stage = 'opportunity'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1195,7 +1336,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:   
                         current_stage = 'salesqualifiedlead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1210,7 +1351,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:   
                         current_stage = 'marketingqualifiedlead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1225,7 +1366,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False: 
                         current_stage = 'lead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1240,7 +1381,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:                 
                         current_stage = 'subscriber'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1256,7 +1397,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                 
                 elif current_stage == 'opportunity':
                     #current_stage = 'opportunity'
-                    if date_field_map[current_stage] in lead:
+                    if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                         current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                         current_stage_date = current_stage_date.astimezone(get_current_timezone())
                         if current_stage_date <= s:
@@ -1271,7 +1412,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                             continue
                     if this_lead_done_for_day == False:   
                         current_stage = 'salesqualifiedlead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1286,7 +1427,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:   
                         current_stage = 'marketingqualifiedlead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1301,7 +1442,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False: 
                         current_stage = 'lead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1316,7 +1457,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:                 
                         current_stage = 'subscriber'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1332,7 +1473,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                  
                 elif current_stage == 'salesqualifiedlead':
                     #current_stage = 'salesqualifiedlead'
-                    if date_field_map[current_stage] in lead:
+                    if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                         current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                         current_stage_date = current_stage_date.astimezone(get_current_timezone())
                         if current_stage_date <= s:
@@ -1347,7 +1488,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                             continue
                     if this_lead_done_for_day == False:   
                         current_stage = 'marketingqualifiedlead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1362,7 +1503,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False: 
                         current_stage = 'lead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1377,7 +1518,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:                 
                         current_stage = 'subscriber'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1392,7 +1533,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                  
                 elif current_stage == 'marketingqualifiedlead':
-                    if date_field_map[current_stage] in lead:
+                    if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                         current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                         current_stage_date = current_stage_date.astimezone(get_current_timezone())
                         if current_stage_date <= s:
@@ -1407,7 +1548,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                             continue
                     if this_lead_done_for_day == False: 
                         current_stage = 'lead'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1422,7 +1563,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                     if this_lead_done_for_day == False:                 
                         current_stage = 'subscriber'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1437,7 +1578,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                 
                 elif current_stage == 'lead':
-                    if date_field_map[current_stage] in lead:
+                    if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                         current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                         current_stage_date = current_stage_date.astimezone(get_current_timezone())
                         if current_stage_date <= s:
@@ -1452,7 +1593,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                             continue
                     if this_lead_done_for_day == False:                 
                         current_stage = 'subscriber'
-                        if date_field_map[current_stage] in lead:
+                        if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                             current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                             current_stage_date = current_stage_date.astimezone(get_current_timezone())
                             if current_stage_date <= s:
@@ -1467,7 +1608,7 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
                                 continue
                                     
                 elif current_stage == 'subscriber':
-                    if date_field_map[current_stage] in lead:
+                    if date_field_map[current_stage] in lead and lead[date_field_map[current_stage]] is not None:
                         current_stage_date = pytz.utc.localize(lead[date_field_map[current_stage]], is_dst=None)
                         current_stage_date = current_stage_date.astimezone(get_current_timezone())
                         if current_stage_date <= s:
@@ -3388,7 +3529,221 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
         print 'exception is ' + str(e) + ' and type is ' + str(type(e))
         return JsonResponse({'Error' : str(e)})
 
-
+def hspt_funnel(user_id, company_id, chart_name, mode, start_date):
+#HSPT Funnel dashboard aggregation
+    print 'starting funnel'
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        print 'local start is ' + str(local_start_date)
+        print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
+    
+        delta = timedelta(days=1)
+        e = local_end_date
+        
+        
+        #get all the distinct sources
+        collection = Lead._get_collection()
+        #sources = collection.find({'company_id':int(company_id)}).distinct('source_source').hint({'company_id': 1, 'source_source': 1})
+        sources = ['OFFLINE', 'DIRECT_TRAFFIC', 'REFERRALS', 'ORGANIC_SEARCH', 'OTHER_CAMPAIGNS', 'SOCIAL_MEDIA', 'PAID_SEARCH', 'EMAIL_MARKETING', 'None']
+    
+        
+        delta = timedelta(days=1)
+        e = local_end_date
+        #print 'local end date is ' + str(local_end_date)
+        
+        #all query parameters
+        hspt_opp_close_date_start_qry = 'opportunities__hspt__properties__closedate__value__gte'
+        hspt_opp_close_date_end_qry = 'opportunities__hspt__properties__closedate__value__lte'
+        
+        company_field_qry = 'company_id'
+        created_date_end_qry = 'source_created_date__lte'
+        created_date_start_qry = 'source_created_date__gte'
+        source_created_date_qry = 'source_created_date'
+        company_id_qry = 'company_id'
+        source_metric_name_qry = 'source_metric_name'
+        period_qry = 'data__period'
+        end_time_qry = 'data__values__end_time'
+        source_page_id_qry = 'source_page_id'
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date'
+        
+        #all other predefined data
+        results = {}
+        inflow_leads_count = {}
+        outflow_leads_count = {}
+        inflow_leads_ids = {}
+        outflow_leads_ids = {}
+        outflow_leads_duration = {}
+        
+        stage_dates = (('subscriber', 'hspt_subscriber_date'), ('lead', 'hspt_lead_date'), ('marketingqualifiedlead', 'hspt_mql_date'), ('salesqualifiedlead', 'hspt_sql_date'), ('opportunity', 'hspt_opp_date'), ('customer', 'hspt_customer_date'))
+        stage_dates = OrderedDict(stage_dates)
+        stage_subsequent = {'subscriber': ['lead', 'marketingqualifiedlead', 'salesqualifiedlead', 'opportunity', 'customer'], 'lead': ['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity', 'customer'], 'marketingqualifiedlead': ['salesqualifiedlead', 'opportunity', 'customer'], 'salesqualifiedlead': ['opportunity', 'customer'], 'opportunity': ['customer'], 'customer': [] }
+        collection = Lead._get_collection()
+        
+        ###loop through each day of the period 
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            #print 'utc day start is ' + str(utc_day_start)
+            #print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            #print 'utc day starte is ' + str(utc_day_start_epoch)
+            #print 'utc day ende is ' + str(utc_day_end_epoch)
+            
+            inflow_leads_count = {}
+            outflow_leads_count = {}
+            inflow_leads_ids = {}
+            outflow_leads_ids = {}
+            outflow_leads_duration = {}
+            
+            #get all leads which were created before the start of today by source
+            querydict = {company_field_qry: company_id, created_date_end_qry: utc_day_start} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+            #leads_existed_source = Lead.objects(**querydict).item_frequencies('source_source')
+            #leads_existed_stage = Lead.objects(**querydict).item_frequencies('source_stage')
+            existed_count = Lead.objects(**querydict).count()
+            #get all leads that were created in this time period by source
+            querydict = {company_field_qry: company_id, created_date_start_qry: utc_day_start, created_date_end_qry: utc_day_end} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+            leads_created_source = Lead.objects(**querydict).item_frequencies('source_source')
+            leads_created_stage = Lead.objects(**querydict).item_frequencies('source_stage')
+            created_count = Lead.objects(**querydict).count()
+#             if existed_count > 0:
+#                 percentage_increase = float( created_count / existed_count ) * 100
+#             else:
+#                 percentage_increase = 0
+            #loop through each stage
+            for current_stage, current_stage_date_name in stage_dates.items():
+                #get all leads that entered this stage in this time period
+                date_start_qry = current_stage_date_name + '__gte'
+                date_end_qry = current_stage_date_name + '__lte'
+                querydict = {company_field_qry: company_id, date_start_qry: utc_day_start, date_end_qry: utc_day_end} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+                
+                leads_became_stage = Lead.objects(**querydict)
+                leads_became_stage_list  = list(leads_became_stage)
+                inflow_leads_count[current_stage] = len(leads_became_stage_list)
+                inflow_leads_ids[current_stage] = [x['hspt_id'] for x in leads_became_stage_list]
+                
+                #find all leads who were in this stage before the start of the period and moved into a subsequent stage in this period
+                stage_subsequent_temp = stage_subsequent[current_stage] # we have all subsequent stages for this stage
+                
+                if current_stage != 'customer': #don't do this calculation for customers since there's no outflow 
+                    querydict = {'company_id' : int(company_id), current_stage_date_name: { '$lt': utc_day_start} }
+                    stage_qry_or_list = []
+                    for subs_stage in stage_subsequent_temp:
+                        stage_qry_or_list.append( { stage_dates[subs_stage] : {'$gte' : utc_day_start, '$lte' : utc_day_end} })
+                    and_query = [{ '$or' : stage_qry_or_list }]
+                    querydict['$and'] = and_query
+                    
+                    index_name = 'company_id_1_' + current_stage_date_name + '_1'
+                    leads_exited_stage = collection.find(querydict).hint(index_name)
+                    leads_exited_stage_list = list(leads_exited_stage)
+                    outflow_leads_count[current_stage] = len(leads_exited_stage_list)
+                    outflow_leads_ids[current_stage] = [x['hspt_id'] for x in leads_exited_stage_list]
+                    
+                    if outflow_leads_count[current_stage] > 0:
+                        duration_list = [(utc_day_start - get_current_timezone().localize(x[current_stage_date_name], is_dst=None).astimezone(pytz.timezone('UTC'))).days for x in leads_exited_stage_list] #NOTE - calculatues upto the start of the current day to simplify calcs
+                        outflow_leads_duration[current_stage] = sum(duration_list) / len(duration_list)
+                        #print 'stage is ' + current_stage + ' on ' + date
+                        #print 'were leads ' + str(outflow_leads_ids[current_stage])
+                    else:
+                        outflow_leads_duration[current_stage] = 'N/A'
+        
+                #treat customers differently for outflow, find deals instead
+                else:
+                    print 'in customer stage'
+                    hspt_opp_close_date_start_qry = 'opportunities__hspt__properties__closedate__value__gte'
+                    hspt_opp_close_date_end_qry = 'opportunities__hspt__properties__closedate__value__lte'
+                    print 'utc is ' + str(utc_day_start_epoch) + ' - ' + str(utc_day_end_epoch)
+                    querydict = {company_field_qry: company_id, hspt_opp_close_date_start_qry: str(utc_day_start_epoch), hspt_opp_close_date_end_qry: str(utc_day_end_epoch)} 
+                    #deals_total_value = Lead.objects(**querydict).aggregate({'$unwind': '$opportunities.hspt'}, {'$group': {'_id' : '$_id', 'totalDealValue' : { '$max' : '$opportunities.hspt.properties.amount.value'}}})
+                    deals_list = Lead.objects(**querydict).aggregate({'$unwind': '$opportunities.hspt'}, {'$match' : {'opportunities.hspt.properties.closedate.value': {'$gte': str(utc_day_start_epoch), '$lte': str(utc_day_end_epoch) }}}, {'$project': {'_id':0, 'id': '$opportunities.hspt.dealId', 'value': '$opportunities.hspt.properties.amount.value', 'close_date': '$opportunities.hspt.properties.closedate.value'}})
+                    deals_list = list(deals_list)
+#                     if (len(deals_list)) > 0:
+#                         print 'deals ' + str(list(deals_list))
+#                         return 
+                    num_deals_closed = len(deals_list)
+                    closed_deal_value = 0
+                    max_deal_value = 0
+                    for deal in deals_list:
+                        #print 'total deal val is ' + deal['value']
+                        if not deal['value']:
+                            continue
+                        closed_deal_value += float(deal['value'])
+                        if float(deal['value']) > max_deal_value:
+                            max_deal_value = float(deal['value'])
+            
+            for key, value in leads_created_source.items():
+                if key is None:
+                    leads_created_source['Unknown'] = leads_created_source.pop(key)  
+                      
+            for key, value in leads_created_stage.items():
+                if key is None:
+                    leads_created_source['Unknown'] = leads_created_stage.pop(key) 
+                      
+            results['data'] = {'existed_count': existed_count, 'created_count': created_count, 'created_source' : leads_created_source, 'created_stage' : leads_created_stage, 'num_deals_closed' : num_deals_closed, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value, 'inflow_count': inflow_leads_count, 'outflow_count': outflow_leads_count, 'outflow_duration': outflow_leads_duration}
+            results['ids'] = {}
+            results['ids']['inflow'] = inflow_leads_ids
+            results['ids']['outflow'] = outflow_leads_ids
+            results['ids']['deals'] = deals_list
+            #print 'results ' + str(results)
+            
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'MA'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                  
+            analyticsIds = AnalyticsIds.objects(**queryDict).first()
+            if analyticsIds is None:
+                analyticsIds = AnalyticsIds()
+                analyticsIds.system_type = 'MA'
+                analyticsIds.company_id = company_id  
+                analyticsIds.chart_name = chart_name
+                analyticsIds.date = date
+                analyticsIds.results = {}
+                analyticsIds.save()
+                 
+            #print 'results are ' + str(results)
+            analyticsData.results = results['data']
+            analyticsIds.results['inflow'] = results['ids']['inflow']
+            analyticsIds.results['outflow'] = results['ids']['outflow']
+            analyticsIds.results['deals'] = results['ids']['deals']
+            results = {}
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
+            print 'saved'
+        #return results
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+    
 # Buffer Analytics       
 # chart - "Twitter Performance"   
 def bufr_tw_performance(user_id, company_id, chart_name, mode, start_date): 
