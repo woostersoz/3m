@@ -61,12 +61,12 @@
 		  else 
 	      {  
 	          $scope.systems = Integrations.getNewSystem();
-	          if ($scope.scopeName == '/integrations-new')
+	          if ($scope.scopeName == 'integrations-new')
 	          {
 	        	  $scope.editMode = false;  
 		  	  	  Integrations.createNewIntegration($scope.systems[0].code).then(NewIntegrationSuccessFxn, NewIntegrationErrorFxn);
 		      }
-	          else if ($scope.scopeName == '/integrations-edit')
+	          else if ($scope.scopeName == 'integrations-edit')
 	          {
 	        	  $scope.editMode = true;
 	        	  Integrations.editSystem($scope.systems[0]).then(NewIntegrationSuccessFxn, NewIntegrationErrorFxn);

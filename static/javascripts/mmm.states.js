@@ -11,7 +11,7 @@
 	 */
 	function config($urlRouterProvider, $stateProvider) {
 		$stateProvider
-				.state('/dashboards', {
+				.state('dashboards', {
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
 					controllerAs : 'vm',
@@ -95,13 +95,13 @@
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/authentication/login.html'
 				})
-				.state('/login:query', {
+				.state('login:query', {
 					url : '/login:query',
 					controller : 'LoginController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/authentication/login.html'
 				})
-				.state('/users/login', {
+				.state('users/login', {
 					url : '/users/login',
 					controller : 'LoginController',
 					controllerAs : 'vm',
@@ -126,50 +126,50 @@
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/profiles/settings.html'
 				})
-				.state('/leads', {
+				.state('leads', {
 					url : '/leads',
 					controller : 'LeadsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/leads/leads.html'
 				})
-				.state('/leads-code', {
+				.state('leads-code', {
 					url : '/leads/:code',
 					controller : 'LeadsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/layout/index.html'
 				})
-				.state('/name', {
+				.state('name', {
 					url : '/name',
 					controller : 'AccountsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/accounts/accounts.html'
 				})
-				.state('/accounts', {
+				.state('accounts', {
 					url : '/accounts',
 					controller : 'AccountsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/accounts/accounts.html'
 				})
-				.state('/companies', {
+				.state('companies', {
 					url : '/companies',
 					controller : 'AccountsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/accounts/accounts-companies.html'
 				})
-				.state('/campaigns', {
+				.state('campaigns', {
 					url : '/campaigns',
 					controller : 'CampaignsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/campaigns/campaigns.html'
 				})
-				.state('/campaigns-code', {
+				.state('campaigns-code', {
 					url : '/campaigns/:code',
 					controller : 'CampaignsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/layout/index.html'
 				})
 				.state(
-						'/integrations-new',
+						'integrations-new',
 						{
 							url : '/integrations/new/:code',
 							controller : 'NewIntegrationController',
@@ -177,32 +177,32 @@
 							templateUrl : '/static/templates/integrations/new-integration-index.html'
 						})
 				.state(
-						'/integrations-edit',
+						'integrations-edit',
 						{
 							url : '/integrations/edit/:code',
 							controller : 'NewIntegrationController',
 							controllerAs : 'vm',
 							templateUrl : '/static/templates/integrations/new-integration-index.html'
 						})
-				.state('/integrations/:tabname', {
+				.state('integrations/:tabname', {
 					url : '/integrations/:tabname',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/integrations/main.html'
 				})
-				.state('/integrations/:tabname/:result', {
+				.state('integrations/:tabname/:result', {
 					url : '/integrations/:tabname/:result',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/integrations/main.html'
 				})
-				.state('/integrations', {
+				.state('integrations', {
 					url : '/integrations',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/integrations/main.html'
 				})				
-				.state('/oauth/:source', {
+				.state('oauth/:source', {
 					url : '/oauth/:source?code&state&access_token&expires_in&refresh_token&oauth_token&oauth_verifier',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',

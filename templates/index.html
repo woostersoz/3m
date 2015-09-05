@@ -37,23 +37,23 @@
 			<ul class="page-sidebar-menu " data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
 				<li class="start">
 				    <a href="#">
-				    <i class="icon-calculator"></i>
+				    <i class="glyphicon glyphicon-th"></i>
 				    <span class="title">Dashboards</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
 				        <li>
-					        <a href="/dashboards/waterfall">
+					        <a href ui-sref="dashboards({'type':'waterfall'})" ui-sref-active="active">
 					        Waterfall
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/dashboards/funnel">
+					        <a href ui-sref="dashboards({'type':'funnel'})" ui-sref-active="active">
 					        Funnel
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/dashboards/social">
+					        <a href ui-sref="dashboards({'type':'social'})" ui-sref-active="active">
 					        Social ROI
 					        </a>
 					    </li>
@@ -61,53 +61,53 @@
 				</li>
 				<li>
 				    <a href="#">
-				    <i class="icon-bar-chart"></i>
+				    <i class="glyphicon glyphicon-signal"></i>
 				    <span class="title">Analytics</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
 					    <li>
-					        <a href="/analytics">
+					        <a href ui-sref="analytics" ui-sref-active="active">
 					        Live
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/snapshots">
+					        <a href ui-sref="snapshots" ui-sref-active="active">
 					        Snapshots
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/binders">
+					        <a href ui-sref="binders" ui-sref-active="active">
 					        Binders
 					        </a>
 					    </li>
 				    </ul>
 				</li>
 				<li>
-				    <a href="/campaigns">
-				    <i class="icon-volume-2"></i>
+				    <a href ui-sref="campaigns" ui-sref-active="active">
+				    <i class="glyphicon glyphicon-bullhorn"></i>
 				    <span class="title">Campaigns</span>
 				    </a>
 				</li>
 				<li>
 				    <a href="/accounts">
-				    <i class="icon-target"></i>
+				    <i class="glyphicon glyphicon-screenshot"></i>
 				    <span class="title">Accounts</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
 				        <li>
-					        <a href="/accounts">
+					        <a href ui-sref="accounts" ui-sref-active="active">
 					        Accounts
 						    </a>
 					     </li>
 					     <li>
-					        <a href="/companies">
+					        <a href ui-sref="companies" ui-sref-active="active">
 					        Companies
 						    </a>
 					     </li>
 					     <li>
-					        <a href="/name">
+					        <a href ui-sref="name" ui-sref-active="active">
 					        Matching Test
 						    </a>
 					     </li>
@@ -115,31 +115,31 @@
 				    </a>
 				</li>
 				<li>
-				    <a href="/leads">
-				    <i class="icon-users"></i>
+				    <a href ui-sref="leads" ui-sref-active="active">
+				    <i class="glyphicon glyphicon-record"></i>
 				    <span class="title">Leads</span>
 				    </a>
 				</li>
 				<li>
 				    <a href="#">
-				    <i class="icon-badge"></i>
+				    <i class="glyphicon glyphicon-thumbs-up"></i>
 				    <span class="title">Social</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
 				        <li>
-					        <a href="/twitter">
+					        <a href ui-sref="twitter" ui-sref-active="active">
 					        Twitter
 					        <span class="arrow"></span>
 						    </a>
 						    <ul class="sub-menu">
 						        <li>
-							        <a href="/tweets">
+							        <a href ui-sref="tweets" ui-sref-active="active">
 							        Tweets
 							        </a>
 							    </li>
 							    <li>
-							        <a href="/twitter-master-list">
+							        <a href ui-sref="twitter-master-list" ui-sref-active="active">
 							        Master List
 							        </a>
 							    </li>
@@ -165,28 +165,28 @@
 				</li>
 				<li>
 				    <a href="#">
-				    <i class="icon-settings"></i>
+				    <i class="glyphicon glyphicon-cog"></i>
 				    <span class="title">Admin</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
 				        <li>
-					        <a href="/users">
+					        <a href ui-sref="users" ui-sref-active="active">
 					        Users
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/integrations">
+					        <a  ui-sref="integrations" ui-sref-active="active">
 					        Integrations
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/data">
+					        <a  ui-sref="data" ui-sref-active="active">
 					        Data Management
 					        </a>
 					    </li>
 					    <li>
-					        <a href="/analytics-data">
+					        <a  ui-sref="analytics-data" ui-sref-active="active">
 					        Analytics Data Management
 					        </a>
 					    </li>
@@ -197,7 +197,7 @@
 						    </a>
 						    <ul class="sub-menu">
 						        <li>
-							        <a href="/twitter-admin">
+							        <a  ui-sref="twitter-admin" ui-sref-active="active">
 							        Twitter
 							        </a>
 							    </li>

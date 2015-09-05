@@ -51,6 +51,9 @@ from requests_oauthlib import OAuth1Session
 import oauth2 as oauth
 import urlparse, urllib
 
+#SugarCRM
+import sugarcrm
+
 from integrations.models import UserOauth
 from company.models import CompanyIntegration
 from social.serializers import FbInsightsSerializer
@@ -79,7 +82,8 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             "request": request
              }
          
-            method_map = { "mkto" : self.setup_mkto, "sfdc": self.setup_sfdc, "hspt": self.setup_hspt, "bufr": self.setup_bufr, "goog": self.setup_goog, "fbok": self.setup_fbok, "twtr": self.setup_twtr }
+            method_map = { "mkto" : self.setup_mkto, "sfdc": self.setup_sfdc, "hspt": self.setup_hspt, "bufr": self.setup_bufr, "goog": self.setup_goog, "fbok": self.setup_fbok, "twtr": self.setup_twtr,
+                           "sugr": self.setup_sugr}
             result = method_map[company_info['code']](**company_info)
             #print "resultxx is " + str(result)
             return Response(result)
@@ -108,7 +112,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             if error:   
                 return "Error: Marketo instance not validated"
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
         
     
     def setup_sfdc(self, **kwargs):
@@ -118,17 +122,37 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             auth_url = sfdc.get_auth_url(client, state=kwargs['user_id'])
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
             
     def setup_hspt(self, **kwargs):
         try:
-            hspt = Hubspot(self.request)
+            hspt = Hubspot(self.company_id)
             #client = hspt.create_client(kwargs['host'], kwargs['client_id'], kwargs['client_secret'], kwargs['redirect_uri'])
            
             auth_url = hspt.get_auth_url(kwargs['client_id'], kwargs['client_secret'], kwargs['redirect_uri'], kwargs['user_id'])
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
+            
+    def setup_sugr(self, **kwargs):
+        try:
+            print 'co is ' + str(kwargs['company_id'])
+            sugr = Sugar(kwargs['company_id'])
+            sugr.authenticate(kwargs['host'], kwargs['client_id'], kwargs['client_secret'], kwargs['redirect_uri'])
+            if self.saveAccessToken(sugr.access_token, kwargs['code'], kwargs['company_id'], sugr.refresh_token, None, None, None): #and\
+                #if self.saveUserOauth(client.token, kwargs['code'], kwargs['user_id']): 
+                self.request.session['sugar_access_token'] = sugr.access_token
+                return "Success: SugarCRM instance validated with token " + sugr.access_token
+                #else:
+                    #error = True
+            else: 
+                error = True
+            
+            if error:   
+                return "Error: SugarCRM instance not validated"
+        except Exception as e:
+            print 'error is ' + str(e)
+            return Response(str(e))
             
     def setup_bufr(self, **kwargs):
         try:
@@ -137,7 +161,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             auth_url = bufr.get_auth_url(client)
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
             
     def setup_goog(self, **kwargs):
         try:
@@ -146,7 +170,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             auth_url = goog.get_auth_url()
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
             
     def setup_fbok(self, **kwargs):
         try:
@@ -154,7 +178,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             auth_url = fbok.get_auth_url()
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
             
     def setup_twtr(self, **kwargs):
         try:
@@ -165,7 +189,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             kwargs['request'].session['oauth_token_secret'] = oauth_token_secret
             return {'auth_url': auth_url}
         except Exception as e:
-                return Response(str(e))
+            return Response(str(e))
     
     def saveUserOauth(self, access_token, code, user_id):
             #self.request.session[code + '_access_token'] = access_token
@@ -726,7 +750,7 @@ class Salesforce:
                 #return client.restful(path, params)
                 
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                query = 'SELECT ' + fieldList + ' from Lead where CreatedDate > ' + sinceDateTime
+                query = 'SELECT ' + fieldList + ' from Lead where CreatedDate > ' + sinceDateTime + ' or LastModifiedDate > ' + sinceDateTime 
                 #print 'dping query' + str(query)
                 return client.query_all(query)
         except Exception as e:
@@ -1415,6 +1439,58 @@ class Hubspot:
             #getattr(sys.modules[__name__], inspect.stack()[1][3])(self, arg1)
         except Exception as e:
             raise Exception("Could not refresh access token from Hubspot: " + str(e))  
+      
+      
+class Sugar:
+    
+    def __init__(self, company_id):
+        self.company_id = company_id
+    
+    def authenticate(self, host, client_id, client_secret, redirect_uri, **kwargs):
+    
+        url = host + '/oauth2/token'#"https://yvsggr5691.trial.sugarcrm.com/rest/v10/oauth2/token"
+        
+        try:
+            company_id = self.company_id 
+            
+            payload = {"grant_type": "password", "username": "admin", "password": "Sudha123!", "client_id": client_id, "client_secret": client_secret, "platform": "base"}
+            r = requests.post(url, data=json.dumps(payload))
+            
+            response = json.loads(r.text)
+            print 'resp in client' + str(response)
+            if 'error' in response:
+                print response['error_message']
+                
+            self.access_token = response.get('access_token', None)
+            self.refresh_token = response.get('refresh_token', None)  
+            print 'Success! OAuth token is ' + self.access_token
+        except Exception as e:
+            print 'Exception while authenticating with Sugar: ' + str(e) 
+            raise Exception("Could not get access token from SugarCRM: " + str(e))  
+        
+    
+    def get_leads(self, company_id):
+        existingIntegration = CompanyIntegration.objects(company_id = self.company_id ).first()
+        if existingIntegration is not None: 
+            integration = existingIntegration.integrations['sugr']
+        if integration is None:
+            raise ValueError("No integration found for SugarCRM")
+        if 'access_token' not in integration or integration['access_token'] is None:
+            self.authenticate(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'])  
+        existingIntegration = CompanyIntegration.objects(company_id = self.company_id ).first()
+        if existingIntegration is not None: 
+            integration = existingIntegration.integrations['sugr']
+        if integration['access_token'] is None:
+            raise ValueError('No access token found for SugarCRM')
+        
+        url = integration['host'] + '/Leads'
+        #payload = {"grant_type": "password", "username": "admin", "password": "Sudha123!", "client_id": client_id, "client_secret": client_secret, "platform": "base"}
+        headers = {'oauth-token': integration['access_token']}
+        r = requests.get(url, headers=headers)
+        response = json.loads(r.text)
+        print 'response is ' + response
+          
+            
         
 class Buffer:
     

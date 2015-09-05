@@ -1469,7 +1469,7 @@ class SingleBinderTemplate(viewsets.ModelViewSet):
             binderTemplate = BinderTemplate(owner=request.user.id, company=company) #
             binderTemplate.name = binder['name']
             binderTemplate.pages = binder['pages']
-            binderTemplate.orientation = binder['orientation']
+            binderTemplate.orientation = binder.get('orientation', 'Portrait')
             binderTemplate.frequency = binder['frequency']
             binderTemplate.frequency_day = binder.get('frequency_day', None)
             binderTemplate.binder_count = 0;

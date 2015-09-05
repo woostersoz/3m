@@ -12,7 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework.response import Response
 from django.utils.encoding import smart_str
 
-from integrations.views import Marketo, Salesforce, Hubspot, Google  # , get_sfdc_test
+from integrations.views import Marketo, Salesforce, Hubspot, Google, Sugar  # , get_sfdc_test
 from leads.models import Lead
 from collab.signals import send_notification
 from collab.models import Notification 
@@ -123,7 +123,7 @@ def retrieveSfdcLeads(user_id=None, company_id=None, job_id=None, run_type=None,
         if sinceDateTime is None:
             sinceDateTime = (datetime.now() - timedelta(days=1)).date()
         leadList = sdfc.get_leads_delta(user_id, company_id, _str_from_date(sinceDateTime))
-        print 'got back leads ' + str(len(leadList))
+        print 'got back leads ' + str(len(leadList['records']))
         saveSfdcLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
         try:
             message = 'Leads retrieved from Salesforce'
@@ -231,6 +231,10 @@ def retrieveHsptLeads(user_id=None, company_id=None, job_id=None, run_type=None,
         send_notification(dict(type='error', success=False, message=str(e)))   
         
    
+@app.task    
+def retrieveSugrLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
+    sugr = Sugar(company_id)
+    sugr.get_leads()
       
 #save the data in the temp table
 def saveMktoLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
@@ -344,7 +348,7 @@ def saveSfdcLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
             saveTempDataDelta(company_id=company_id, record_type="lead", source_system="sfdc", source_record=lead, job_id=job_id)
     
 def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
-    job_id = ObjectId("55e379e756ea06290ae1759f")
+    #job_id = ObjectId("55e89c348afb00347b3e4bd1")
     
     if run_type == 'initial':
         leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
@@ -411,7 +415,7 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                     existingLeadMkto.sfdc_id = sfdc_Id
                     existingLeadMkto.sfdc_account_id = sfdc_account_id
                     existingLeadMkto.leads['sfdc'] = newLead
-                    if existingLeadMkto['originalSourceType'] == 'salesforce.com': #this lead origniated from SFDC
+                    if existingLeadMkto.leads['mkto']['originalSourceType'] == 'salesforce.com': #this lead origniated from SFDC
                         existingLeadMkto.source_first_name = newLead['FirstName']
                         existingLeadMkto.source_last_name = newLead['LastName']
                         existingLeadMkto.source_email = newLead['Email']

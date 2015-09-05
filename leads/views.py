@@ -185,7 +185,7 @@ def filterLeads(request, id):
             result['portal_id'] = client_secret
         else:
             result =  'Nothing to report'
-        return JsonResponse(result, safe=False)
+        return result
     except Exception as e:
         print 'exception while retrieving leads ' + str(e)
         return JsonResponse({'Error' : str(e)})
@@ -395,10 +395,10 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             if ids is None:
                 return []
             
-            leads = Lead.objects(mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+            leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
             #print 'start5 is ' + str(time.time())
             #now do the calculations
-            total = Lead.objects(mkto_id__in=ids).count() #len(leads)
+            total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
             serializer = LeadSerializer(leads, many=True)   
@@ -416,10 +416,10 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             print 'lead tupe is ' + lead_type
             ids = analyticsIds['results'].get(lead_type, None)
             print 'ids is ' + str(ids)
-            leads = Lead.objects(mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+            leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
             #print 'start5 is ' + str(time.time())
             #now do the calculations
-            total = Lead.objects(mkto_id__in=ids).count() #len(leads)
+            total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
         serializer = LeadSerializer(leads, many=True)   
@@ -465,10 +465,10 @@ def filterLeadsByDurationMkto(user_id, company_id, start_date, end_date, lead_ty
                 
                 ids.extend(day_results)
         
-        leads = Lead.objects(mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+        leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
                 #print 'start5 is ' + str(time.time())
                 #now do the calculations
-        total = Lead.objects(mkto_id__in=ids).count() #len(leads)
+        total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
                 #print 'start6 is ' + str(time.time())
             
         serializer = LeadSerializer(leads, many=True)   
@@ -550,10 +550,10 @@ def filterLeadsByRevenueSourceMkto(user_id, company_id, start_date, end_date, le
                 
                 ids.extend(day_results)
         
-        leads = Lead.objects(mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+        leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
                 #print 'start5 is ' + str(time.time())
                 #now do the calculations
-        total = Lead.objects(mkto_id__in=ids).count() #len(leads)
+        total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
                 #print 'start6 is ' + str(time.time())
             
         serializer = LeadSerializer(leads, many=True)   
@@ -635,7 +635,8 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             #print 'start6 is ' + str(time.time())
         
             serializer = LeadSerializer(leads, many=True)   
-            return {'count' : total, 'results': serializer.data}   
+            
+            return JsonResponse({'count' : total, 'results': serializer.data})    
     
         else: #not done. need to loop through leads to find which leads truly meet the criteria
             system_type_qry = 'system_type'
@@ -659,7 +660,7 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             #print 'start6 is ' + str(time.time())
         
         serializer = LeadSerializer(leads, many=True)   
-        return {'count' : total, 'results': serializer.data}
+        return JsonResponse({'count' : total, 'results': serializer.data})   
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     

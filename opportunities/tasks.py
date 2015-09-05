@@ -213,7 +213,7 @@ def saveSfdcOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, ru
         allOpps = oppList #['records']
         # below code copied from contacts.tasks
         for newContact in contactList: #['records']:
-            if newContact['OpportunityContactRoles'] is None: # if this contact has no opportunities
+            if 'OpportunityContactRoles' not in newContact or newContact['OpportunityContactRoles'] is None: # if this contact has no opportunities
                 continue # move to next contact
             # company_id = request.user.company_id
             sfdc_account_id = None
