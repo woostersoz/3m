@@ -56,6 +56,16 @@
 					endDate : moment().endOf("day")
     		};
     	}
+    	else if (type == 'dashboard')
+    	{
+    		page.contentTitle = 'Dashboard Title';
+    		page.chartFilters = {};
+    		page.chartFilters.groupDates = {};
+    		page.chartFilters.groupDates.date = {
+    				startDate : moment().subtract(6, "days").startOf("day"),
+					endDate : moment().endOf("day")
+    		};
+    	}
     	return page;
     }
     

@@ -33,8 +33,8 @@ from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, 
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, BinderTemplate, Binder
 
-from superadmin.models import SuperIntegration, SuperAnalytics
-from superadmin.serializers import SuperAnalyticsSerializer
+from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards
+from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer
 
 from authentication.models import Company, CustomUser
 
@@ -223,7 +223,7 @@ def getCharts(request, company_id):
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     
-        
+
 @api_view(['POST'])
 @renderer_classes((JSONRenderer,))    
 def saveSnapshot(request, company_id):

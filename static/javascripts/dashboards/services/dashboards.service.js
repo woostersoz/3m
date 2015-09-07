@@ -25,7 +25,8 @@
       getDashboardsByCompany: getDashboardsByCompany,
       calculateDashboards: calculateDashboards,
       drilldownContacts: drilldownContacts,
-      drilldownDeals: drilldownDeals
+      drilldownDeals: drilldownDeals,
+      getDashboardsByCompany: getDashboardsByCompany
       
     };
 
@@ -84,6 +85,10 @@
     
     function drilldownDeals(company, object, section, channel, system_type, start_date, end_date, current_page, leads_per_page) {
     	return $http.get('/api/v1/company/' + company + '/dashboards/drilldown/?object=' + object + '&section=' + section + '&channel=' + channel + '&system_type=' + system_type + '&start_date=' + start_date + '&end_date=' + end_date + '&page_number=' + current_page + '&per_page=' + leads_per_page); 
+    }
+    
+    function getDashboardsByCompany(company) {
+    	return $http.get('/api/v1/company/' + company + '/dashboards/dashboards/');
     }
     
     

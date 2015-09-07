@@ -1,12 +1,14 @@
 <div ng-back-stretch-carousel >
-   <!-- <div class="logo">
-    
-    </div> -->  <!--  logo -->
+   <p style="display:block; margin: 0px ">
+        <a class="navbar-brand" href="http://claritix.io" target="_blank">
+          <img src="{{logoUrl}}" style="height:200%"/>
+        </a>
+   </p>
     
     <div class="content">
     
       <form class="login-form" ng-submit="vm.login()">
-        <h3 class="form-title">Login to your account</h3>
+        <h3 class="form-title">Login</h3>
         <div class="alert alert-danger" ng-show="error" ng-bind="error">
           <button class="close" data-close="alert"></button>
           <span>Enter any email and password</span>
@@ -15,27 +17,32 @@
           <label class="control-label visible-ie8 visible-ie9">Email</label>
           <div class="input-icon">
 				<i class="fa fa-user"></i>
-				<input class="form-control placeholder-no-fix" id="login__email" ng-model="vm.email" type="text" autocomplete="off" placeholder="Email" name="email"/>
+				<input class="form-control placeholder-no-fix" style="width:100%" id="login__email" ng-model="vm.email" type="text" autocomplete="off" placeholder="Email" name="email"/>
 			</div>
         </div>
         <div class="form-group">
 			<label class="control-label visible-ie8 visible-ie9">Password</label>
 			<div class="input-icon">
 				<i class="fa fa-lock"></i>
-				<input class="form-control placeholder-no-fix" id="login__password" ng-model="vm.password" type="password" autocomplete="off" placeholder="Password" name="password"/>
+				<input class="form-control placeholder-no-fix" style="width:100%" id="login__password" ng-model="vm.password" type="password" autocomplete="off" placeholder="Password" name="password"/>
 			</div>
 		</div>
-		<div class="form-actions">
+		<div class="form-actions col-md-12" style="padding-bottom:20px">
+			<div class="col-md-8" style="margin-left:5px;">
 			<label class="checkbox">
-			<input type="checkbox" name="remember" value="1"/> Remember me </label>
+			<input type="checkbox" name="remember" value="1" /> Remember me </label>
+			</div>
+			<div class="col-md-3">
 			<button type="submit" class="btn blue pull-right">
 			Login <i class="m-icon-swapright m-icon-white"></i>
 			</button>
+			</div>
 		</div>
+		<div class="clearfix">&nbsp;</div>
 		<div class="forget-password">
 			<h4>Forgot your password ?</h4>
 			<p>
-				 no worries, click <a href="javascript:;" id="forget-password">
+				 No worries, click <a href="javascript:;" id="forget-password">
 				here </a>
 				to reset your password.
 			</p>

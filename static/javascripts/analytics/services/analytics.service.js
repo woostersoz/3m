@@ -22,7 +22,7 @@
       get: get,
       getAll: getAll,
       retrieveChart: retrieveChart,
-      getChartsByCompany: getChartsByCompany,
+      getChartsByCompany: getChartsByCompany, 
       calculateAnalytics: calculateAnalytics,
       getFilterMasterValues: getFilterMasterValues
       

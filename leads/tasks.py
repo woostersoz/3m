@@ -233,9 +233,16 @@ def retrieveHsptLeads(user_id=None, company_id=None, job_id=None, run_type=None,
    
 @app.task    
 def retrieveSugrLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
-    sugr = Sugar(company_id)
-    sugr.get_leads()
-      
+    if run_type == 'initial':
+        print 'initial run for leads'
+        try:
+            sugr = Sugar(company_id)
+            leadList = sugr.get_leads()
+            print 'lead list is ' + str(leadList)
+            saveSugrLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
+        except Exception as e:
+            print 'error while retrieving leads from SugarCRM: ' + str(e)
+            send_notification(dict(type='error', success=False, message=str(e))) 
 #save the data in the temp table
 def saveMktoLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
     print 'saving Mkto Leads'
@@ -674,7 +681,143 @@ def saveHsptLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
     except Exception as e:
         send_notification(dict(type='error', success=False, message=str(e)))  
         
+#save the data in the temp table
+def saveSugrLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
+    print 'saving Sugr Leads'
+    if run_type == 'initial':
+        for lead in leadList:
+            saveTempData(company_id=company_id, record_type="lead", source_system="sugr", source_record=lead, job_id=job_id)
+    else:
+        for lead in leadList:
+            saveTempDataDelta(company_id=company_id, record_type="lead", source_system="sugr", source_record=lead, job_id=job_id)
 
+def saveSugrLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #job_id = ObjectId("55e6b0198afb002ef6a8c292")
+    if run_type == 'initial':
+        collection = TempData._get_collection()
+        leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'sugr', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        #leads = collection.find({"company_id" : company_id, "record_type": "lead", "source_system":"hspt", "job_id": job_id}, projection={"source_record": True}, batch_size=100)
+        #leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record').order_by('-updated_date')
+    else:
+        #leads = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record').order_by('-updated_date')
+        collection = TempDataDelta._get_collection()
+        leads = collection.find({'company_id': int(company_id), 'record_type': 'lead', 'source_system': 'sugr', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
+    try: 
+        numLeads = 0
+        for lead in leads:
+            numLeads = numLeads + 1
+            print 'num leads is ' + str(numLeads)
+            newLead = lead['source_record']
+            sugr_id = newLead['id']
+            print 'got sugr lead with id ' + sugr_id
+            sugr_contact_id = None
+            sugr_account_id = None
+            if 'account_id' in newLead and newLead['account_id']:
+                sugr_account_id = newLead['account_id']
+                print 'found converted account with id' + str(sugr_account_id)
+            if 'contact_id' in newLead and newLead['contact_id']:
+                sugr_contact_id = newLead['contact_id']
+            lead_email = newLead.get('email1', None)
+            # sfdc_mkto_id = str(newLead['sfdcLeadId']) #check if there is a corresponding lead from MKTO
+            existingLeadMkto = None
+            existingLeadHspt = None
+            existingContactSugr = None #to search for converted contacts
+            existingContactHspt = None
+            existingLeadEmail = None
+            existingLead = None
+            existingLead = Lead.objects(Q(company_id=company_id) & Q(sugr_id=sugr_id)).first()
+            
+            if existingLead is not None:  # we found this lead already in the DB
+                if  'sugr' in existingLead.leads:
+                    existingLead.source_first_name = newLead.get('first_name', None)
+                    existingLead.source_last_name = newLead.get('last_name', None)
+                    existingLead.source_email = lead_email
+                    existingLead.source_created_date = newLead.get('date_entered', None)
+                    existingLead.source_source = newLead.get('lead_source', None)
+                    existingLead.source_status = newLead.get('status', None)
+                    existingLead.sugr_account_id = sugr_account_id
+                    existingLead.sugr_contact_id = sugr_contact_id
+                    existingLead.leads['sugr'] = newLead
+                    #print 'first save'
+                    existingLead.save()
+                    
+                    #Lead.objects(Q(company_id=company_id) & Q(sfdc_id=sfdc_Id)).update(leads__sfdc=newLead)
+                else:
+                    existingLead.leads['sugr'] = {}
+                    existingLead.sugr_account_id = sugr_account_id
+                    existingLead.leads['sugr'] = newLead
+                    #print '2nd save'
+                    existingLead.save()
+                    
+            elif existingLead is None:  # this lead does not exist 
+                if lead_email:
+                    existingLeadEmail = Lead.objects(Q(company_id=company_id) & Q(source_email=lead_email)).first()
+                    if existingLeadEmail is not None:
+                        existingLeadEmail.leads['sugr'] = newLead
+                        existingLeadEmail.save()
+                    
+#                 existingLeadMkto = Lead.objects(Q(company_id=company_id) & Q(leads__mkto__sfdcLeadId=sfdc_Id)).first()
+#                 if existingLeadMkto is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
+#                     existingLeadMkto.sfdc_id = sfdc_Id
+#                     existingLeadMkto.sfdc_account_id = sfdc_account_id
+#                     existingLeadMkto.leads['sfdc'] = newLead
+#                     if existingLeadMkto.leads['mkto']['originalSourceType'] == 'salesforce.com': #this lead origniated from SFDC
+#                         existingLeadMkto.source_first_name = newLead['FirstName']
+#                         existingLeadMkto.source_last_name = newLead['LastName']
+#                         existingLeadMkto.source_email = newLead['Email']
+#                         existingLeadMkto.source_created_date = newLead['CreatedDate']
+#                         existingLeadMkto.source_source = newLead['LeadSource']
+#                         existingLeadMkto.source_status = newLead['Status']
+#                         existingLeadMkto.sfdc_account_id = sfdc_account_id
+#                     #print '3rd save'
+#                     existingLeadMkto.save()
+                    
+#                 existingLeadHspt = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__salesforceleadid=sfdc_Id)).first()
+#                 if existingLeadHspt is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
+#                     existingLeadHspt.sfdc_id = sfdc_Id
+#                     existingLeadHspt.sfdc_account_id = sfdc_account_id
+#                     existingLeadHspt.leads['sfdc'] = newLead
+#                     existingLeadHspt.save()
+#                 elif sfdc_contact_id is not None:
+#                     existingContactSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=sfdc_contact_id)).first()
+#                     if existingContactSfdc is not None:  # we found a HSPT record which is matched to this new Sfdc lead which is converted to a contact
+#                         existingContactSfdc.sfdc_id = sfdc_Id
+#                         existingContactSfdc.sfdc_contact_id = sfdc_contact_id
+#                         existingContactSfdc.sfdc_account_id = sfdc_account_id
+#                         existingContactSfdc.leads['sfdc'] = newLead
+#                         #print '4th save'
+#                         existingContactSfdc.save()
+#                         
+#                     
+#                     existingContactHspt = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__salesforcecontactid=sfdc_contact_id)).first()
+#                     if existingContactHspt is not None:  # we found a HSPT record which is matched to this new Sfdc lead which is converted to a contact
+#                         existingContactHspt.sfdc_id = sfdc_Id
+#                         existingContactHspt.sfdc_contact_id = sfdc_contact_id
+#                         existingContactHspt.sfdc_account_id = sfdc_account_id
+#                         existingContactHspt.leads['sfdc'] = newLead
+#                         existingContactHspt.save()
+                    
+            if existingLeadMkto is None and existingLeadHspt is None and existingContactHspt is None and existingLeadEmail is None and existingLead is None:  # no matches found so save new record
+                lead = Lead()
+                lead.sugr_id = sugr_id
+                lead.company_id = company_id
+                lead.source_first_name = newLead.get('first_name', None)
+                lead.source_last_name = newLead.get('last_name', None)
+                lead.source_email = lead_email
+                lead.source_created_date =  newLead.get('date_entered', None)
+                lead.source_source = newLead.get('lead_source', None)
+                lead.source_status = newLead.get('status', None)
+                lead.sugr_account_id = sugr_account_id
+                lead.sugr_contact_id = sugr_contact_id
+                lead.leads["sugr"] = newLead
+                #print '5th save'
+                lead.save()
+                
+    except Exception as e:
+        print 'exception while saving Sugr Lead: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))         
+        
 #save the data in the temp table
 def saveGoogWebsiteTraffic(user_id=None, company_id=None, account_id=None, account_name=None, profile_id=None, profile_name=None, trafficList=None, job_id=None, run_type=None):
     print 'saving GA website traffic'

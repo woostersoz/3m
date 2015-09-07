@@ -18,6 +18,7 @@
     var vm = this;
 
     vm.login = login;
+    $scope.logoUrl = staticUrl('images/logo.png');
 
     activate();
 

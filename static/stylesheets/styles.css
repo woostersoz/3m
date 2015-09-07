@@ -1222,6 +1222,10 @@ ul.analytics-charts > li {
 
 /* Waterfall chart */
 
+.cont, .cont div {
+	line-height:138%;
+}
+
 .taper-right {
     width: 200px;
     height: 0px;
@@ -1260,6 +1264,7 @@ ul.analytics-charts > li {
     background: #cce5e2;
     overflow: hidden;
     position: relative;
+    -webkit-padding-before: 3px;
 }
 .part-b .background {
     display: block;
@@ -1268,6 +1273,7 @@ ul.analytics-charts > li {
     width: 50%;
     height: 100%;
     background-color: #ffe1cc;
+    -webkit-margin-before: -3px;
 }
 
 .dark-blue-font {

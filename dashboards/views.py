@@ -34,8 +34,8 @@ from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, 
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, AnalyticsIds, BinderTemplate, Binder
 
-from superadmin.models import SuperIntegration, SuperAnalytics
-from superadmin.serializers import SuperAnalyticsSerializer
+from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards
+from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer
 
 from authentication.models import Company, CustomUser
 
@@ -130,22 +130,29 @@ def getDashboards(request, company_id):
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:   
         code = None
-        charts_temp = []
-        charts = []
+        dashboards_temp = []
+        dashboards = []
         if existingIntegration is not None:
+            sources = set()
+            defined_system_types = set()
             for source in existingIntegration.integrations.keys():
+                sources.add(source)
+            for source in sources:
+                #print 'source is ' + str(source)
                 defined_system = SuperIntegration.objects(code = source).first()
-                if defined_system is not None:
-                    charts_temp = SuperAnalytics.objects(system_type = defined_system.system_type).all()
-                    for chart_temp in list(charts_temp):
-                        serializer = SuperAnalyticsSerializer(chart_temp, many=False) 
-                        charts.append(serializer.data)
+                defined_system_types.add(defined_system.system_type)
+            for defined_system_type in defined_system_types:
+                #print 'def system is ' + str(defined_system.system_type)
+                if defined_system_type is not None:
+                    dashboards_temp = SuperDashboards.objects(Q(system_type = defined_system_type) & Q(status__ne='Inactive')).all()
+                    for dashboard_temp in list(dashboards_temp):
+                        serializer = SuperDashboardsSerializer(dashboard_temp, many=False) 
+                        dashboards.append(serializer.data)
         
-        return JsonResponse({"results": charts}, safe=False)
+        return JsonResponse({"results": dashboards}, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     
-
 #@app.task
 def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
     method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi, "waterfall" : None}
@@ -196,8 +203,9 @@ def hspt_funnel(user_id, company_id, start_date, end_date, dashboard_name):
     try:
         original_start_date = start_date
         original_end_date = end_date
-        start_date = datetime.fromtimestamp(float(start_date))
-        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
@@ -500,8 +508,8 @@ def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name):
     try:
         original_start_date = start_date
         original_end_date = end_date
-        start_date = datetime.fromtimestamp(float(start_date))
-        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
@@ -597,8 +605,8 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
     try:
         original_start_date = start_date
         original_end_date = end_date
-        start_date = datetime.fromtimestamp(float(start_date))
-        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)

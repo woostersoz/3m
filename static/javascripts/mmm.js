@@ -27,7 +27,7 @@
     'mmm.common',
     'ng.django.forms',
     'ngTouch', 
-    'slick',
+    //'slick',
     'btford.socket-io',
     'nvd3',
     'daterangepicker',

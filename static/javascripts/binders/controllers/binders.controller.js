@@ -12,14 +12,14 @@
 	BindersController.$inject = [ '$scope', 'Binders', 'Authentication', 'Analytics',
 			'$location', 'DTOptionsBuilder', 'DTColumnDefBuilder',
 			'DTColumnBuilder', 'DTInstances', '$filter', '$state',
-			'$stateParams', '$document', '$window', 'BinderPage', 'Common', '$q', '$compile', 'AnalyticsCharts', 'Sticky', 'Fullscreen'];
+			'$stateParams', '$document', '$window', 'BinderPage', 'Common', '$q', '$compile', 'AnalyticsCharts', 'Sticky', 'Fullscreen', 'Dashboards'];
 
 	/**
 	 * @namespace BindersController
 	 */
 	function BindersController($scope, Binders, Authentication, Analytics, $state,
 			$stateParams, $location, DTOptionsBuilder, DTColumnDefBuilder,
-			DTColumnBuilder, DTInstances, $filter, $document, $window, BinderPage, Common, $q, $compile, AnalyticsCharts, Sticky, Fullscreen, $interval) {
+			DTColumnBuilder, DTInstances, $filter, $document, $window, BinderPage, Common, $q, $compile, AnalyticsCharts, Sticky, Fullscreen, Dashboards, $interval) {
 		
 		var vm = this;
 		
@@ -38,6 +38,7 @@
 		$scope.createBinderPage = createBinderPage;
 		$scope.contentTitleHtml = {};
 		$scope.charts = [];
+		$scope.dashboards = [];
 		$scope.getBinderTemplates = getBinderTemplates;
 		$scope.saveBinderTemplate = saveBinderTemplate;
 		$scope.getBinders = getBinders;
@@ -56,6 +57,7 @@
 		$scope.slidePosition = 0;
 		$scope.noMoreForward = false;
 		$scope.noMoreBack = false;
+		$scope.hideTimeFilterOnTop = true;
 		$scope.convertPagesToPdf = convertPagesToPdf;
 		$scope.escapeHit = function($event) {
 			if ($event.keyCode == 27)
@@ -97,6 +99,8 @@
 			createBinderPage('text');
 			if ($scope.charts.length == 0)
 				getCharts();
+			if ($scope.dashboards.length == 0)
+				getDashboards();
 		}
 		
 		function createBinderPage(typeX) { 
@@ -117,6 +121,12 @@
 		$scope.showPageContent = function(page) { 
 			$scope.pages = BinderPage.handleSelectedBinderPage($scope.pages, page.id);
 			$scope.currentPage = page;
+			if (page.type == 'dashboard')
+			{
+				$scope.results = page.dashboardData;
+				$scope.pageUrl = staticUrl("templates/dashboards/") + page.dashboardType.template + ".html";
+				
+			}
 			//changeContentHtml(page.contentTitle);
 		}
 		
@@ -243,6 +253,7 @@
         	cancelBinderTemplate(null);
         	$scope.newBinder = binder;
         	$scope.requests = [];
+        	$scope.requests2 = [];
             
         	for (var i=0; i < binder.pages.length; i++) {
         		
@@ -252,12 +263,6 @@
         			$scope.pages.push(page); // that's all that's needed for Text pages
         		else if (page.type == 'chart') // the fun begins
         		{
-        			//var scope_options = AnalyticsCharts.getScopeOptions();
-        			//$scope.options = scope_options[page.chartType.name];
-
-        			/*$scope.config = {
-        					autorefresh : true
-        			};*/
         			try {
 	        			if (page.chartType.name && page.chartFilters.groupDates)
 	        			{
@@ -270,6 +275,20 @@
         			$scope.pages.push(page); 
         			
         		} // end of if page.type == chart
+        		else if (page.type == 'dashboard')
+        		{
+        			try {
+	        			if (page.dashboardType.name && page.chartFilters.groupDates)
+	        			{
+		        			var startDate = moment(page.chartFilters.groupDates.date.startDate).unix() * 1000;
+		        			var endDate = moment(page.chartFilters.groupDates.date.endDate).unix() * 1000;
+		        			$scope.requests2.push({"name": page.dashboardType.name, "startDate": startDate, "endDate": endDate, "systemType": page.dashboardType.system_type});
+	        			}
+        			}
+        			catch(e) {}
+        			$scope.pages.push(page); 
+        			
+        		} // end of if page.type == dashboard
         	} // end of pages loop
         	
         	$q.all($scope.requests.map(function(request) {
@@ -317,6 +336,36 @@
  
         	});
         	
+        	$q.all($scope.requests2.map(function(request) {
+        		return Dashboards.retrieveDashboard(account.company, request.name, request.startDate, request.endDate, request.systemType);
+        	})).then(function(results){
+        		var resultsPosition = 0;
+        		for (var i=0; i < $scope.pages.length; i++)
+        		{
+        			$scope.pages[i].content = '';
+        			var dashboardData = null;
+        			try {
+	        			if ($scope.pages[i].type == 'dashboard' && $scope.pages[i].dashboardType.name && $scope.pages[i].chartFilters.groupDates)
+	        			{
+	        				dashboardData = results[resultsPosition].data;
+	        				
+	        			    $scope.pages[i].dashboardData = dashboardData;	
+	        			    resultsPosition++;
+	        			    
+	        			}
+        			}
+        			catch(e) {}
+        		}
+        		
+        		if ($scope.pages.length > 0)
+            	{
+            	   $scope.currentPage = $scope.pages[0];
+            	   BinderPage.handleSelectedBinderPage($scope.pages, $scope.pages[0].id);
+            	}
+            	
+ 
+        	});
+        	
         	$scope.showBinder = true;
         }
         
@@ -345,6 +394,32 @@
 		
 		function ChartsErrorFn(data, status, headers, config) {
 			toastr.error("Could not find charts for company");
+			return false;
+		} 
+		
+		function getDashboards() {
+	        var account = Authentication.getAuthenticatedAccount();
+			if (account) {
+			    Dashboards.getDashboardsByCompany(account.company)
+					.then(DashboardsSuccessFn, DashboardsErrorFn);
+			}
+			else {
+				toastr.error("You need to login first");
+			}
+        }
+        
+		function DashboardsSuccessFn(data, status, headers, config) {
+			if (data.data.results.length > 0) 
+			{  
+				$scope.dashboards = data.data.results;
+			}
+			else {
+				toastr.error("Could not find dashboards for company");
+			}
+		}
+		
+		function DashboardsErrorFn(data, status, headers, config) {
+			toastr.error("Could not find dashboards for company");
 			return false;
 		} 
         
@@ -394,12 +469,16 @@
 			var pagesHtml = [];
 			for (var i=0; i < $scope.pages.length; i++)
 			{
-				$scope.currentPage = $scope.pages[i];
+				//$scope.currentPage = $scope.pages[i];
+				$scope.$apply(function() {
+					$scope.showPageContent($scope.pages[i]);
+				});
+				
 				var id = $scope.pages[i].id + '-content';
 				console.log('id is ' + id);
 				//$compile(document.body)($scope);
 				var divElement = angular.element(document.body).find('#' + id);
-				var html = divElement.attr('id');
+				var html = divElement.html();
 				console.log(html);
 			}
 		}

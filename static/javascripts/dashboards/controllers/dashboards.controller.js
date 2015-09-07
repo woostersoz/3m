@@ -158,8 +158,8 @@
     				&& (newDate != oldDate)) {
     			startDate = moment(newDate.startDate).startOf('day').unix();
     			endDate = moment(newDate.endDate).endOf('day').unix();
-    			$scope.start_date = startDate;
-    			$scope.end_date = endDate;
+    			$scope.start_date = startDate * 1000;
+    			$scope.end_date = endDate * 1000;
     			
     			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
     			

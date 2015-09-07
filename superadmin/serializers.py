@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import DocumentSerializer, EmbeddedDocumentSerializer
 
-from superadmin.models import SuperIntegration, SuperAnalytics, SuperJobMonitor
+from superadmin.models import SuperIntegration, SuperAnalytics, SuperJobMonitor, SuperDashboards
 from company.serializers import CompanyIntegrationSerializer
         
 class SuperIntegrationSerializer(DocumentSerializer):
@@ -65,3 +65,15 @@ class SuperJobMonitorSerializer(DocumentSerializer):
                 setattr(instance, k, v)
             return instance
         return SuperJobMonitor(**attrs)
+
+class SuperDashboardsSerializer(DocumentSerializer):
+    
+    class Meta:
+        model = SuperDashboards
+
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            for k, v in attrs.iteritems():
+                setattr(instance, k, v)
+            return instance
+        return SuperDashboards(**attrs)

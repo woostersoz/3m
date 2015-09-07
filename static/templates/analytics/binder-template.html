@@ -61,6 +61,10 @@
      
      <div class="row" style="margin-top:10px; margin-bottom:10px"> <!-- Secondary Toolbar -->
         <div class="col-sm-6 chart-tools">
+            <a href="#" class="btn btn-sm blue-madison"
+				ng-click="createBinderPage('dashboard')" title="Add Dashboard Page">
+				Add Dashboard Page
+			</a>
 			<a href="#" class="btn btn-sm blue-madison"
 				ng-click="createBinderPage('chart')" title="Add Chart Page">
 				Add Chart Page
@@ -131,11 +135,15 @@
 	          <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'chart'">
 		         <p>Choose the chart type below.</p><p>You can view the chart and annotate it in the actual binders.</p>
 	          </div>
+	          <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'dashboard'">
+		         <p>Choose the dashboard below.</p><p>You can view the dashboard and annotate it in the actual binders.</p>
+	          </div>
+	          
 	          <div class="center" ng-show="currentPage.type == 'chart'">
 	            <select name="binder_chart_type" class="form-control" style="width:100% !important"
 					ng-options="chart.title for chart in charts track by chart.name"
 					ng-model="currentPage.chartType" ng-required="currentPage.type == 'chart'">
-					<option value="">Chart Type</option>
+					<option value="">Select Chart</option>
 				</select>
 				<div class="input-group pull-left binder-chart-filter">
 					<span class="input-group-addon"><span
@@ -147,6 +155,24 @@
 				</div>
 				<div style="clear:both">&nbsp</div>
 	          </div>
+	          
+	          <div class="center" ng-show="currentPage.type == 'dashboard'">
+	            <select name="binder_dashboard_type" class="form-control" style="width:100% !important"
+					ng-options="dashboard.title for dashboard in dashboards track by dashboard.name"
+					ng-model="currentPage.dashboardType" ng-required="currentPage.type == 'dashboard'">
+					<option value="">Select Dashboard</option>
+				</select>
+				<div class="input-group pull-left binder-chart-filter">
+					<span class="input-group-addon"><span
+						class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+						date-range-picker class="form-control date-picker"
+						style="font-size: 0.7rem !important; width: 100% !important"
+						name="currentPage.chartFilters.groupDates.date" ng-model="currentPage.chartFilters.groupDates.date" options="opts"
+						placeholder="Select date range" />
+				</div>
+				<div style="clear:both">&nbsp</div>
+	          </div>
+	          
             </div>
          </div>
        </div>

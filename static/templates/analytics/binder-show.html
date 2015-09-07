@@ -65,7 +65,7 @@
            </div>
          </div>
        </div>
-       <div class="col-md-7" id="binder_main_content"> <!--  Middle content area -->
+       <div class="col-md-10" id="binder_main_content"> <!--  Middle content area -->
          <div class="portlet light subportlet">
             <div class="portlet-title" id="content-title">
                <div class="col-sm-2 pull-left">
@@ -83,7 +83,7 @@
               <div id="{{currentPage.id}}-content-header">
                  <a href="#" e-name="contentTitle" editable-text="currentPage.contentTitle">{{ currentPage.contentTitle }}</a>
               </div>
-              <div id="{{currentPage.id}}-content-body" class="content-body">
+              <div id="{{currentPage.id}}-content-body" class="content-body-show">
                  <div sticky ng-repeat="note in currentPage.notes" class="sticky draggable" note="note" ondelete="deleteNote(id)"> <!-- ng-style="left:{{note.cssStyle.left}}; top: {{note.cssStyle.top}};" -->
 				      <button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
 				      <input ng-model="note.title" ng-change="updateNote(note)" type="text" class="title">
@@ -96,6 +96,9 @@
 		         <div ng-if="currentPage.type == 'text'" style="margin-top:30px">
 		         &nbsp;
 		         </div>
+		         <div ng-if="currentPage.type == 'dashboard'">
+		              <ng-include src="'' + pageUrl + ''"></ng-include>
+		         </div>
 		         <div>
 		           <a href="#" editable-textarea="currentPage.contentBody" e-rows="10" e-cols="30">
 		             <pre ng-hide="isFullscreen && !currentPage.contentBody">{{currentPage.contentBody || 'Enter additional text' }}</pre>
@@ -105,35 +108,6 @@
               </div>
               <button type="button" data-role="none" class="slick-prev slick-prev-slideshow" aria-label="previous" style="display: block;" ng-show="isFullscreen" ng-click="goSlideBack()" ng-disabled="noMoreBack">Previous</button>
               <button type="button" data-role="none" class="slick-next slick-next-slideshow" aria-label="next" style="display: block;" ng-show="isFullscreen" ng-click="goSlideForward()" ng-disabled="noMoreForward">Next</button>
-            </div>
-         </div>
-       </div>
-       <div class="col-md-3" id="binder_right_bar"> <!--  Right bar -->
-         <div class="portlet light subportlet">
-            <div class="portlet-title">
-            Details
-            </div>
-            <div class="portlet-body">
-              <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'text'">
-		         <p>You can edit the title and other text on this page. You can save your changes but they won't be reflected in the template.</p>
-	          </div>
-	          <div class="note note-info" style="line-height:25px" ng-if="currentPage.type == 'chart'">
-		        <p>You can annotate the chart by using stickies or text.</p>
-	          </div>
-	          <div class="center" ng-show="currentPage.type == 'chart'">
-	           
-	            <div>{{currentPage.chartType.title}}</div>
-	          
-				<div class="input-group pull-left binder-chart-filter">
-					<span class="input-group-addon"><span
-						class="glyphicon glyphicon-calendar"></span></span> <input type="text"
-						date-range-picker class="form-control date-picker"
-						style="font-size: 0.7rem !important; width: 100% !important"
-						name="currentPage.chartFilters.groupDates.date" ng-model="currentPage.chartFilters.groupDates.date" options="opts"
-						placeholder="Select date range" />
-				</div>
-				<div style="clear:both">&nbsp</div>
-	          </div>
             </div>
          </div>
        </div>

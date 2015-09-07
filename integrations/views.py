@@ -1469,26 +1469,38 @@ class Sugar:
             raise Exception("Could not get access token from SugarCRM: " + str(e))  
         
     
-    def get_leads(self, company_id):
+    def get_leads(self):
         existingIntegration = CompanyIntegration.objects(company_id = self.company_id ).first()
         if existingIntegration is not None: 
             integration = existingIntegration.integrations['sugr']
         if integration is None:
             raise ValueError("No integration found for SugarCRM")
-        if 'access_token' not in integration or integration['access_token'] is None:
-            self.authenticate(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'])  
-        existingIntegration = CompanyIntegration.objects(company_id = self.company_id ).first()
-        if existingIntegration is not None: 
-            integration = existingIntegration.integrations['sugr']
-        if integration['access_token'] is None:
-            raise ValueError('No access token found for SugarCRM')
+        #if 'access_token' not in integration or integration['access_token'] is None: #uncomment this if Access Token should not be refreshed each time
+        self.authenticate(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'])  
         
+        results = []
+        next_offset = 0
+        more_records = True
+        print 'AT is ' + str(self.access_token)
         url = integration['host'] + '/Leads'
         #payload = {"grant_type": "password", "username": "admin", "password": "Sudha123!", "client_id": client_id, "client_secret": client_secret, "platform": "base"}
-        headers = {'oauth-token': integration['access_token']}
-        r = requests.get(url, headers=headers)
-        response = json.loads(r.text)
-        print 'response is ' + response
+        headers = {'oauth-token': self.access_token}
+       
+        while more_records:
+            print 'looping with offset ' + str(next_offset)
+            payload = {'offset': next_offset}
+            r = requests.get(url, headers=headers, data=json.dumps(payload))
+            response = json.loads(r.text)
+            if 'records' in response:
+                results.extend(response['records'])
+            
+            if 'next_offset' in response and response['next_offset'] > 0:
+                next_offset = response['next_offset']
+                more_records = True
+            else:
+                more_records = False
+
+        return results
           
             
         

@@ -74,3 +74,17 @@ class SuperUrlMapping(Document):
     mappings = ListField(StringField())
    
     meta = {'collection': 'superUrlMapping', 'indexes': ['mappings']}
+    
+class SuperDashboards(Document):
+    title = StringField(max_length=1000)
+    name = StringField(max_length=200)
+    dashboard_type = StringField()
+    system_type = StringField()
+    object = StringField()
+    category = StringField()
+    status = StringField()
+    descr = StringField()
+    template = StringField()
+    filters = ListField(StringField())
+    
+    meta = {'collection': 'superDashboards', 'indexes': ['system_type', 'name', 'object']}
