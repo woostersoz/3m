@@ -1532,6 +1532,15 @@ class SingleBinder(viewsets.ModelViewSet):
                 return JsonResponse({'results' : results})
         except Exception as e:
             return Response(str(e))
+        
+    def list(self, request, company_id=None, binder_id=None):
+        try:
+            company = Company.objects.filter(company_id=company_id).first()    
+            results = Binder.objects(Q(company=company) & Q(id=binder_id))
+            serializedList = BinderSerializer(results, many=True)
+            return JsonResponse({'results' : serializedList.data})
+        except Exception as e:
+                return Response(str(e))       
             
  
 class Binders(viewsets.ModelViewSet):  

@@ -1,5 +1,5 @@
 /**
-* AnalyticsCharts
+* Charts
 * @namespace mmm.analytics.services
 */
 (function () {
@@ -7,22 +7,22 @@
 
   angular
     .module('mmm.analytics.services')
-    .factory('AnalyticsCharts', AnalyticsCharts);
+    .factory('Charts', Charts);
 
-  AnalyticsCharts.$inject = ['$http'];
+  Charts.$inject = ['$http'];
 
   /**
   * @namespace AnalyticsCharts
   * @returns {Factory}
   */
-  function AnalyticsCharts($http) {
-    var AnalyticsCharts = {
+  function Charts($http) {
+    var Charts = {
       getScopeOptions: getScopeOptions,
       natcmp: natcmp
       
     };
 
-    return AnalyticsCharts;
+    return Charts;
     
     function strcmp(a, b) {
 		return a > b ? -1 : a < b ? 1 : 0;

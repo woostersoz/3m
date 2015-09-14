@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from datetime import timedelta, date, datetime
 import pytz
-import os
+import os, copy
 import time, calendar
 import urllib2
 from dateutil import tz
@@ -24,10 +24,11 @@ from collab.models import Notification
 from social.models import PublishedTweet, FbAdInsight, FbPageInsight
 from analytics.models import AnalyticsData, AnalyticsIds
 from websites.models import Traffic
-from superadmin.models import SuperUrlMapping, SuperIntegration
+from superadmin.models import SuperUrlMapping, SuperIntegration, SuperCountry
 
 from django.utils.timezone import get_current_timezone
 from dashboards.tasks import _str_from_date
+from geopy.geocoders import Nominatim, GoogleV3
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -84,7 +85,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall": mkto_waterfall}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -3743,7 +3744,241 @@ def hspt_funnel(user_id, company_id, chart_name, mode, start_date):
     except Exception as e:
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)}) 
+
+def hspt_form_fills(user_id, company_id, chart_name, mode, start_date):
+#HSPT Form Fills dashboard aggregation
+    print 'starting form fills'
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        print 'local start is ' + str(local_start_date)
+        print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
     
+        delta = timedelta(days=1)
+        e = local_end_date
+        delta = timedelta(days=1)
+        e = local_end_date
+        #print 'local end date is ' + str(local_end_date)
+        
+        #all query parameters
+        hspt_first_conversion_date_start_qry = 'leads__hspt__properties__first_conversion_date__gte'
+        hspt_first_conversion_date_end_qry = 'leads__hspt__properties__first_conversion_date__lte'
+        hspt_recent_conversion_date_start_qry = 'leads__hspt__properties__recent_conversion_date__gte'
+        hspt_recent_conversion_date_end_qry = 'leads__hspt__properties__recent_conversion_date__lte'
+        
+        company_field_qry = 'company_id'
+        created_date_end_qry = 'source_created_date__lte'
+        created_date_start_qry = 'source_created_date__gte'
+        source_created_date_qry = 'source_created_date'
+        company_id_qry = 'company_id'
+        source_metric_name_qry = 'source_metric_name'
+        period_qry = 'data__period'
+        end_time_qry = 'data__values__end_time'
+        source_page_id_qry = 'source_page_id'
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date'
+        
+        #all other predefined data
+        results = {}
+        inflow_leads_count = {}
+        outflow_leads_count = {}
+        inflow_leads_ids = {}
+        outflow_leads_ids = {}
+        outflow_leads_duration = {}
+        
+        collection = Lead._get_collection()
+        
+        ###loop through each day of the period 
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            #print 'utc day start is ' + str(utc_day_start)
+            #print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            #print 'utc day starte is ' + str(utc_day_start_epoch)
+            #print 'utc day ende is ' + str(utc_day_end_epoch)
+            
+            inflow_leads_count = {}
+            outflow_leads_count = {}
+            inflow_leads_ids = {}
+            outflow_leads_ids = {}
+            outflow_leads_duration = {}
+            results_data = {}
+            results_ids = {}
+            
+            #get all leads who have a first conversion date today
+            querydict = {company_field_qry: company_id, hspt_first_conversion_date_start_qry: utc_day_start, hspt_first_conversion_date_end_qry: utc_day_end}
+            firstConversionLeads =  Lead.objects(**querydict).aggregate(
+                { "$group": {
+                    "_id": {
+                        "country": "$leads.hspt.properties.country",
+                        "form" : "$leads.hspt.properties.first_conversion_event_name"
+                    },
+                    "ids": { "$push": {"id": "$hspt_id"} }, 
+                    "leadCount": { "$sum": 1 }
+                }},
+                { "$sort": { "leadCount": -1 } },
+                { "$group": {
+                    "_id": "$_id.country",
+                    "forms" : { "$push": {
+                        "form" : "$_id.form",
+                        "ids": "$ids",
+                        "count" : "$leadCount"
+                        },
+                    },
+                    "count": { "$sum": "$leadCount" },
+            
+                }},
+            
+                { "$sort": { "count": -1 } }
+            )
+            
+#             for lead in list(firstConversionLeads):
+#                 print 'first lead is ' + str(lead)
+            result_data = {} #holds the final data for the day
+            result_ids = {} # holds the final ids for the day
+            
+            firstList = list(firstConversionLeads)
+            results_data, results_ids = _process_form_list(firstList)  
+            result_data['first'] = results_data
+            result_ids['first'] = results_ids
+               
+            #get all leads who have a recent conversion date today
+            querydict = {company_field_qry: company_id, hspt_recent_conversion_date_start_qry: utc_day_start, hspt_recent_conversion_date_end_qry: utc_day_end}
+            recentConversionLeads =  Lead.objects(**querydict).aggregate(
+                { "$group": {
+                    "_id": {
+                        "country": "$leads.hspt.properties.country",
+                        "form" : "$leads.hspt.properties.recent_conversion_event_name"
+                    },
+                    "ids": { "$push": {"id": "$hspt_id"} }, 
+                    "leadCount": { "$sum": 1 }
+                }},
+                { "$sort": { "leadCount": -1 } },
+                { "$group": {
+                    "_id": "$_id.country",
+                    "forms" : { "$push": {
+                        "form" : "$_id.form",
+                        "ids": "$ids",
+                        "count" : "$leadCount"
+                        },
+                    },
+                    "count": { "$sum": "$leadCount" },
+            
+                }},
+            
+                { "$sort": { "count": -1 } }
+            )
+            
+            recentList = list(recentConversionLeads)
+            
+            results_data, results_ids = _process_form_list(recentList)  
+            result_data['recent'] = results_data
+            result_ids['recent'] = results_ids
+                            
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'MA'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                
+            analyticsIds = AnalyticsIds.objects(**queryDict).first()
+            if analyticsIds is None:
+                analyticsIds = AnalyticsIds()
+                analyticsIds.system_type = 'MA'
+                analyticsIds.company_id = company_id  
+                analyticsIds.chart_name = chart_name
+                analyticsIds.date = date
+                analyticsIds.results = {}
+                analyticsIds.save()
+  
+            #print 'results are ' + str(results)
+            analyticsData.results = result_data
+            analyticsIds.results = result_ids
+            
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
+            print 'saved'
+            
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+                
+def _process_form_list(listx):
+    
+    results_data = copy.deepcopy(listx)
+    results_ids = list(listx)
+    
+    for entry in results_data:
+        entry = _process_country(entry)
+        for form in entry['forms']:
+            del form['ids'] 
+            
+    for entryx in results_ids:
+        entry = _process_country(entryx)
+        for formx in entryx['forms']:
+            del formx['count'] 
+        del entryx['count']
+    
+    
+    return results_data, results_ids
+
+def _process_country(entry):
+    #normalize countries
+    
+    country = entry['_id']
+    if country is None: # if country is None, don't try to do much more with it
+        entry['geo'] = 'others'
+    else:
+        super_country = SuperCountry.objects(alternatives=country.lower()).first()
+        if super_country is not None:
+            entry['geo'] = super_country['country']
+        else:
+            geolocator = GoogleV3(api_key='AIzaSyD-XCrxDCWe9uJlInVElOZluoFcFPssaQU')
+            location = geolocator.geocode(country)
+            if location is None: #if geopy couldn't find the country, add it to "Others"
+                entry['geo'] = 'others'
+            else:
+                entry['geo'] = location.address.lower()
+                super_country = SuperCountry.objects(country=location.address.lower()).first()
+                if super_country is None:
+                    super_country = SuperCountry(country=location.address.lower())
+                    super_country['alternatives'] = []
+                    super_country['alternatives'].append(country.lower())
+                    super_country.save()
+                else:
+                    super_country['alternatives'].append(country.lower())
+                    super_country.save()
+            
+    return entry  
+
 # Buffer Analytics       
 # chart - "Twitter Performance"   
 def bufr_tw_performance(user_id, company_id, chart_name, mode, start_date): 

@@ -8,7 +8,7 @@
     <div class="caption" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-7': hideTimeFilterOnTop}">
       <i class="fa fa-random font-blue-madison"></i>
       <span class="caption-subject bold uppercase font-blue-madison">Funnel
-      From <span class="label label-info">{{ results.start_date }}</span> to <span class="label label-info">{{ results.end_date }}</span>
+      From <span class="label label-info">{{ currentPage.dashboardData.start_date }}</span> to <span class="label label-info">{{ currentPage.dashboardData.end_date }}</span>
       </span>
     </div>   
     
@@ -34,8 +34,8 @@
   
   <div class="col-xs-2 text-center" style="margin-top:30px">
     
-    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{results.created_count | number:0}}</h4> <h5> ( {{ results.percentage_increase | number:2 }}% ) </h5>
-    <a class="btn btn-lg text-center" style="color:#1f8a70;">
+    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{currentPage.dashboardData.created_count | number:0}}</h4> <h5> ( {{ currentPage.dashboardData.percentage_increase | number:2 }}% ) </h5>
+    <a class="btn btn-lg text-center" style="color:#1f8a70 !important; background-color:transparent !important;">
       <i class="fa fa-group fa-2x" style="color:#003d50; font-size:1.5em !important"></i>
     </a>
     <h5 class="info-label info-header" style="margin-top:0px;">Contacts</h5>
@@ -58,8 +58,8 @@
     <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Sources</h5>
     <hr style="border-top:1px solid #8fc2bb; clear:both; margin-top:5px; margin-bottom:0px;">
     <ul style="list-style:none; padding:0px" class="text-center">
-      <li ng-repeat='(key, value) in results.created_source' class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#007d6d;">
+      <li ng-repeat='(key, value) in currentPage.dashboardData.created_source' class="info-list-item-compressed text-center">
+         <a class="btn btn-lg text-center" style="color:#007d6d !important; background-color:transparent !important;">
             <i ng-show="key == 'EMAIL_MARKETING'" class="fa fa-envelope"></i>
             <i ng-show="key == 'DIRECT_TRAFFIC'" class="fa fa-bullseye"></i>
             <i ng-show="key == 'OFFLINE'" class="fa fa-flag-o"></i>
@@ -93,46 +93,46 @@
     <ul style="list-style:none; padding:0px" class="text-center">
       <ul style="list-style:none; padding-left:0px; margin-left:0px">
       <li class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
+         <a class="btn btn-lg text-center" style="color:#fd7400 !important; background-color:transparent !important;">
             <i class="fa fa-user"></i>
          </a>
          <h6 class="info-label">{{ stageNames['subscriber'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['subscriber'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['subscriber'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
+         <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-bullhorn"></i>
          </a>
          <h6 class="info-label">{{ stageNames['lead'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['lead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['lead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
-        <a class="btn btn-lg text-center" style="color:#fd7400;">
+        <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-check-square-o"></i>
          </a>
          <h6 class="info-label">{{ stageNames['marketingqualifiedlead'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
+         <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-thumbs-o-up"></i>
          </a>
          <h6 class="info-label">{{ stageNames['salesqualifiedlead'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
+         <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-money"></i>
          </a>
          <h6 class="info-label">{{ stageNames['opportunity'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['opportunity'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['opportunity'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
-         <a class="btn btn-lg text-center" style="color:#fd7400;">
+         <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-heart"></i>
          </a>
          <h6 class="info-label">{{ stageNames['customer'] }}</h6>
-         <p class="info-label info-metric">{{ results.created_stage['customer'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['customer'] || 0 | number:0 }}</p>
       </li>
     </ul>
   </div>
@@ -163,10 +163,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ results.leads_inflow_count['subscriber'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['subscriber'] | number:0 }}</h4>
   
   </div>
   
@@ -176,11 +176,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content" >
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-user info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['subscriber'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['subscriber'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['subscriber'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -190,10 +190,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['subscriber'] | number:0  }} </h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['subscriber'] | number:0  }} </h4>
   </div>
   
   </div>
@@ -207,10 +207,10 @@
   <div class="col-xs-12 funnel-detailed-row">
   
   <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ results.leads_inflow_count['lead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['lead'] | number:0 }}</h4>
   
   </div>
   
@@ -220,11 +220,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content">
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-bullhorn info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['lead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['lead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['lead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -234,10 +234,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['lead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['lead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -251,10 +251,10 @@
   <div class="col-xs-12 funnel-detailed-row">
   
   <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
   
   </div>
   
@@ -264,11 +264,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content">
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-check-square-o info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['marketingqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -278,10 +278,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -296,10 +296,10 @@
    <div class="col-xs-12 funnel-detailed-row">
   
   <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
   
   </div>
   
@@ -309,11 +309,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content">
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-thumbs-o-up info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['salesqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{results.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -323,10 +323,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -342,10 +342,10 @@
     <div class="col-xs-12 funnel-detailed-row">
   
   <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['opportunity'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['opportunity'] | number:0 }}</h4>
   
   </div>
   
@@ -355,11 +355,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content">
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-money info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="margin-left:-12px; font-size:110%; text-transform:uppercase">{{ stageNames['opportunity'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{results.leads_outflow_duration['opportunity'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['opportunity'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -369,10 +369,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ results.leads_outflow_count['opportunity'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['opportunity'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -386,10 +386,10 @@
     <div class="col-xs-12 funnel-detailed-row">
   
   <div class="col-xs-2 col-xs-offset-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #007f6b; border-radius:50%; margin-top:25px;">
-     <a class="btn btn-lg text-center" style="color:#1f8a70;">
+     <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ results.leads_inflow_count['customer'] | number:0 }}</h4>
+    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['customer'] | number:0 }}</h4>
   
   </div>
   
@@ -399,11 +399,11 @@
   
   <div class="col-xs-2" style="transform: rotate(-45deg); min-height:150px; max-height:150px; width:150px; border-top:2px solid #007f6b; border-right:2px solid #ff6800; border-bottom:2px solid #ff6800; border-left:2px solid #007f6b; border-radius:50%; margin-top:0px;">
     <div class="text-center center-circle-content">
-    <a class="btn btn-lg text-center" style="color:#004358;">
+    <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-heart info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['customer'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{results.closed_deal_value | currency:"$" }}</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{currentPage.dashboardData.closed_deal_value | currency:"$" }}</h3>
     
     </div>
   </div>
@@ -413,10 +413,10 @@
   </div>
   
   <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #ff6800; border-radius:50%; margin-top:25px;">
-    <a class="btn btn-lg text-center" style="color:#ff6800;">
+    <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-money info-icon"></i>
     </a>
-   <h4 class="info-label" title="Highest value of deal closed in this time period">{{ results.max_deal_value | currency:"$"  }}</h4>
+   <h4 class="info-label" title="Highest value of deal closed in this time period">{{ currentPage.dashboardData.max_deal_value | currency:"$"  }}</h4>
   </div>
   
   </div>

@@ -8,7 +8,7 @@
     <div class="caption" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-7': hideTimeFilterOnTop}">
       <i class="fa fa-money font-blue-madison"></i>
       <span class="caption-subject bold uppercase font-blue-madison">Social ROI
-      From <span class="label label-info">{{ results.start_date }}</span> to <span class="label label-info">{{ results.end_date }}</span>
+      From <span class="label label-info">{{ currentPage.dashboardData.start_date }}</span> to <span class="label label-info">{{ currentPage.dashboardData.end_date }}</span>
       </span>
     </div>   
     
@@ -53,12 +53,12 @@
 	            <li class="text-center col-md-6">
 		            <i class="fa fa-eye"></i>
 		            <p class="dashboard-metric-name">Impressions</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Impressions | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Impressions | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-6">
 		            <i class="fa fa-gears"></i>
 		            <p class="dashboard-metric-name">Engagement</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Clicks + results.social.Facebook.Organic.Comments + results.social.Facebook.Organic.Shares + results.social.Facebook.Organic.Likes | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Clicks + currentPage.dashboardData.social.Facebook.Organic.Comments + currentPage.dashboardData.social.Facebook.Organic.Shares + currentPage.dashboardData.social.Facebook.Organic.Likes | number:0 }}</p>
 		        </li>
 	          
 	          </ul>
@@ -67,22 +67,22 @@
 	            <li class="text-center col-md-3">
 		            <i class="fa fa-external-link"></i>
 		            <p class="dashboard-metric-name-small">Clicks</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Clicks | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Clicks | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-comments"></i>
 		            <p class="dashboard-metric-name-small">Comments</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Comments  | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Comments  | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-share-alt"></i>
 		            <p class="dashboard-metric-name-small">Shares</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Shares | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Shares | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-thumbs-up"></i>
 		            <p class="dashboard-metric-name-small">Likes</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Organic.Likes | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Organic.Likes | number:0 }}</p>
 		        </li>
 	          
 	          </ul>
@@ -98,12 +98,12 @@
 	            <li class="text-center col-md-6">
 		            <i class="fa fa-eye"></i>
 		            <p class="dashboard-metric-name">Impressions</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Impressions | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Impressions | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-6">
 		            <i class="fa fa-gears"></i>
 		            <p class="dashboard-metric-name">Engagement</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Clicks + results.social.Facebook.Paid.Comments + results.social.Facebook.Paid.Shares + results.social.Facebook.Paid.Likes | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Clicks + currentPage.dashboardData.social.Facebook.Paid.Comments + currentPage.dashboardData.social.Facebook.Paid.Shares + currentPage.dashboardData.social.Facebook.Paid.Likes | number:0 }}</p>
 		        </li>
 	          
 	          </ul>
@@ -112,22 +112,22 @@
 	            <li class="text-center col-md-3">
 		            <i class="fa fa-external-link"></i>
 		            <p class="dashboard-metric-name-small">Clicks</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Clicks | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Clicks | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-comments"></i>
 		            <p class="dashboard-metric-name-small">Comments</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Comments  | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Comments  | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-share-alt"></i>
 		            <p class="dashboard-metric-name-small">Shares</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Shares | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Shares | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-3">
 		            <i class="fa fa-thumbs-up"></i>
 		            <p class="dashboard-metric-name-small">Likes</p>
-		            <p class="dashboard-metric-value">{{ results.social.Facebook.Paid.Likes | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.social.Facebook.Paid.Likes | number:0 }}</p>
 		        </li>
 	          
 	          </ul>
@@ -144,12 +144,12 @@
 	            <li class="text-center col-md-6">
 		            <i class="fa fa-globe"></i>
 		            <p class="dashboard-metric-name">Visits</p>
-		            <p class="dashboard-metric-value">{{ results.website.Facebook.Organic.Visits | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.website.Facebook.Organic.Visits | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-6">
 		            <i class="fa fa-money"></i>
 		            <p class="dashboard-metric-name">Deals</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Deals | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'organic', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Organic.Deals | number:0 }}</a></p>
 		        </li>
 	          
 	          </ul>
@@ -158,17 +158,17 @@
 	            <li class="text-center col-md-4">
 		            <i class="fa fa-user"></i>
 		            <p class="dashboard-metric-name-small">Contacts</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Contacts | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'organic', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Organic.Contacts | number:0 }}</a></p>
 		        </li>
 		        <li class="text-center col-md-4">
 		            <i class="fa fa-bullhorn"></i>
 		            <p class="dashboard-metric-name-small">Leads</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Leads  | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'organic', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Organic.Leads  | number:0 }}</a></p>
 		        </li>
 		        <li class="text-center col-md-4">
 		            <i class="fa fa-heart-o"></i>
 		            <p class="dashboard-metric-name-small">Customers</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'organic', 'facebook')">{{ results.website.Facebook.Organic.Customers | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'organic', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Organic.Customers | number:0 }}</a></p>
 		        </li>
 		        
 	          </ul>
@@ -182,12 +182,12 @@
 	            <li class="text-center col-md-6">
 		            <i class="fa fa-globe"></i>
 		            <p class="dashboard-metric-name">Visits</p>
-		            <p class="dashboard-metric-value">{{ results.website.Facebook.Paid.Visits | number:0 }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.website.Facebook.Paid.Visits | number:0 }}</p>
 		        </li>
 		        <li class="text-center col-md-6">
 		            <i class="fa fa-money"></i>
 		            <p class="dashboard-metric-name">Deals</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Deals | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('deals', 'paid', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Paid.Deals | number:0 }}</a></p>
 		        </li>
 	          
 	          </ul>
@@ -196,17 +196,17 @@
 	            <li class="text-center col-md-4">
 		            <i class="fa fa-user"></i>
 		            <p class="dashboard-metric-name-small">Contacts</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Contacts | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('contacts', 'paid', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Paid.Contacts | number:0 }}</a></p>
 		        </li>
 		        <li class="text-center col-md-4">
 		            <i class="fa fa-bullhorn"></i>
 		            <p class="dashboard-metric-name-small">Leads</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Leads  | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('leads', 'paid', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Paid.Leads  | number:0 }}</a></p>
 		        </li>
 		        <li class="text-center col-md-4">
 		            <i class="fa fa-heart-o"></i>
 		            <p class="dashboard-metric-name-small">Customers</p>
-		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'paid', 'facebook')">{{ results.website.Facebook.Paid.Customers | number:0 }}</a></p>
+		            <p class="dashboard-metric-value"><a href="#" ng-click="drilldown('customers', 'paid', 'facebook')">{{ currentPage.dashboardData.website.Facebook.Paid.Customers | number:0 }}</a></p>
 		        </li>
 		        
 	          </ul>
@@ -221,7 +221,7 @@
 	            <li class="text-center col-md-12">
 		            <i class="fa fa-dollar"></i>
 		            <p class="dashboard-metric-name">Revenue</p>
-		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Organic.Revenue | currency:"$ " }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Organic.Revenue | currency:"$ " }}</p>
 		        </li>
 		        
 	          </ul>
@@ -230,7 +230,7 @@
 	            <li class="text-center col-md-12" style="margin-top:6px">
 		            <i class="fa fa-minus-square-o"></i>
 		            <p class="dashboard-metric-name">Spend</p>
-		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Organic.Spend | currency:"$ " }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Organic.Spend | currency:"$ " }}</p>
 		        </li>
 	          
 	          </ul>
@@ -244,7 +244,7 @@
 	            <li class="text-center col-md-12">
 		            <i class="fa fa-dollar"></i>
 		            <p class="dashboard-metric-name">Revenue</p>
-		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Paid.Revenue | currency:"$ " }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Paid.Revenue | currency:"$ " }}</p>
 		        </li>
 		        
 	          </ul>
@@ -253,7 +253,7 @@
 	            <li class="text-center col-md-12" style="margin-top:6px">
 		            <i class="fa fa-minus-square-o"></i>
 		            <p class="dashboard-metric-name">Spend</p>
-		            <p class="dashboard-metric-value">{{ results.roi.Facebook.Paid.Spend | currency:"$ " }}</p>
+		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Paid.Spend | currency:"$ " }}</p>
 		        </li>
 	          
 		        

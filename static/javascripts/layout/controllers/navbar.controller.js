@@ -20,13 +20,16 @@
     $scope.showNotificationsDropdown = false;
     
     vm.logout = logout;
+    $scope.user_image_url = '';
     
     activate();
     
     function activate() {
     	var account = Authentication.getAuthenticatedAccount();
+    	
 	    if (account) 
 	    {
+	    	$scope.user_image_url = staticUrl(account.image_url);
 	    	Messages.getNotificationsCount().then(NotificationsCountSuccessFn, NotificationsCountErrorFn);
 	    }
 	    else {

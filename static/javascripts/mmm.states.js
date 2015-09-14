@@ -11,6 +11,17 @@
 	 */
 	function config($urlRouterProvider, $stateProvider) {
 		$stateProvider
+		        .state(
+				'pdf',
+				{
+					url : '/pdf/:object/:id',
+					controller : 'BindersController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/binder-pdf.html' /*function ($stateParams) {
+						if ($stateParams.object == 'binder')
+							return '/static/templates/analytics/binder-pdf.html';
+					}*/
+				})
 				.state('dashboards', {
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
@@ -23,6 +34,8 @@
 							return constUrl + 'dashboard-social.html';
 						else if ($stateParams.type == 'waterfall')
 							return constUrl + 'dashboard-waterfall.html';
+						else if ($stateParams.type == 'form_fills')
+							return constUrl + 'dashboard-forms.html';
 					}
 				})
 		        .state(

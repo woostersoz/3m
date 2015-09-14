@@ -155,12 +155,12 @@ def getDashboards(request, company_id):
     
 #@app.task
 def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi, "waterfall" : None}
+    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi, "waterfall" : None, "form_fills": hspt_form_fills}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
 def retrieveMktoDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "waterfall" : mkto_waterfall}
+    method_map = { "funnel" : None, "social" : None, "waterfall" : mkto_waterfall, "form_fills": None}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
@@ -599,7 +599,126 @@ def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name):
     except Exception as e:
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})   
+    
+# dashboard - 'Form Fills"
+def hspt_form_fills(user_id, company_id, start_date, end_date, dashboard_name):
+    from geopy.geocoders import Nominatim, GoogleV3
+    from mmm import countries
+    
+    try:
+       
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+        #query parameters
+        company_id_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date__in'
+        chart_name = 'form_fills'
+        
+        #other variables
+        existed_count = 0
+        created_count = 0
+        countries_results = {}
+        countries_geopy_check = {}
+        countries_geopy_check["Others"] = {}
+        countries_geopy_check["Others"]['count'] = 0
+        countries_geopy_check["Others"]['lat'] = 0
+        countries_geopy_check["Others"]['long'] = 0
+        continents = ['North America', 'South America', 'Asia', 'Africa', 'Europe', 'Oceania']
+        result = {}
+        result['Other'] = 0
+        
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        for day in days:
+            day = day['results']
+            #get the 'first' data
+            first = day['first']
+            for entry in first:
+                if entry['_id'] not in countries_results:
+                    countries_results[entry['_id']] = 0
+                countries_results[entry['_id']] += entry['count']
+            #get the 'recent' data
+            recent = day['recent']
+            for entry in recent:
+                if entry['_id'] not in countries_results:
+                    countries_results[entry['_id']] = 0
+                countries_results[entry['_id']] += entry['count']
+                
+        #normalize countries
+        geolocator = GoogleV3(api_key='AIzaSyD-XCrxDCWe9uJlInVElOZluoFcFPssaQU')
+        for country in countries_results.keys():
+            if country is None: # if country is None, don't try to do much more with it
+                countries_geopy_check["Others"]['count'] += countries_results[country]
+                continue
+            # check if the country string contains the name of a continent. If it does, assign to that continent
+            #continent = _filter_by_continent(continents, country)
+            #if continent:
+            #    if continent not in result:
+            #        result[continent] = 0
+            #    result[continent] += countries_results[country]
+            # if not in continents list, check against geopy for correct country name
+            else:
+                location = geolocator.geocode(country)
+                if location is None: #if geopy couldn't find the country, add it to "Others"
+                    countries_geopy_check["Others"]['count'] += countries_results[country]
+                else:
+                    #check if the geopy result contains a continent
+#                     continent = _filter_by_continent(continents, location.address)
+#                     if continent:
+#                         if continent not in result:
+#                             result[continent] = 0
+#                         result[continent] += countries_results[country]
+                    # if it does not, add it to the countries_geopy_check object
+#                    else:
+# below 3 lines shifted left
+                    if location.address not in countries_geopy_check:
+                        countries_geopy_check[location.address] = {}
+                        countries_geopy_check[location.address]['count'] = 0
+                        countries_geopy_check[location.address]['lat'] = location.latitude
+                        countries_geopy_check[location.address]['long'] = location.longitude
+                    countries_geopy_check[location.address]['count'] += countries_results[country]
+                        
+#         for country in countries_geopy_check.keys(): # for each country that needs to be assigned to a continent
+#             if country is None: #if country is None, don't try to match with countries list
+#                 result['Other'] += countries_geopy_check[country]
+#                 continue
+#             for entry in countries.countries:
+#                 if entry['name'].lower() == country.lower(): # if the name of the country matches an entry in the imported countries list
+#                     if entry['continent'] not in result:
+#                         result[entry['continent']] = 0
+#                     result[entry['continent']] += countries_geopy_check[country] #add the value of the country to the continent
+#                     break
+#                 result['Other'] += countries_geopy_check[country] # if the country was not found in the countries list
+#                     
+        # now find the continents for each country in the countries_geopy_check object
+                
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'countries': countries_geopy_check}
+        return results
+            
       
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})
+
+def _filter_by_continent(continents, country):
+    for continent in continents:
+        if continent.lower() in country.lower():
+            return continent
+    return None    
 #Waterfall dashboard
 def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name): 
     try:
@@ -672,8 +791,8 @@ def drilldownHsptDashboards(request, company_id):
     try:     
         original_start_date = start_date
         original_end_date = end_date
-        start_date = datetime.fromtimestamp(float(start_date))
-        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
@@ -746,8 +865,8 @@ def drilldownMktoDashboards(request, company_id):
     try:     
         original_start_date = start_date
         original_end_date = end_date
-        start_date = datetime.fromtimestamp(float(start_date))
-        end_date = datetime.fromtimestamp(float(end_date))#'2015-05-20' + ' 23:59:59'
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)

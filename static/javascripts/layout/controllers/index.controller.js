@@ -47,6 +47,7 @@
       $scope.bodyClass = '';
       $scope.parentObj = {};
       $scope.parentObj.bodyClass = '';
+      $scope.parentObj.preview = false;
       
       if (Authentication.getAuthenticatedAccount()) 
          $scope.account = Authentication.getAuthenticatedAccount();
@@ -295,6 +296,8 @@
     function CreateRoomErrorFn(data, status, headers, config) { 
     	toastr.error("Could not create channel");
     }
+    
+    $scope.htmlReady(); // needed for PhantomJS to render correctly
   }
   
   var modalController = function ($scope, $modalInstance, rooms, room) {
@@ -323,5 +326,7 @@ var modalCreateController = function ($scope, $modalInstance, newRoomForm) {
 		  $modalInstance.dismiss('cancel');
 	  };
 }
+
+
   
 })();

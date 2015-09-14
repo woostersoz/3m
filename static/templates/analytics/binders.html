@@ -52,7 +52,7 @@
 		<div class="col-md-6">
 			<div class="btn-group pull-right" style="margin-top: 3px">
 				<a href="" ng-click="createBinderFxn()" role="button"
-					id="add_binder" class="btn green-jungle" ng-hide="createBinder || showBinder || showBinders"> 
+					id="add_binder" class="btn" ng-hide="createBinder || showBinder || showBinders"> 
 					<span class="glyphicon glyphicon-plus"></span>
 					Add New
 				</a>
@@ -99,7 +99,7 @@
 							<a href ng-click="getBinders(binderTemplate.id)">{{ binderTemplate.binder_count }}</a>
 							</td>
 							<td class="center">
-							<a class="btn btn-sm blue-steel" ng-click="editBinderTemplate(binderTemplate.id)" href="javascript:;">Edit</a>
+							<a class="btn btn-sm" ng-click="editBinderTemplate(binderTemplate.id)" href="javascript:;">Edit</a>
 						    </td>
 						</tr>
 					</tbody>
@@ -132,7 +132,7 @@
 		<div class="col-md-6">
 			<div class="btn-group pull-right" style="margin-top: 3px">
 				<a href="" ng-click="getBinderTemplates()" role="button"
-					id="show_binder_templates" class="btn blue-madison" ng-show="showBinder || showBinders"> Back to Templates </i>
+					id="show_binder_templates" class="btn" ng-show="showBinder || showBinders"> Back to Templates </i>
 				</a>
 			</div>
 		</div>
@@ -177,7 +177,7 @@
 							{{ binder.pages.length }}</a>
 							</td>
 							<td class="center">
-							<a class="btn btn-sm blue-steel" ng-click="showBinderFxn(binder)" href="javascript:;">Details</a>
+							<a class="btn btn-sm" ng-click="showBinderFxn(binder)" href="javascript:;">Details</a>
 						    </td>
 						</tr>
 					</tbody>

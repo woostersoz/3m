@@ -99,7 +99,8 @@ INSTALLED_APPS = (
     'accounts',
     'social',
     'dashboards',
-    'websites'
+    'websites',
+    'django_countries'
 )
 
 MIDDLEWARE_CLASSES = (

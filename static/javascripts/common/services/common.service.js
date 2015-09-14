@@ -1,6 +1,6 @@
 /**
-* Social
-* @namespace mmm.social.services
+* Common
+* @namespace mmm.common.services
 */
 (function () {
   'use strict';
@@ -20,8 +20,10 @@
     	removeByAttr: removeByAttr, 
     	findByAttr: findByAttr,
     	findItemsByAttr: findItemsByAttr,
-    	capitalizeFirstLetter: capitalizeFirstLetter
-      
+    	capitalizeFirstLetter: capitalizeFirstLetter,
+        exportToPdf: exportToPdf,
+        getCountriesGeoData: getCountriesGeoData,
+        getCountriesData: getCountriesData
     };
 
     return Common;
@@ -75,6 +77,19 @@
     function capitalizeFirstLetter(stringX) { 
     	return stringX.charAt(0).toUpperCase() + stringX.slice(1);
     }
+    
+    function exportToPdf(company, object, id) {
+    	return $http.get('/api/v1/export/pdf/?object=' + object + '&id=' + id + '&company=' + company, {responseType: 'arraybuffer'});
+    }
+    
+    function getCountriesData() {
+    	return $http.get('/static/data/countries');
+    }
+    
+    function getCountriesGeoData() {
+    	return $http.get('/static/data/geo.json');
+    }
+    
     
   }
 })();

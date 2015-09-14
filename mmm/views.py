@@ -7,9 +7,17 @@ from datetime import timedelta, date, datetime
 from itertools import tee, izip, islice
 from nltk import bigrams
 from operator import itemgetter
+from tempfile import NamedTemporaryFile
+
+from rest_framework import status, views
+from subprocess import PIPE, STDOUT, Popen, call
+from django.core.files import File
+from django.http import HttpResponse, JsonResponse
+from rest_framework.response import Response
 
 from company.models import TempData, TempDataDelta
 from nltk.parse.pchart import ProbabilisticBottomUpInitRule
+from rest_framework.decorators import renderer_classes
 
 
 class IndexView(TemplateView):
@@ -223,3 +231,44 @@ def replace_dots(obj):
                 obj[new_key] = obj[key]
                 del obj[key]
     return obj
+
+class ExportView(views.APIView):
+    
+    def get(self, request, type=None):
+        #set the renderer class
+        #renderer_classes = (PDFRenderer, )
+        #get URL parameters
+        object = request.GET.get('object', None)
+        id = request.GET.get('id', None)
+        company = request.GET.get('company', None)
+        if object is None or id is None or company is None:
+            return
+        #get cookie
+        cookies = request.COOKIES
+        token = cookies['csrftoken']
+        sessionid = cookies['sessionid']
+        authenticatedAccount = cookies['authenticatedAccount']
+        #set up variables
+        file_name = '/tmp/test.pdf'
+        phantomjs_script = '/var/www/webapps/3m/mmm/staticfiles/javascripts/common/services/generate_pdf.js' 
+        url = ''
+        if object == 'binder':
+            url = 'http://app.claritix.io/pdf/binder/' + str(id)
+            
+ 
+        output = NamedTemporaryFile(delete=False)
+        error = NamedTemporaryFile(delete=False)
+        
+        try:
+            external_process = Popen(["phantomjs", phantomjs_script, url, token, sessionid, authenticatedAccount, file_name], stdout=output, stderr=error)
+            external_process.communicate()
+        except Exception as e:
+            print 'exception was ' + str(e)
+            return str(e)
+        
+        file_data = open(file_name, 'rb').read()
+        response = HttpResponse(file_data, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename=binder_pdf.pdf'
+        return response
+
+        

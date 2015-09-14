@@ -6,20 +6,17 @@
 (function() {
 	'use strict';
 
-	angular.module('mmm.binders.controllers', [ 'datatables' ]).controller(
+	angular.module('mmm.binders.controllers', [ 'datatables', 'mmm.analytics.services', 'mmm.dashboards.services' ]).controller(
 			'BindersController', BindersController);
 
-	BindersController.$inject = [ '$scope', 'Binders', 'Authentication', 'Analytics',
-			'$location', 'DTOptionsBuilder', 'DTColumnDefBuilder',
-			'DTColumnBuilder', 'DTInstances', '$filter', '$state',
-			'$stateParams', '$document', '$window', 'BinderPage', 'Common', '$q', '$compile', 'AnalyticsCharts', 'Sticky', 'Fullscreen', 'Dashboards'];
+	BindersController.$inject = [ '$scope', '$filter', '$state', '$stateParams', '$document', '$window', '$sce', 'Binders', 'Authentication', 'Analytics', '$location', 'DTOptionsBuilder', 'DTColumnDefBuilder',
+			'DTColumnBuilder', 'DTInstances', 'BinderPage', 'Common', '$q', '$compile', 'Sticky', 'Fullscreen', 'Dashboards', 'Charts'];
 
 	/**
 	 * @namespace BindersController
 	 */
-	function BindersController($scope, Binders, Authentication, Analytics, $state,
-			$stateParams, $location, DTOptionsBuilder, DTColumnDefBuilder,
-			DTColumnBuilder, DTInstances, $filter, $document, $window, BinderPage, Common, $q, $compile, AnalyticsCharts, Sticky, Fullscreen, Dashboards, $interval) {
+	function BindersController($scope, $filter, $state, $stateParams, $document, $window, $sce, Binders, Authentication, Analytics, $location, DTOptionsBuilder, DTColumnDefBuilder,
+			DTColumnBuilder, DTInstances, BinderPage, Common, $q, $compile, Sticky, Fullscreen, Dashboards, Charts, $interval) {
 		
 		var vm = this;
 		
@@ -59,6 +56,8 @@
 		$scope.noMoreBack = false;
 		$scope.hideTimeFilterOnTop = true;
 		$scope.convertPagesToPdf = convertPagesToPdf;
+		$scope.parentObj.preview = false;
+		$scope.pdfRendered = false;
 		$scope.escapeHit = function($event) {
 			if ($event.keyCode == 27)
 			{
@@ -74,6 +73,7 @@
 		
 		$scope.$watch('currentPage.chartFilters.groupDates.date', function(newDate, oldDate) { 
 			if (!newDate || !oldDate) return;
+			if (newDate == oldDate) return;
 			var startDate = 0;
 			var endDate = 0;
 			if ((newDate.startDate) && (newDate.endDate)
@@ -93,6 +93,7 @@
 					                 moment().endOf("day") ]
 				}
 		};
+		
 		
 		$scope.createBinderFxn = function() {
 			$scope.createBinder = true;
@@ -164,11 +165,47 @@
 			  form.$setUntouched();
 			}
 		}
-	
-		if ($state.$$url == '/binders')
+		
+		var current_url = $state.href($state.current.name);
+		
+		if (current_url.substring(0, 11) == '/pdf/binder') // if PDF preview dont show navbar and side menu
+		   $scope.parentObj.preview = true;
+		
+		$scope.$watch('parentObj.preview', function(newVal, oldVal) { 
+			if (current_url.substring(0, 11) != '/pdf/binder') return;
+			if ($scope.pdfRendered) return;
+	    	  var binder_id = current_url.substring(12, current_url.length);
+	    	  var account = Authentication.getAuthenticatedAccount();
+			  if (account) {
+				$scope.pdfRendered = true;
+			   	Binders.getSingleBinder(account.company, binder_id).then(GetSingleBinderSuccessFn, GetSingleBinderErrorFn);
+		      }  
+		});
+		
+		if ($state.href($state.current.name) == '/binders')
 	    {
 	    	getBinderTemplates();
 	    }
+		
+		function GetSingleBinderSuccessFn(data, status, headers, config) {  
+	    	if (data.data.results.length > 0) {
+	    		var binder = data.data.results[0]; // has to be the first element of the results array
+	    		showBinderFxn(binder);
+	    	}
+	    	else if (!data.data.results || data.data.results.length == 0) {
+	    		toastr.error('Could not retrieve binder for preview');
+	    	}
+	    	
+	    }
+		
+		function GetSingleBinderErrorFn(data, status, headers, config) {  
+	    	if (!data.data.results || data.data.results.length == 0) {
+	    		toastr.error('Could not retrieve binder for preview');
+	    	}
+	    }
+	
+	
+		
 		
 		function goBackToList() {
 			$scope.listMode = true;
@@ -295,7 +332,7 @@
         		return Analytics.retrieveChart(account.company, request.name, request.startDate, request.endDate, request.systemType);
         	})).then(function(results){
         		var resultsPosition = 0;
-        		var scope_options = AnalyticsCharts.getScopeOptions($scope);
+        		var scope_options = Charts.getScopeOptions($scope);
         		$scope = scope_options['scope'];
         		for (var i=0; i < $scope.pages.length; i++)
         		{
@@ -307,7 +344,7 @@
 	        				//if ($scope.pages[i].chartType.name == "sources_bar"  || $scope.pages[i].chartType.name == "website_traffic"  || $scope.pages[i].chartType.name == "tw_performance") {
 	        				if ($scope.pages[i].chartType.chart_type == 'multibar') {	
 	        				        chartData = results[resultsPosition].data.map(function(d) {
-	        						d.values = d.values.sort(AnalyticsCharts.natcmp);
+	        						d.values = d.values.sort(Charts.natcmp);
 	        						return d;
 	        					});
 	        				}
@@ -348,8 +385,10 @@
 	        			if ($scope.pages[i].type == 'dashboard' && $scope.pages[i].dashboardType.name && $scope.pages[i].chartFilters.groupDates)
 	        			{
 	        				dashboardData = results[resultsPosition].data;
-	        				
-	        			    $scope.pages[i].dashboardData = dashboardData;	
+	        				var dashboardType = $scope.pages[i].dashboardType;
+	        				dashboardType['pageUrl'] = staticUrl("templates/dashboards/") + $scope.pages[i].dashboardType.template + ".html";
+	        				$scope.pages[i].dashboardType = dashboardType;
+	        				$scope.pages[i].dashboardData = dashboardData;	
 	        			    resultsPosition++;
 	        			    
 	        			}
@@ -466,7 +505,7 @@
 		}
 		
 		function convertPagesToPdf() {
-			var pagesHtml = [];
+			/*var pagesHtml = [];
 			for (var i=0; i < $scope.pages.length; i++)
 			{
 				//$scope.currentPage = $scope.pages[i];
@@ -479,8 +518,38 @@
 				//$compile(document.body)($scope);
 				var divElement = angular.element(document.body).find('#' + id);
 				var html = divElement.html();
-				console.log(html);
-			}
+				pagesHtml.push(html);
+				//console.log(html);
+			
+			}*/
+			var account = Authentication.getAuthenticatedAccount();
+			if (account) {
+			   Common.exportToPdf(account.company, "binder", $scope.newBinder.id).then(ExportToPdfSuccessFxn, ExportToPdfErrorFxn);
+		    }
+        }
+        
+        function ExportToPdfSuccessFxn(data, status, headers, config) { 
+        	var anchor = angular.element('<a>');
+        	var file = new Blob([data.data], { type: 'application/pdf'});
+        	var fileURL = URL.createObjectURL(file);
+        	console.log(fileURL);
+        	var trustedURL = $sce.trustAsResourceUrl(fileURL);
+        	console.log(trustedURL);
+        	
+        	anchor.attr({
+        		href: trustedURL,
+        		download: 'binder.pdf'
+        	})[0].click();
+        	/*anchor.attr({
+        		href: 'data:attachment/pdf;charset=utf-8,' + encodeURI(data),
+        		target: '_blank',
+        		download: 'binder.pdf'
+        	})[0].click();*/
+			toastr.success('Exported to PDF');
+		}
+        
+        function ExportToPdfErrorFxn(data, status, headers, config) { 
+			toastr.error('Could not export to PDF');
 		}
 		
 		function readHtmlLoop(i) {

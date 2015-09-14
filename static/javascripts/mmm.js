@@ -18,12 +18,12 @@
     'mmm.analytics',
     'mmm.messages',
     'mmm.snapshots',
+    'mmm.dashboards',
     'mmm.binders',
     'mmm.accounts',
     'mmm.superadmin',
     'mmm.social',
     'mmm.websites',
-    'mmm.dashboards',
     'mmm.common',
     'ng.django.forms',
     'ngTouch', 
@@ -39,7 +39,9 @@
     'angularSpinner',
     'xeditable',
     'FBAngular',
-    'angular.filter'
+    'angular.filter',
+    'nemLogging',
+    'leaflet-directive'
     
   ]);
 
@@ -71,5 +73,15 @@ function run($http, $rootScope, editableOptions) {
   $http.defaults.xsrfCookieName = 'csrftoken';
   $rootScope.$on("$stateChangeError", console.log.bind(console));
   editableOptions.theme = 'bs3';
+  
+  $rootScope.htmlReady = function() {
+	    $rootScope.$evalAsync(function() {
+	      setTimeout(function() {
+	        var evt = document.createEvent('Event');
+	        evt.initEvent('_htmlReady', true, true);
+	        document.dispatchEvent(evt);
+	      }, 0);
+	    });
+  };
 }
 })();

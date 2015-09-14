@@ -1,0 +1,36 @@
+<div ng-repeat="currentPage in pages" 
+	class="portlet-body center slide-content"
+	ng-attr-id="{{currentPage.id}}-content">
+	<div id="{{currentPage.id}}-content-header">
+		<a href="#" e-name="contentTitle"
+			editable-text="currentPage.contentTitle">{{
+			currentPage.contentTitle }}</a>
+	</div>
+	<div id="{{currentPage.id}}-content-body" class="content-body-show">
+		<div sticky ng-repeat="note in currentPage.notes"
+			class="sticky draggable" note="note" ondelete="deleteNote(id)">
+			<!-- ng-style="left:{{note.cssStyle.left}}; top: {{note.cssStyle.top}};" -->
+			<button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
+			<input ng-model="note.title" ng-change="updateNote(note)" type="text"
+				class="title">
+			<textarea ng-model="note.body" ng-change="updateNote(note)"
+				placeholder='Your note goes here' class="body">{{note.body}}</textarea>
+
+		</div>
+		<nvd3 ng-if="currentPage.type == 'chart'"
+			options="currentPage.chartOptions" data="currentPage.chartData"
+			config="config"> </nvd3>
+		<div ng-if="currentPage.type == 'text'" style="margin-top: 30px">
+			&nbsp;</div>
+		<div ng-if="currentPage.type == 'dashboard'">
+			<ng-include src="'' + currentPage.dashboardType.pageUrl + ''"></ng-include>
+		</div>
+		<div>
+			<a href="#" editable-textarea="currentPage.contentBody" e-rows="10"
+				e-cols="30"> <pre
+					ng-hide="isFullscreen && !currentPage.contentBody">{{currentPage.contentBody || 'Enter additional text' }}</pre>
+			</a>
+
+		</div>
+	</div>
+</div>

@@ -24,6 +24,7 @@ class CustomUser(User):
     created_at = DateTimeField(default=datetime.datetime.utcnow())
     updated_at = DateTimeField(default=datetime.datetime.utcnow())
     company = ReferenceField(Company)
+    image_url = StringField(max_length=2000)
     #objects = AccountManager()
 
     USERNAME_FIELD = 'username'

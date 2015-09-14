@@ -12,7 +12,7 @@
   /**
   * @namespace BinderPage
   */
-  function BinderPage(Common, Authentication, Analytics, AnalyticsCharts) {
+  function BinderPage(Common, Authentication, Analytics) {
     /**
     * @name Sticky
     * @desc The factory to be returned

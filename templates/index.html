@@ -25,9 +25,12 @@
 </head>
 
 <body ng-controller="IndexController as vm" class="page-header-fixed page-sidebar-closed-hide-logo " ng-class="parentObj.bodyClass">
-  
+ 
+ <span ng-if="!parentObj.preview">
  {% include 'navbar.html' %}
+ </span>
 
+  <span ng-if="!parentObj.preview">
   {% if user.is_authenticated and not user.is_superadmin%}
   <div class="page-container">
     
@@ -55,6 +58,11 @@
 					    <li>
 					        <a href ui-sref="dashboards({'type':'social'})" ui-sref-active="active">
 					        Social ROI
+					        </a>
+					    </li>
+					    <li>
+					        <a href ui-sref="dashboards({'type':'form_fills'})" ui-sref-active="active">
+					        Forms
 					        </a>
 					    </li>
 					</ul>
@@ -212,6 +220,7 @@
 		</div>
 	</div>
 	<!-- END SIDEBAR -->
+	
   {% endif %}
   
   {% if user.is_authenticated and user.is_superadmin%}
@@ -271,6 +280,7 @@
 	<!-- END SIDEBAR -->
   {% endif %}
   
+  
   {% if user.is_authenticated %}
   <div class="page-content-wrapper">
 	<div class="page-content">
@@ -281,6 +291,11 @@
   </div>
   </div> <!--  page container -->
   {% endif %}
+  </span>
+  
+  <span ng-if="parentObj.preview">
+      <ui-view></ui-view>
+  </span>
 
   
   {% include 'javascripts.html' %}

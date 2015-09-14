@@ -1,0 +1,44 @@
+<div class="row">
+	<div class="col-md-12">
+	
+	<!--  dashboard -->
+<div class="portlet light">
+  
+  <div class="portlet-title">
+    <div class="caption" ng-class="(hideTimeFilterOnTop) ? 'col-md-12' :'col-md-6'">
+      <i class="fa fa-random font-blue-madison"></i>
+      <span class="caption-subject bold uppercase font-blue-madison">Form Fills
+      From <span class="label label-info">{{ currentPage.dashboardData.start_date }}</span> to <span class="label label-info">{{ currentPage.dashboardData.end_date }}</span>
+      </span>
+    </div>   
+    
+    <div ng-hide='hideTimeFilterOnTop' class="col-md-6">
+	    <div class="input-group col-sm-7 pull-right">
+				<span class="input-group-addon"><span
+					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
+					date-range-picker class="form-control date-picker"
+					style="font-size: 0.7rem !important; width: 75% !important"
+					name="groupDates.date" ng-model="groupDates.date" options="opts"
+					placeholder="Select date range" />
+		</div>
+	</div>
+    
+  </div>
+  
+  <div class="main-body">
+    <leaflet center="center" legend="legend" geojson="geojson" markers="markers"></leaflet>      
+  </div> <!--  end portlet body -->
+    
+    <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+  
+</div>  
+<!--  end of dashboard -->
+
+    <div ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+	<div ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+		
+	
+		
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

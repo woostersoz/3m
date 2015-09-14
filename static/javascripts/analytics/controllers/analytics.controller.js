@@ -13,7 +13,7 @@
 	                                'Leads', 'Snapshots', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
-	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'AnalyticsCharts', 'Social', 'Websites', '$q'];
+	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'Charts', 'Social', 'Websites', '$q'];
 
 	/**
 	 * @namespace AnalyticsController
@@ -21,7 +21,7 @@
 	function AnalyticsController($scope, Analytics, Authentication, Leads,
 			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
-			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, AnalyticsCharts, Social, Websites, $q, $interval) {
+			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, Charts, Social, Websites, $q, $interval) {
 
 		var vm = this;
 		vm.analytics = [];
@@ -188,7 +188,7 @@
 		      $scope.spinneractive = false;
 	    });
 	    
-	    var scope_options = AnalyticsCharts.getScopeOptions($scope);
+	    var scope_options = Charts.getScopeOptions($scope);
 		$scope = scope_options['scope'];
 	
 		function drawChart(chartTitle, chartName, chartType, systemType, chartFilters, $event) {
@@ -635,7 +635,7 @@
 				//if ($scope.chartName == "sources_bar" || $scope.chartName == "website_traffic" || $scope.chartName == "tw_performance" || $scope.chartName == "google_analytics") {
 				if ($scope.chartType == 'multibar') {
 				    $scope.data = data.data.map(function(d) {
-						d.values = d.values.sort(AnalyticsCharts.natcmp);
+						d.values = d.values.sort(Charts.natcmp);
 						return d;
 					});
 				}

@@ -23,7 +23,8 @@
       getAll: getAll,
       getAllBinderTemplates: getAllBinderTemplates,
       saveBinderTemplate: saveBinderTemplate,
-      getBinders: getBinders
+      getBinders: getBinders,
+      getSingleBinder: getSingleBinder
       
     };
 
@@ -72,6 +73,9 @@
     	return $http.get('/api/v1/company/' + company + '/analytics/binders/' + binderTemplateId + '/' );
     }
     
+    function getSingleBinder(company, binderId) {
+    	return $http.get('/api/v1/company/' + company + '/analytics/binder/' + binderId + '/' );
+    }
     
   }
 })();

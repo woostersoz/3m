@@ -75,6 +75,13 @@ class SuperUrlMapping(Document):
    
     meta = {'collection': 'superUrlMapping', 'indexes': ['mappings']}
     
+class SuperCountry(Document):
+   
+    country = StringField()
+    alternatives = ListField(StringField())
+   
+    meta = {'collection': 'superCountry', 'indexes': ['country', 'alternatives']}
+    
 class SuperDashboards(Document):
     title = StringField(max_length=1000)
     name = StringField(max_length=200)

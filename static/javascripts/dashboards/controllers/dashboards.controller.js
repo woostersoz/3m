@@ -81,6 +81,54 @@
 		$scope.stageNames = {};
 		$scope.stageNames = {'marketingqualifiedlead' : 'MQL', 'salesqualifiedlead' : 'SQL', 'customer' : 'Customer', 'subscriber' : 'Subscriber', 'lead' : 'Lead', 'opportunity' : 'Opportunity'};
 		$scope.sourceNames = {'DIRECT_TRAFFIC' : 'Direct', 'EMAIL_MARKETING': 'Email', 'OFFLINE': 'Offline', 'ORGANIC_SEARCH': 'Organic', 'REFERRALS': 'Referrals', 'SOCIAL_MEDIA': 'Social', 'PAID_SEARCH': 'Paid', 'OTHER_CAMPAIGNS': 'Others', 'Unknown': 'Unknown'};
+		// for form fills map
+		$scope.map = false;
+		 var continentProperties= {
+	                "009": {
+	                        name: 'Oceania',
+	                        colors: [ '#CC0066', '#993366', '#990066', '#CC3399', '#CC6699' ]
+	                },
+	                "019": {
+	                        name: 'America',
+	                        colors: [ '#006699', '#336666', '#003366', '#3399CC', '#6699CC' ]
+	                },
+	                "150": {
+	                        name: 'Europe',
+	                        colors: [ '#FF0000', '#CC3333', '#990000', '#FF3333', '#FF6666' ]
+	                },
+	                "002": {
+	                        name: 'Africa',
+	                        colors: [ '#00CC00', '#339933', '#009900', '#33FF33', '#66FF66' ]
+	                },
+	                "142": {
+	                        name: 'Asia',
+	                        colors: [ '#FFCC00', '#CC9933', '#999900', '#FFCC33', '#FFCC66' ]
+	                },
+	        };
+	        
+	     // Get a country paint color from the continents array of colors
+	        function getColor(country) {
+	            if (!country || !country["region-code"]) {
+	                return "#FFF";
+	            }
+
+	            var colors = continentProperties[country["region-code"]].colors;
+	            var index = country["alpha-3"].charCodeAt(0) % colors.length ;
+	            return colors[index];
+	        }
+
+	        
+	        function style(feature) {
+	            return {
+	                fillColor: getColor($scope.countries[feature.id]),
+	                weight: 2,
+	                opacity: 1,
+	                color: 'white',
+	                dashArray: '3',
+	                fillOpacity: 0.7
+	            };
+	        }
+		 // end of form fills map
 		
 		$scope.groupDates = {};
 		$scope.groupDates.date = {
@@ -109,34 +157,45 @@
 		
 		if ($state.params.type == 'funnel') {
 			$scope.dashboard_name = 'funnel';
-			$scope.system_type = 'MA';
-			$scope.start_date = moment().subtract(30, "days").startOf("day").unix();
-			$scope.end_date = moment().endOf("day").unix();
-			$scope.results = {};
+		}
+		else if ($state.params.type == 'social') {
+			$scope.dashboard_name = 'social';
+		}
+		else if ($state.params.type == 'waterfall') {
+			$scope.dashboard_name = 'waterfall';
+		}
+		else if ($state.params.type == 'form_fills') {
+			$scope.map = true;
+			$scope.dashboard_name = 'form_fills';
+			angular.extend($scope, {
+				center: {
+					lat: 40.8741,
+					lng: 14.0625,
+					zoom: 2
+				},
+				legend: {
+                    colors: [ '#CC0066', '#006699', '#FF0000', '#00CC00', '#FFCC00' ],
+                    labels: [ 'Oceania', 'America', 'Europe', 'Africa', 'Asia' ]
+                }
+			});
+			
+			Common.getCountriesData().then(CountriesDataSuccessFxn, CountriesDataErrorFxn);
+		}
+		$scope.system_type = 'MA';
+		$scope.start_date = moment().subtract(30, "days").startOf("day").unix();
+		$scope.end_date = moment().endOf("day").unix();
+		$scope.results = {};
 			//$scope.results.created_source = {'DIRECT_TRAFFIC' : 2180, 'EMAIL_MARKETING': 143, 'OFFLINE': 3782, 'ORGANIC_SEARCH': 209876, 'REFERRALS': 152432, 'SOCIAL_MEDIA': 13334445, 'PAID_SEARCH': 28976, 'OTHER_CAMPAIGNS': 5};
 			
-			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
-		}
-		
-		if ($state.params.type == 'social') {
-			$scope.dashboard_name = 'social';
-			$scope.system_type = 'MA';
-			$scope.start_date = moment().subtract(90, "days").startOf("day").unix();
-			$scope.end_date = moment().endOf("day").unix();
-			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
-		}
-		
-		if ($state.params.type == 'waterfall') {
-			$scope.dashboard_name = 'waterfall';
-			$scope.system_type = 'MA';
-			$scope.start_date = moment().subtract(90, "days").startOf("day").unix();
-			$scope.end_date = moment().endOf("day").unix();
-			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
-		}
+			//Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
 		
 		function DashboardSuccessFxn(data, status, headers, config) {
-			$scope.results = data.data;
+			//$scope.results = data.data;
+			$scope.currentPage = {};
+			$scope.currentPage.dashboardData = data.data; // these 2 lines needed to enable dashboard data in binders
 			$scope.now = moment();
+			if ($scope.map) // if showing a map, create markers
+				createMarkers();
 			/*$scope.start_date = $scope.results['start_date'];
 			$scope.end_date = $scope.results['end_date'];
 			$scope.created_source = $scope.results['created_source'];
@@ -150,8 +209,51 @@
 			toastr.error('Could not retrieve dashboard');
 		}
         
+        function createMarkers() {
+        	var countries = $scope.currentPage.dashboardData.countries;
+        	var markers = {};
+        	
+        	for (var key in countries) {
+        		if (countries.hasOwnProperty(key))
+        		   markers[key] = {'lat': countries[key]['lat'], 'lng': countries[key]['long'], 'title': key, 'label': {'message' : countries[key]['count'], 'options' : {'noHide': true}}, 'draggable': false};
+        	}
+        	//angular.extend($scope, {
+        	$scope.markers = markers;
+        	//});
+        }
+        
+        function CountriesDataSuccessFxn(data, status, headers, config) {
+        	
+			$scope.countries = {};
+            for (var i=0; i< data.data.length; i++) {
+                var country = data.data[i];
+                $scope.countries[country['alpha-3']] = country;
+            }
+            
+            Common.getCountriesGeoData().then(CountriesGeoSuccessFxn, CountriesDataErrorFxn);	
+        }
+        
+        function CountriesGeoSuccessFxn(data, status, headers, config) {
+        	angular.extend($scope, {
+                geojson: {
+                    data: data.data,
+                    style: style,
+                    resetStyleOnMouseout: true
+                },
+                selectedCountry: {}
+            }); 	
+        }
+
+        function CountriesDataErrorFxn(data, status, headers, config) {
+        	
+        	
+        }
+        
+       
+        
         $scope.$watch('groupDates.date', function(newDate, oldDate) { 
     		if (!newDate || !oldDate) return;
+    		if (newDate == oldDate) return;
     		var startDate = 0;
     		var endDate = 0;
     		if ((newDate.startDate) && (newDate.endDate)

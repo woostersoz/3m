@@ -13,8 +13,8 @@ class CustomUserSerializer(DocumentSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'username', 'created_at', 'updated_at',
-                  'first_name', 'last_name', 'password', 'confirm_password', 'company', 'timezone', 'is_admin', 'is_superadmin',  )
+        #fields = ('id', 'email', 'username', 'created_at', 'updated_at',
+        #         'first_name', 'last_name', 'password', 'confirm_password', 'company', 'timezone', 'is_admin', 'is_superadmin',  )
         #read_only_fields = ('created_at', 'updated_at',)
 
         def create(self, validated_data):
