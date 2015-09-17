@@ -28,6 +28,10 @@
 		$scope.setUnread = true;
 		$scope.submitMessage = submitMessage;
 		$scope.showSnapshotFromMessage = showSnapshotFromMessage;
+		$scope.downloadFile = downloadFile;
+		$scope.totalExports = 0;
+	    $scope.exportsPerPage = 10;
+	    $scope.currentPage = 1;
 
 		//    $scope.$state = $state;
 		//    $scope.scopeName = $state.current.name
@@ -51,7 +55,12 @@
 			}
 			//if (account)  	
 			//Messages.getRooms(account.company).then(RoomsSuccessFn, RoomsErrorFn);;
-		} else {
+		  } 
+		  else if ($state.current.name == "exports") {
+			  if (account)
+		         Messages.getUserExports(account).then(getUserExportsSuccessFxn, getUserExportsErrorFxn);
+		  }
+		  else {
 			activate();
 		}
 
@@ -84,6 +93,51 @@
 		function getMessagesErrorFn(data, status, headers, config) {
 			toastr.error("Could not retrieve messages");
 		}
+		
+		function getUserExportsSuccessFxn(data, status, headers, config) {
+			if (data.data.results) {
+				vm.exports = data.data.results;
+				$scope.thisSetCount = data.data.count;
+				$scope.totalExports = data.data.count;
+				$scope.startExportCounter = ($scope.currentPage - 1) * $scope.exportsPerPage + 1;
+			    $scope.endExportCounter = ($scope.thisSetCount < $scope.exportsPerPage) ? $scope.startExportCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.exportsPerPage;
+				
+				
+			}
+		}
+		
+		function getUserExportsErrorFxn(data, status, headers, config) {
+			toastr.error("Could not retrieve exports");
+		}
+		
+		function downloadFile(file_id, file_name) {
+			$scope.downloadFileName = file_name;
+			if (account) {
+				Messages.downloadFile(account, file_id).then(downloadFileSuccess, downloadFileError);
+			}
+		}
+		
+		function downloadFileSuccess(data, status, headers, config) {
+			var anchor = angular.element('<a/>');
+			anchor.css({display: 'none'});
+			angular.element(document.body).append(anchor);
+			
+			anchor.attr({
+				href: 'data:attachment/csv,' + encodeURIComponent(data.data),
+				target: '_blank',
+				download: $scope.downloadFileName
+			})[0].click();
+			
+			anchor.remove();
+		}
+		
+        function downloadFileError(data, status, headers, config) {
+			
+		}
+		
+		$scope.pageChanged = function(newPage) {
+			$scope.currentPage = newPage;
+	    }
 
 		function RoomsSuccessFn(data, status, headers, config) {
 			if (data.data) {
@@ -294,5 +348,7 @@
 			}
 			return false;
 		}
+		
+		
 	}
 })();

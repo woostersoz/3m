@@ -77,6 +77,16 @@
 				$scope.charts = data.data.results;
 				for (var i=0; i < $scope.charts.length; i++)
 					$scope.charts[i].src = staticUrl($scope.charts[i].src);
+				if ($stateParams.url) // if being called for a specific chart
+				{
+					var chart = $scope.charts.filter(function(obj) {
+						return obj.url == $stateParams.url;
+					});
+					if (chart[0])
+					   drawChart(chart[0]['title'], chart[0]['name'], chart[0]['chart_type'], chart[0]['system_type'], chart[0]['filters']);
+					else
+					   toastr.error("Oops! Could not draw chart!");	
+				}
 			}
 			else {
 				toastr.error("Could not find charts for company");
@@ -88,40 +98,7 @@
 			return false;
 		} 
 		
-		/*$scope.images = [ {
-			"src" : $scope.barUrl,
-			"url" : "timeline",
-			"title" : "Timeline",
-			"name" : "sources_bar",
-			"system_type" : "MA"
-		}, {
-			"src" : $scope.lineUrl,
-			"url" : "pipeline_duration",
-			"title" : "Pipeline Duration",
-			"name" : "pipeline_duration",
-			"system_type" : "MA"
-		}, {
-			"src" : $scope.rowUrl,
-			"url" : "contacts_distr",
-			"title" : "Contacts Distribution",
-			"name" : "contacts_distr",
-			"system_type" : "MA"
-		}, {
-			"src" : $scope.pieUrl,
-			"url" : "source_pie",
-			"title" : "Source Breakdown",
-			"name" : "source_pie",
-			"system_type" : "MA"
-		},
-		{
-			"src" : $scope.pieUrl,
-			"url" : "revenue_source_pie",
-			"title" : "Revenue by Source",
-			"name" : "revenue_source_pie",
-			"system_type" : "MA"
-		},
-
-		];*/
+		
 		
 		// initialize for table row detail display
 		DTInstances.getLast().then(function (dtInstance) {
@@ -191,14 +168,14 @@
 	    var scope_options = Charts.getScopeOptions($scope);
 		$scope = scope_options['scope'];
 	
-		function drawChart(chartTitle, chartName, chartType, systemType, chartFilters, $event) {
+		function drawChart(chartTitle, chartName, chartType, systemType, chartFilters) { //$event
 			$scope.showCarousel = false;
 			$scope.showChart = true;
 			$scope.stopSpin();
 			$scope.startSpin();
 			angular.element('.analytics-charts li div').removeClass('slick-selected');
-			angular.element($event.currentTarget).parent().addClass(
-			'slick-selected');
+			//angular.element($event.currentTarget).parent().addClass(
+			//'slick-selected');
 			$scope.data = [];
 			$scope.pagination = { current: 1 };
 			$scope.currentPage = 1;
@@ -269,10 +246,12 @@
 				$scope.currentPage = 1;
 			}
 			
+			var account = Authentication
+			.getAuthenticatedAccount();
+			
 			if ($scope.chartName == "sources_bar")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+				
 				if (account) {
 					
 					$scope.filterBySource = false;
@@ -290,13 +269,14 @@
 					
 					$scope.csv.functionToCall = Leads.getLeadsByFilter;
 					$scope.csv.param[0] = account.company;
-					$scope.csv.param[1] = e.data.key; //e.series.key;
 					$scope.csv.param[2] = startDate;
 					$scope.csv.param[3] = endDate;
-					$scope.csv.param[4] = 'easy';
-					$scope.csv.param[5] = 1;
-					$scope.csv.param[6] = 1000000;
 					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key; //e.series.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
 					
 					Leads.getLeadsByFilter(account.company,
 							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -307,8 +287,7 @@
 			} // if sources_bar
 			else if ($scope.chartName == "contacts_distr")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+				
 				if (account) {
 					
 					$scope.filterBySource = false;
@@ -322,15 +301,17 @@
 					startDate = $scope.startDate.unix();
 					endDate = $scope.endDate.unix();
 					
-					$scope.csv.functionToCall = Leads.getLeadsByFilter;
+					$scope.csv.functionToCall = Leads.getLeadsByFilterForDistribution;
 					$scope.csv.param[0] = account.company;
+					$scope.csv.param[3] = startDate;
+					$scope.csv.param[4] = endDate;
+					$scope.csv.param[8] = $scope.systemType;
+					$scope.csv.param[9] = $scope.chartName;
 					$scope.csv.param[1] = e.point.label;
-					$scope.csv.param[2] = startDate;
-					$scope.csv.param[3] = endDate;
-					$scope.csv.param[4] = 'strict';
-					$scope.csv.param[5] = 1;
-					$scope.csv.param[6] = 1000000;
-					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[2] = e.series.key;
+					$scope.csv.param[5] = 'strict';
+					$scope.csv.param[6] = $scope.currentPage;
+					$scope.csv.param[7] = $scope.leadsPerPage;
 					
 					Leads.getLeadsByFilterForDistribution(account.company,
 							e.point.label, e.series.key, startDate, endDate, 'strict', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -339,8 +320,7 @@
 			} // if contacts_distr
 			else if ($scope.chartName == "pipeline_duration") 
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+				
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
@@ -373,13 +353,14 @@
 					
 					$scope.csv.functionToCall = Leads.getLeadsByFilterDuration;
 					$scope.csv.param[0] = account.company;
-					$scope.csv.param[1] = series;
 					$scope.csv.param[2] = startDate;
 					$scope.csv.param[3] = endDate;
-					$scope.csv.param[4] = strict;
-					$scope.csv.param[5] = 1;
-					$scope.csv.param[6] = 1000000;
 					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = series;
+					$scope.csv.param[4] = strict;
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
 					
 					Leads.getLeadsByFilterDuration(account.company,
 							series, startDate, endDate, strict, $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -389,8 +370,7 @@
 			
 			else if ($scope.chartName == "source_pie")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+				
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
@@ -404,13 +384,14 @@
 
 					$scope.csv.functionToCall = Leads.getLeadsBySourceChannel;
 					$scope.csv.param[0] = account.company;
-					$scope.csv.param[1] = e.data.x; //e.point.x;
 					$scope.csv.param[2] = startDate;
 					$scope.csv.param[3] = endDate;
-					$scope.csv.param[4] = 'easy';
-					$scope.csv.param[5] = 1;
-					$scope.csv.param[6] = 1000000;
 					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.x; //e.point.x;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
 					
 					Leads.getLeadsBySourceChannel(account.company,
 							e.data.x, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -423,8 +404,7 @@
 			
 			else if ($scope.chartName == "revenue_source_pie")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+			
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
@@ -438,13 +418,14 @@
 
 					$scope.csv.functionToCall = Leads.getLeadsByRevenueSourceChannel;
 					$scope.csv.param[0] = account.company;
-					$scope.csv.param[1] = e.data.x;
 					$scope.csv.param[2] = startDate;
 					$scope.csv.param[3] = endDate;
-					$scope.csv.param[4] = 'easy';
-					$scope.csv.param[5] = 1;
-					$scope.csv.param[6] = 1000000;
 					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.x;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
 					
 					Leads.getLeadsByRevenueSourceChannel(account.company,
 							e.data.x, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -458,8 +439,7 @@
 			} // if website traffic
 			else if ($scope.chartName == "tw_performance")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+			
 				if (account) {
 					
 					$scope.filterBySource = false;
@@ -475,6 +455,17 @@
 					.startOf('day').unix();
 					endDate = moment(e.data.x).endOf('day')
 					.unix();
+					
+					$scope.csv.functionToCall = Social.getTwInteractionsByFilter;
+					$scope.csv.param[0] = account.company;
+					$scope.csv.param[2] = startDate;
+					$scope.csv.param[3] = endDate;
+					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
 					
 					Social.getTwInteractionsByFilter(account.company,
 							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName)
@@ -485,8 +476,7 @@
 			} // if tw_performance
 			else if ($scope.chartName == "google_analytics")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+			
 				if (account) {
 					
 					$scope.filterBySource = false;
@@ -503,6 +493,17 @@
 					endDate = moment(e.data.x).endOf('day')
 					.unix();
 					
+					$scope.csv.functionToCall = Websites.getWebsitesByFilter;
+					$scope.csv.param[0] = account.company;
+					$scope.csv.param[2] = startDate;
+					$scope.csv.param[3] = endDate;
+					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
+					
 					Websites.getWebsitesByFilter(account.company,
 							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, $scope.selectedFilterValues)
 							.then(WebsitesSuccessFn, WebsitesErrorFn);
@@ -512,8 +513,7 @@
 			} // if google analytics
 			else if ($scope.chartName == "facebook_organic_engagement")
 			{
-				var account = Authentication
-				.getAuthenticatedAccount();
+			
 				if (account) {
 					
 					$scope.filterBySource = false;
@@ -536,7 +536,7 @@
 					
 			    	
 				}
-			} // if google analytics
+			} // if fb engagement
 			
 		} 
 	
@@ -645,6 +645,8 @@
 				}
 				else
 					$scope.data = data.data;
+				
+				$scope.now = moment();
 				
 			}
 		}
@@ -794,14 +796,14 @@
 		
 		
 		function downloadLeadsCsv() {
-			var params = '';
-			for (var i=0; i < $scope.csv.param.length; i++)
-				params+= $scope.csv.param[i] + ', ';
+			if ($scope.csv.param[$scope.csv.param.length - 1] != 'csv') // add this parameter to indicate to the backend that this is a CSV
+			   $scope.csv.param[$scope.csv.param.length] = 'csv';
+			$scope.csv.functionToCall.apply(this, $scope.csv.param).then(CsvDownloadSuccessFxn, CsvDownloadErrorFxn);
 			
-			$scope.csv.functionToCall($scope.csv.param[0], $scope.csv.param[1], $scope.csv.param[2], $scope.csv.param[3], $scope.csv.param[4], $scope.csv.param[5], $scope.csv.param[6], $scope.csv.param[7]).success(function(data, status, headers, config) {
-				/*var csv = data.results.map(function(d) {
+			/*$scope.csv.functionToCall($scope.csv.param[0], $scope.csv.param[1], $scope.csv.param[2], $scope.csv.param[3], $scope.csv.param[4], $scope.csv.param[5], $scope.csv.param[6], $scope.csv.param[7]).success(function(data, status, headers, config) {
+				var csv = data.results.map(function(d) {
 					return d.join();
-				}).join('\n');*/
+				}).join('\n');
 				var csv = toCsv(data.results);
 				var anchor = angular.element('<a/>');
 				anchor.attr({
@@ -812,10 +814,18 @@
 				toastr.success('CSV downloaded');
 			}).error(function(data, status, headers, config) {
 				toastr.error('Error while downloading CSV');
-			});
+			});*/
 			
 			
 		}
+	
+	    function CsvDownloadSuccessFxn(data, status, headers, config) {
+	    	toastr.info('Download is scheduled. Check My Exports for details');
+	    }
+	    
+	    function CsvDownloadErrorFxn(data, status, headers, config) {
+	    	toastr.error('Download could not be scheduled');
+	    }
 
 		function snapshot() {
 			if (nv.tooltip && nv.tooltip.cleanup)

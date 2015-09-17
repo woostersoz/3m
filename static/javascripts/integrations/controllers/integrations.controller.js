@@ -9,12 +9,12 @@
     .module('mmm.integrations.controllers')
     .controller('IntegrationsController', IntegrationsController);
   
-  IntegrationsController.$inject = ['$scope', 'Integrations', 'Authentication', '$location', '$filter', '$window', '$state', '$stateParams', '$document'];
+  IntegrationsController.$inject = ['$scope', 'Integrations', 'Authentication', 'Common', '$location', '$filter', '$window', '$state', '$stateParams', '$document'];
 
   /**
   * @namespace IntegrationsController
   */
-  function IntegrationsController($scope, Integrations, Authentication, $location,  $filter, $window, $state, $stateParams, $document) {
+  function IntegrationsController($scope, Integrations, Authentication, Common, $location,  $filter, $window, $state, $stateParams, $document) {
     var vm = this;
 
     vm.isAuthenticated = Authentication.isAuthenticated();
@@ -83,6 +83,7 @@
     else {
     	$scope.tabname = 'new';
     }
+    $scope.breadcrumbName = Common.capitalizeFirstLetter($scope.tabname);
     vm.source = source;  
     if (source && source.length > 0 && $stateParams.code && $stateParams.state) // this will match the SFDC auth URL 
     	getOauthToken(source, $stateParams.code, $stateParams.state, ""); 

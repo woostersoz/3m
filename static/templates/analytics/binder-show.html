@@ -1,4 +1,33 @@
-<div class="row" style="margin-top:10px"> <!-- Main Toolbar -->
+<div class="portlet light">	
+	<div class="portlet-header">
+        <div class="title col-md-12">Binder - Details</div>
+        <div ncy-breadcrumb class="title col-md-6 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-6 breadcrumb ">
+          <div class="pull-right" style="margin-top:-5px">
+				<!-- ng-click="addRow()"   -->
+				<a href="" ng-click="saveBinder(binder_view)" role="button" id="save_binder" ng-disabled="binder_new.$invalid"
+					class="btn action-button"> Save</i>
+				</a> <a href="" ui-sref="binders" role="button"
+					id="cancel_binder" class="btn action-button"> Cancel</i>
+				</a>
+			</div>
+        
+        </div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div class="animate-show-hide">
+
+
+<div class="col-md-12" style="margin-top:10px"> <!-- Main Toolbar -->
 
 			<div class="col-md-5 form-group ">
 			    <a href="#" e-name="newBinder.name" editable-text="newBinder.name">{{ newBinder.name }}</a>
@@ -113,3 +142,8 @@
        </div>
        
      </div>
+</div>
+			</div>	
+		</div>
+	</div>
+</div>

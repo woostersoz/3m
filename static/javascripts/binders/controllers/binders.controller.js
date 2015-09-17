@@ -186,6 +186,26 @@
 	    {
 	    	getBinderTemplates();
 	    }
+		else if ($state.href($state.current.name) == '/binder-new')
+	    {
+			createBinderFxn();
+	    }
+		else if ($state.current.name == 'binders-list')
+		{
+			if ($stateParams.template)
+				$scope.templateId = $stateParams.template;
+			getBinders($scope.templateId);
+		}
+		else if ($state.current.name == 'binder-show')
+		{
+			if ($stateParams.binder)
+			{
+				showBinderFxn($stateParams.binder);
+				$scope.breadcrumbName = $stateParams.binder.id;
+			}
+		}
+		
+		
 		
 		function GetSingleBinderSuccessFn(data, status, headers, config) {  
 	    	if (data.data.results.length > 0) {

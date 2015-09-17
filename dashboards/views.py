@@ -27,14 +27,14 @@ from celery import task
 from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 
-from leads.models import Lead
-from leads.serializers import LeadSerializer
+from leads.models import Lead, LeadWithForm
+from leads.serializers import LeadSerializer, LeadWithFormSerializer
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, AnalyticsIds, BinderTemplate, Binder
 
-from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards
+from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards, SuperCountry
 from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer
 
 from authentication.models import Company, CustomUser
@@ -631,14 +631,14 @@ def hspt_form_fills(user_id, company_id, start_date, end_date, dashboard_name):
         existed_count = 0
         created_count = 0
         countries_results = {}
-        countries_geopy_check = {}
-        countries_geopy_check["Others"] = {}
-        countries_geopy_check["Others"]['count'] = 0
-        countries_geopy_check["Others"]['lat'] = 0
-        countries_geopy_check["Others"]['long'] = 0
-        continents = ['North America', 'South America', 'Asia', 'Africa', 'Europe', 'Oceania']
-        result = {}
-        result['Other'] = 0
+        countries_results["others"] = {}
+        countries_results["others"]['count'] = 0
+        countries_results["others"]['lat'] = 0
+        countries_results["others"]['long'] = 0
+        countries_results["others"]['continent'] = "unknown"
+        #continents = ['North America', 'South America', 'Asia', 'Africa', 'Europe', 'Oceania']
+        #result = {}
+        #result['Other'] = 0
         
         querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
         days = AnalyticsData.objects(**querydict)
@@ -648,65 +648,33 @@ def hspt_form_fills(user_id, company_id, start_date, end_date, dashboard_name):
             #get the 'first' data
             first = day['first']
             for entry in first:
-                if entry['_id'] not in countries_results:
-                    countries_results[entry['_id']] = 0
-                countries_results[entry['_id']] += entry['count']
+                if entry['geo'] not in countries_results:
+                    print 'country is ' + entry['geo'].lower()
+                    super_country = SuperCountry.objects(country=entry['geo'].lower()).first()
+                    if super_country is None:
+                        raise ValueError('Geo country not found: ' + entry['geo'].lower())
+                    countries_results[entry['geo']] = {}
+                    countries_results[entry['geo']]['count'] = 0
+                    countries_results[entry['geo']]['lat'] = super_country['lat']
+                    countries_results[entry['geo']]['long'] = super_country['long']
+                    countries_results[entry['geo']]['continent'] = super_country['continent']
+                countries_results[entry['geo']]['count'] += entry['count']
             #get the 'recent' data
             recent = day['recent']
             for entry in recent:
-                if entry['_id'] not in countries_results:
-                    countries_results[entry['_id']] = 0
-                countries_results[entry['_id']] += entry['count']
+                if entry['geo'] not in countries_results:
+                    print 'country2 is ' + entry['geo'].lower()
+                    super_country = SuperCountry.objects(country=entry['geo'].lower()).first()
+                    if super_country is None:
+                        raise ValueError('recent Geo country not found: ' + entry['geo'].lower())
+                    countries_results[entry['geo']] = {}
+                    countries_results[entry['geo']]['count'] = 0
+                    countries_results[entry['geo']]['lat'] = super_country['lat']
+                    countries_results[entry['geo']]['long'] = super_country['long']
+                    countries_results[entry['geo']]['continent'] = super_country['continent']
+                countries_results[entry['geo']]['count'] += entry['count']
                 
-        #normalize countries
-        geolocator = GoogleV3(api_key='AIzaSyD-XCrxDCWe9uJlInVElOZluoFcFPssaQU')
-        for country in countries_results.keys():
-            if country is None: # if country is None, don't try to do much more with it
-                countries_geopy_check["Others"]['count'] += countries_results[country]
-                continue
-            # check if the country string contains the name of a continent. If it does, assign to that continent
-            #continent = _filter_by_continent(continents, country)
-            #if continent:
-            #    if continent not in result:
-            #        result[continent] = 0
-            #    result[continent] += countries_results[country]
-            # if not in continents list, check against geopy for correct country name
-            else:
-                location = geolocator.geocode(country)
-                if location is None: #if geopy couldn't find the country, add it to "Others"
-                    countries_geopy_check["Others"]['count'] += countries_results[country]
-                else:
-                    #check if the geopy result contains a continent
-#                     continent = _filter_by_continent(continents, location.address)
-#                     if continent:
-#                         if continent not in result:
-#                             result[continent] = 0
-#                         result[continent] += countries_results[country]
-                    # if it does not, add it to the countries_geopy_check object
-#                    else:
-# below 3 lines shifted left
-                    if location.address not in countries_geopy_check:
-                        countries_geopy_check[location.address] = {}
-                        countries_geopy_check[location.address]['count'] = 0
-                        countries_geopy_check[location.address]['lat'] = location.latitude
-                        countries_geopy_check[location.address]['long'] = location.longitude
-                    countries_geopy_check[location.address]['count'] += countries_results[country]
-                        
-#         for country in countries_geopy_check.keys(): # for each country that needs to be assigned to a continent
-#             if country is None: #if country is None, don't try to match with countries list
-#                 result['Other'] += countries_geopy_check[country]
-#                 continue
-#             for entry in countries.countries:
-#                 if entry['name'].lower() == country.lower(): # if the name of the country matches an entry in the imported countries list
-#                     if entry['continent'] not in result:
-#                         result[entry['continent']] = 0
-#                     result[entry['continent']] += countries_geopy_check[country] #add the value of the country to the continent
-#                     break
-#                 result['Other'] += countries_geopy_check[country] # if the country was not found in the countries list
-#                     
-        # now find the continents for each country in the countries_geopy_check object
-                
-        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'countries': countries_geopy_check}
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'countries': countries_results}
         return results
             
       
@@ -767,9 +735,17 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
 def drilldownHsptDashboards(request, company_id):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    chart_name = request.GET.get('chart_name')
+    
     object = request.GET.get('object').capitalize()
-    section = request.GET.get('section').capitalize()
     channel = request.GET.get('channel').capitalize()
+    
+    if chart_name == 'form_fills':
+        section = request.GET.get('section')    
+    else:
+        section = request.GET.get('section').capitalize()
+    
+    
     page_number = int(request.GET.get('page_number'))
     items_per_page = int(request.GET.get('per_page'))
     offset = (page_number - 1) * items_per_page
@@ -782,11 +758,14 @@ def drilldownHsptDashboards(request, company_id):
     company_id_qry = 'company_id'
     chart_name_qry = 'chart_name'
     date_qry = 'date__in'
-    chart_name = 'social_roi'
+    geo_qry = 'Q(results__first__geo) | Q(results__recent__geo)'
+    #geo_recent_qry = 'results__recent__geo'
+    #chart_name = 'social_roi'
     
     #variables
     people = []
     deals = []
+    ids = []
         
     try:     
         original_start_date = start_date
@@ -803,19 +782,61 @@ def drilldownHsptDashboards(request, company_id):
             days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
             
         querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
-        days = AnalyticsData.objects(**querydict)
         
+        if chart_name == 'form_fills':
+            days = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=chart_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
+            ids_data = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=chart_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
+            print 'days was ' + str(len(days)) + ' and ids was ' + str(len(ids_data))
+        else: #social_roi
+            days = AnalyticsData.objects(**querydict)
+            ids_data = AnalyticsIds.objects(**querydict)
         #Contacts, Leads and Customers
-        if (object == 'Contacts' or object == 'Leads' or object == 'Customers'):
-            for day in days:
-                data = day['results']
-                try: 
-                    people.extend(data['Website']['Hubspot']['social'][channel][section][object]['People'])
-                except Exception as e:
-                    continue
+        if object == 'Contacts' or object == 'Leads' or object == 'Customers':
+            if chart_name == 'form_fills':
+                for ids_datum in ids_data:
+                    ids_temp_first = ids_datum['results']['first']
+                    ids_temp_recent = ids_datum['results']['recent']
+                    #get the ids from the 'first section'
+                    for id_temp in ids_temp_first:
+                        if id_temp['geo'] != section:
+                            continue
+                        for form in id_temp['forms']:
+                            for id in form['ids']:
+                                ids.append({'id': id['id'], 'form': form['form']})
+                    for id_temp in ids_temp_recent:
+                        if id_temp['geo'] != section:
+                            continue
+                        for form in id_temp['forms']:
+                            for id in form['ids']:
+                                ids.append({'id': id['id'], 'form': form['form']})
+                    ids_list = [x['id'] for x in ids]
+                    #print 'ids is ' + str(ids)
+                print 'ids len is ' + str(len(ids))
+                leads = Lead.objects(company_id=company_id, hspt_id__in=ids_list)
+                leads_list = list(leads)
+                leads_with_forms_list = []
+                for id in ids:
+                    for lead in leads_list:
+                        lead_with_form = {}
+                        if id['id'] == lead['hspt_id']:
+                            lead_with_form['form'] = id['form']
+                            lead = lead.to_mongo().to_dict()
+                            for key in lead.keys():
+                                lead_with_form[key] = lead[key]  
+                            leads_with_forms_list.append(lead_with_form)
+                serializer = LeadWithFormSerializer(leads_with_forms_list[offset:offset + items_per_page], many=True) 
+                results = {'results': serializer.data, 'count' : len(leads_with_forms_list) }   
+                return results
             
-             
-            results = {'results': people[offset:offset + items_per_page], 'count' : len(people) }   
+            elif chart_name == 'social_roi':
+                for day in days:
+                    data = day['results']
+                    try: 
+                        people.extend(data['Website']['Hubspot']['social'][channel][section][object]['People'])
+                    except Exception as e:
+                        continue
+                    results = {'results': people[offset:offset + items_per_page], 'count' : len(people) }   
+                        
             return results
         #Deals
         elif (object == 'Deals'):

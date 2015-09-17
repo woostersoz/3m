@@ -68,8 +68,12 @@
       //return $http.get('/api/v1/Leads/');
     }
     
-    function getLeadsByFilter(company, leadType, startDate, endDate, queryType, pageNumber, perPage, systemType, chartName) { // called from Analytics
-    	return $http.get('/api/v1/company/' + company + '/leads/filter/?lead_type=' + leadType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType + '&page_number=' + pageNumber + '&per_page=' + perPage + '&system_type=' + systemType + '&chart_name=' + chartName);
+    function getLeadsByFilter(company, leadType, startDate, endDate, queryType, pageNumber, perPage, systemType, chartName, exportType) { // called from Analytics
+    	var exportString = '';
+    	if (exportType != undefined)
+    		exportString = '&export_type=' + exportType;
+    	
+    	return $http.get('/api/v1/company/' + company + '/leads/filter/?lead_type=' + leadType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType + '&page_number=' + pageNumber + '&per_page=' + perPage + '&system_type=' + systemType + '&chart_name=' + chartName + exportString);
     }
     
     function getLeadsByFilterForDistribution(company, leadType, seriesType, startDate, endDate, queryType, pageNumber, perPage, systemType, chartName) { // called from Analytics
@@ -101,6 +105,8 @@
 			if (results[i].leads)
 			{
 				currRecord = results[i].leads;
+				if (results[i]['form'])
+					currRecord['form'] = results[i]['form'];
 				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a lead record
 				{
 				    
@@ -112,6 +118,7 @@
 				    	currRecord['hspt']['LastName'] = currRecord['hspt']['properties']['lastname'];
 				    	currRecord['hspt']['sourceChannel'] = currRecord['hspt']['properties']['hs_analytics_source'];
 				    	currRecord['hspt']['sourceChannelDetail'] = currRecord['hspt']['properties']['hs_analytics_source_data_1'];
+				    	currRecord['hspt']['id'] = currRecord['hspt']['vid'];
 				    	
 				    	currRecord['hspt']['id'] = currRecord['hspt']['vid'];
 				    	// duration related fields below
@@ -129,6 +136,14 @@
 				    		currRecord['hspt']['last_stage'] = currRecord['hspt']['properties']['last_stage'];
 				    	if (currRecord['hspt']['properties']['days_in_this_stage']) 
 				    		currRecord['hspt']['days_in_this_stage'] = currRecord['hspt']['properties']['days_in_this_stage'];
+				    	// form related fields
+				    	if (currRecord['hspt']['properties']['city'])
+				    		currRecord['hspt']['City'] = currRecord['hspt']['properties']['city'];
+				    	if (currRecord['hspt']['properties']['country'])
+				    		currRecord['hspt']['Country'] = currRecord['hspt']['properties']['country'];
+				    	if (currRecord['form'])
+				    		currRecord['hspt']['Form'] = currRecord['form'];
+				    		
 				    	leads.push(currRecord['hspt']);
 				    }
 				    else if (currRecord['sfdc'])
@@ -200,7 +215,9 @@
 		    	currRecord['sourceChannel'] = currRecord['hs_analytics_source'];
 		    	currRecord['sourceChannelDetail'] = currRecord['hs_analytics_source_data_1'];
 		    	currRecord['sourceChannelCampaign'] = currRecord['hs_analytics_source_data_2'];
-		    	
+		    	currRecord['City'] = currRecord['city'];
+		    	currRecord['Country'] = currRecord['country'];
+		    	currRecord['Form'] = currRecord['form'];
 		    	currRecord['id'] = currRecord['vid'];
 		    	leads.push(currRecord);
 				

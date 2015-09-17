@@ -22,6 +22,14 @@
 							return '/static/templates/analytics/binder-pdf.html';
 					}*/
 				})
+				.state('dashboards-listing', {
+					url : '/dashboards',
+					controller : 'DashboardsController',
+					controllerAs : 'vm',
+					ncyBreadcrumb: {
+				    	label: 'Dashboards'
+				    }
+				})	
 				.state('dashboards', {
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
@@ -30,13 +38,17 @@
 						var constUrl = '/static/templates/dashboards/';
 						if ($stateParams.type == 'funnel')
 							return constUrl + 'dashboard-funnel.html';
-						else if ($stateParams.type == 'social')
+						else if ($stateParams.type == 'social_roi')
 							return constUrl + 'dashboard-social.html';
 						else if ($stateParams.type == 'waterfall')
 							return constUrl + 'dashboard-waterfall.html';
 						else if ($stateParams.type == 'form_fills')
 							return constUrl + 'dashboard-forms.html';
-					}
+					},
+				    ncyBreadcrumb: {
+				    	label: '{{ current_dashboard.title }}',
+				    	parent: 'dashboards-listing'
+				    }
 				})
 		        .state(
 				'fbok-test',
@@ -92,7 +104,10 @@
 					url : '/admin',
 					//controller : 'RegisterController',
 					//controllerAs : 'vm',
-					templateUrl : '/templates/admin/index.html'
+					templateUrl : '/templates/admin/index.html',
+					ncyBreadcrumb: {
+				    	label: 'Admin'
+				    }
 				})
 				.state(
 					'register',
@@ -124,26 +139,41 @@
 					url : '/users',
 					controller : 'RegisterController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/authentication/users.html'
+					templateUrl : '/static/templates/authentication/users.html',
+					ncyBreadcrumb: {
+				    	label: 'Users',
+				    	parent: 'admin'
+				    }
 				})
 				.state('profile', {
 					url : '/users/:id',
 					//params: {id:null},
 					controller : 'ProfileController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/profiles/profile.html'
+					templateUrl : '/static/templates/profiles/profile.html',
+					ncyBreadcrumb: {
+				    	label: '{{ profile.username }}',
+				    	parent: 'users'
+				    }
 				})
 				.state('profile_settings', {
 					url : '/users/:id/settings',
 					controller : 'ProfileSettingsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/profiles/settings.html'
+					templateUrl : '/static/templates/profiles/settings.html',
+					ncyBreadcrumb: {
+				    	label: 'Settings',
+				    	parent: 'profile'
+				    }
 				})
 				.state('leads', {
 					url : '/leads',
 					controller : 'LeadsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/leads/leads.html'
+					templateUrl : '/static/templates/leads/leads.html',
+					ncyBreadcrumb: {
+				    	label: 'Leads'
+				    }
 				})
 				.state('leads-code', {
 					url : '/leads/:code',
@@ -161,19 +191,28 @@
 					url : '/accounts',
 					controller : 'AccountsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/accounts/accounts.html'
+					templateUrl : '/static/templates/accounts/accounts.html',
+					ncyBreadcrumb: {
+				    	label: 'Accounts'
+				    }
 				})
 				.state('companies', {
 					url : '/companies',
 					controller : 'AccountsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/accounts/accounts-companies.html'
+					templateUrl : '/static/templates/accounts/accounts-companies.html',
+					ncyBreadcrumb: {
+				    	label: 'Companies'
+				    }
 				})
 				.state('campaigns', {
 					url : '/campaigns',
 					controller : 'CampaignsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/campaigns/campaigns.html'
+					templateUrl : '/static/templates/campaigns/campaigns.html',
+					ncyBreadcrumb: {
+				    	label: 'Campaigns'
+				    }
 				})
 				.state('campaigns-code', {
 					url : '/campaigns/:code',
@@ -187,7 +226,11 @@
 							url : '/integrations/new/:code',
 							controller : 'NewIntegrationController',
 							controllerAs : 'vm',
-							templateUrl : '/static/templates/integrations/new-integration-index.html'
+							templateUrl : '/static/templates/integrations/new-integration-index.html',
+							ncyBreadcrumb: {
+						    	label: 'New',
+						    	parent: 'integrations'
+						    }
 						})
 				.state(
 						'integrations-edit',
@@ -195,25 +238,41 @@
 							url : '/integrations/edit/:code',
 							controller : 'NewIntegrationController',
 							controllerAs : 'vm',
-							templateUrl : '/static/templates/integrations/new-integration-index.html'
+							templateUrl : '/static/templates/integrations/new-integration-index.html',
+							ncyBreadcrumb: {
+						    	label: 'Edit',
+						    	parent: 'integrations'
+						    }
 						})
 				.state('integrations/:tabname', {
 					url : '/integrations/:tabname',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/integrations/main.html'
+					templateUrl : '/static/templates/integrations/main.html',
+					ncyBreadcrumb: {
+				    	label: '{{breadcrumbName}}',
+				    	parent: 'integrations'
+				    }
 				})
 				.state('integrations/:tabname/:result', {
 					url : '/integrations/:tabname/:result',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/integrations/main.html'
+					templateUrl : '/static/templates/integrations/main.html',
+					ncyBreadcrumb: {
+				    	label: 'Integrations',
+				    	parent: 'integrations'
+				    }
 				})
 				.state('integrations', {
 					url : '/integrations',
 					controller : 'IntegrationsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/integrations/main.html'
+					templateUrl : '/static/templates/integrations/main.html',
+					ncyBreadcrumb: {
+				    	label: 'Integrations',
+				    	parent: 'admin'
+				    }
 				})				
 				.state('oauth/:source', {
 					url : '/oauth/:source?code&state&access_token&expires_in&refresh_token&oauth_token&oauth_verifier',
@@ -233,17 +292,38 @@
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/integrations/data.html'
 				})
-				.state('dashboard', {
+				.state('main-dashboard', {
 					url : '/dashboard',
 					controller : 'CompanyController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/company/dashboard.html'
 				})
 				.state('analytics', {
-					url : '/analytics',
+					url : '',
+					redirectTo: 'charts',
+				    ncyBreadcrumb: {
+				    	label: 'Analytics',
+				    }
+				})
+				.state('charts', {
+					url : '/charts',
 					controller : 'AnalyticsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/analytics.html'
+					templateUrl : '/static/templates/analytics/analytics-listing.html',
+				    ncyBreadcrumb: {
+				    	label: 'Charts',
+				    	parent: 'analytics'
+				    }
+				})
+				.state('showchart', {
+					url : '/charts/:url',
+					controller : 'AnalyticsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/analytics-chart.html',
+					ncyBreadcrumb: {
+				    	label: '{{ chartTitle }}',
+				    	parent: 'charts'
+				    }
 				})
 				.state('tweets', {
 					url : '/tweets',
@@ -273,19 +353,65 @@
 					url : '/binders',
 					controller : 'BindersController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/binders.html'
+					templateUrl : '/static/templates/analytics/binders.html',
+					ncyBreadcrumb: {
+				    	label: 'Binders',
+				    	parent: 'analytics'
+				    }
+				})
+				.state('binders-list', {
+					url : '/binders/list/:template',
+					controller : 'BindersController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/binder-list.html',
+					ncyBreadcrumb: {
+				    	label: 'List',
+				    	parent: 'binders'
+				    }
+				})
+				.state('binder-new', {
+					url : '/binders/new',
+					controller : 'BindersController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/binder-template.html',
+					ncyBreadcrumb: {
+				    	label: 'New',
+				    	parent: 'binders'
+				    }
+				})
+				.state('binder-show', {
+					url : '/binder/:binderId',
+					params: {
+						binder: null, 
+						binderId:null
+					},
+					controller : 'BindersController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/binder-show.html',
+					ncyBreadcrumb: {
+				    	label: '{{breadcrumbName}}',
+				    	parent: 'binders'
+				    }
 				})
 				.state('snapshots', {
 					url : '/snapshots',
 					controller : 'SnapshotsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/snapshots.html'
+					templateUrl : '/static/templates/analytics/snapshots.html',
+					ncyBreadcrumb: {
+				    	label: 'Snapshots',
+				    	parent: 'analytics'
+				    }
 				})
 				.state('snapshot', {
 					url : '/snapshot:html',
 					controller : 'SnapshotsController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/snapshot.html'
+					templateUrl : '/static/templates/analytics/snapshot.html',
+					ncyBreadcrumb: {
+				    	label: 'Snapshot',
+				    	parent: 'snapshots'
+				    }
 				})
 				.state('enterChannel', {
 					url : '/channel/:enteredRoom&:roomName&:roomDescription',
@@ -300,17 +426,32 @@
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/layout/notifications.html'
 				})
+				.state('exports', {
+					url : '/exports',
+					controller : 'MessagesController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/layout/exports.html',
+					ncyBreadcrumb: {
+				    	label: 'Exports'
+				    }
+				})
 				.state('/oops', {
 					url : '/oops',
 					controller : 'IndexController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/layout/404.html'
+					templateUrl : '/static/templates/layout/404.html',
+					ncyBreadcrumb: {
+				    	label: 'Uh oh'
+				    }
 				})
 				.state('/', {
 					url : '/',
 					controller : 'CompanyController',
 					controllerAs : 'vm',
-					templateUrl : '/static/templates/company/dashboard.html'
+					templateUrl : '/static/templates/company/dashboard.html',
+					ncyBreadcrumb: {
+				    	label: 'Home'
+				    }
 				});
 
 		$urlRouterProvider.otherwise('/oops');

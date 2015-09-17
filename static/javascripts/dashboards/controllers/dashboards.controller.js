@@ -13,7 +13,7 @@
 	                                'Leads', 'Snapshots', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
-	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'Social', 'Websites', 'Common'];
+	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'Social', 'Websites', 'Common', '$compile'];
 
 	/**
 	 * @namespace DashboardsController
@@ -21,7 +21,7 @@
 	function DashboardsController($scope, Dashboards, Authentication, Leads,
 			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
-			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope,  Social, Websites, Common, $interval) {
+			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope,  Social, Websites, Common, $compile, $interval) {
 
 		var vm = this;
 		vm.dashboards = [];
@@ -136,6 +136,7 @@
 				endDate : moment().endOf("day")
 		};
 	
+		getDashboards(); // get all dashboards for this company
 		
 		$scope.startDate = $scope.groupDates.date.startDate;
 		$scope.endDate = $scope.groupDates.date.endDate;
@@ -158,8 +159,8 @@
 		if ($state.params.type == 'funnel') {
 			$scope.dashboard_name = 'funnel';
 		}
-		else if ($state.params.type == 'social') {
-			$scope.dashboard_name = 'social';
+		else if ($state.params.type == 'social_roi') {
+			$scope.dashboard_name = 'social_roi';
 		}
 		else if ($state.params.type == 'waterfall') {
 			$scope.dashboard_name = 'waterfall';
@@ -176,11 +177,44 @@
 				legend: {
                     colors: [ '#CC0066', '#006699', '#FF0000', '#00CC00', '#FFCC00' ],
                     labels: [ 'Oceania', 'America', 'Europe', 'Africa', 'Asia' ]
+                },
+                defaults: {
+                	scrollWheelZoom: false
                 }
 			});
 			
 			Common.getCountriesData().then(CountriesDataSuccessFxn, CountriesDataErrorFxn);
 		}
+		
+		
+		function getDashboards() {
+	        var account = Authentication.getAuthenticatedAccount();
+			if (account) {
+			    Dashboards.getDashboardsByCompany(account.company)
+					.then(DashboardsSuccessFn, DashboardsErrorFn);
+			}
+			else {
+				toastr.error("You need to login first");
+			}
+        }
+        
+		function DashboardsSuccessFn(data, status, headers, config) {
+			if (data.data.results.length > 0) 
+			{  
+				$scope.dashboards = data.data.results;
+				$scope.current_dashboard = Common.findByAttr($scope.dashboards, 'name', $scope.dashboard_name);
+			}
+			else {
+				toastr.error("Could not find dashboards for company");
+			}
+		}
+		
+		function DashboardsErrorFn(data, status, headers, config) {
+			toastr.error("Could not find dashboards for company");
+			return false;
+		} 
+		
+		$scope.breadcrumbName = Common.capitalizeFirstLetter($scope.dashboard_name);
 		$scope.system_type = 'MA';
 		$scope.start_date = moment().subtract(30, "days").startOf("day").unix();
 		$scope.end_date = moment().endOf("day").unix();
@@ -191,8 +225,8 @@
 		
 		function DashboardSuccessFxn(data, status, headers, config) {
 			//$scope.results = data.data;
-			$scope.currentPage = {};
-			$scope.currentPage.dashboardData = data.data; // these 2 lines needed to enable dashboard data in binders
+			$scope.currentPageBinder = {};
+			$scope.currentPageBinder.dashboardData = data.data; // these 2 lines needed to enable dashboard data in binders
 			$scope.now = moment();
 			if ($scope.map) // if showing a map, create markers
 				createMarkers();
@@ -210,15 +244,44 @@
 		}
         
         function createMarkers() {
-        	var countries = $scope.currentPage.dashboardData.countries;
+        	var continents = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania'];
+        	var countries = $scope.currentPageBinder.dashboardData.countries;
         	var markers = {};
-        	
+        	var layers = {};
+        	var myIcon = L.divIcon({className: 'my-div-icon'});
         	for (var key in countries) {
         		if (countries.hasOwnProperty(key))
-        		   markers[key] = {'lat': countries[key]['lat'], 'lng': countries[key]['long'], 'title': key, 'label': {'message' : countries[key]['count'], 'options' : {'noHide': true}}, 'draggable': false};
-        	}
+        		{
+        			var upperKey = Common.capitalizeSentence(key); 
+        			var continent = Common.capitalizeSentence(countries[key]['continent']);
+        			//
+        			var msg = '<div><a href="#" ng-click="drilldown(\'contacts\', \'' + key + '\', \'Form Fills\', \'form_fills\')" >' + upperKey + ': ' + countries[key]['count'] + '</a></div>';
+        			//var linkFn = $compile(angular.element(msg));
+        			//var popup = linkFn($scope);
+            		markers[key] = {'group': continent , 'message': '', 'clickable' : false, 'getMessageScope': function() { return $scope; }, 'getLabelScope': function() { return $scope; }, 'icon': myIcon, 'lat': Number(countries[key]['lat']), 'lng': Number(countries[key]['long']), 'title': upperKey, 'focus': false, 'label': {'message' : msg, 'options' : {'noHide': true, 'direction': 'auto', 'compileMessage': true}}, 'draggable': false, 'riseOnHover': true, 'opacity': 1};
+        		}
+        	}		
+    		/*layers['baselayers'] = {
+                    mapbox_light: {
+                        name: 'Mapbox Light',
+                        url: 'http://api.tiles.mapbox.com/v4/{mapid}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoid29vc3RlcnNveiIsImEiOiJjaWVra2hubzUwMDE4c3NtNHkyY3JsbHM5In0.s_oBGYyv3sUXDCkez4Ojug',
+                        type: 'xyz',
+                        layerOptions: {
+                            apikey: 'pk.eyJ1Ijoid29vc3RlcnNveiIsImEiOiJjaWVra2hubzUwMDE4c3NtNHkyY3JsbHM5In0.s_oBGYyv3sUXDCkez4Ojug',
+                            mapid: 'bufanuvols.lia22g09'
+                        }
+                    }
+            };
+    		console.log(layers);
+    		var overlays = {};
+    		for (var i=0; i < continents.length; i++) {	
+    			overlays[continents[i]] = {'name' : continents[i], type: "markercluster", visible: true};
+    		}
+    		layers['overlays'] = overlays;*/
+               
         	//angular.extend($scope, {
         	$scope.markers = markers;
+        	//$scope.layers = layers;
         	//});
         }
         
@@ -269,20 +332,21 @@
     		}
     	    }, true);
         
-        function drilldown(object, section, channel) {
+        function drilldown(object, section, channel, chart_name) {
         	
         	$scope.object = object;
         	$scope.section = section;
         	$scope.channel = channel;
+        	$scope.chart_name = chart_name;
         	$scope.system_type = 'MA';
         	
         	if (account)
         		{
-        		   $scope.filterTitle = ' for ' + Common.capitalizeFirstLetter($scope.section) + ' ' + Common.capitalizeFirstLetter($scope.object) + ' from ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date).format("YYYY-MM-DD");
+        		   $scope.filterTitle = ' for ' + Common.capitalizeFirstLetter($scope.section) + ' ' + Common.capitalizeFirstLetter($scope.object) + ' from ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date / 1000 ).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date / 1000).format("YYYY-MM-DD");
         		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
-        		     Dashboards.drilldownContacts(account.company, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+        		     Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
         		   else if ($scope.object == 'deals' )
-        			   Dashboards.drilldownDeals(account.company, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+        			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
         		}
         }
         
@@ -295,9 +359,14 @@
 			    $scope.endLeadCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startLeadCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.leadsPerPage;
 				
 				vm.leads = Leads.cleanLeadsBeforeDisplay(data.data.results, false, '', '');
+				vm.leads.sort(Common.sortByProperty("id"));
 				$scope.showLeads = true;
 				$scope.showDeals = false;
 				$scope.hideDetailColumn = true;
+				if ($scope.chart_name == 'form_fills')
+					$scope.showFormData = true;
+				else
+					$scope.showFormData = false;
 				
 				if (data.data.portal_id) { // drilldown into HSPT
 					$scope.portal_id = data.data.portal_id;
@@ -354,9 +423,9 @@
 			if (account)
     		{
     		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
-    			   Dashboards.drilldownContacts(account.company, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+    			   Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
     		   else if ($scope.object == 'deals' )
-    			   Dashboards.drilldownDeals(account.company, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+    			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
     		}
 	    }
 

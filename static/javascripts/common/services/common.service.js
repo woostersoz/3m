@@ -21,9 +21,11 @@
     	findByAttr: findByAttr,
     	findItemsByAttr: findItemsByAttr,
     	capitalizeFirstLetter: capitalizeFirstLetter,
+    	capitalizeSentence: capitalizeSentence,
         exportToPdf: exportToPdf,
         getCountriesGeoData: getCountriesGeoData,
-        getCountriesData: getCountriesData
+        getCountriesData: getCountriesData,
+        sortByProperty: sortByProperty
     };
 
     return Common;
@@ -76,6 +78,22 @@
     
     function capitalizeFirstLetter(stringX) { 
     	return stringX.charAt(0).toUpperCase() + stringX.slice(1);
+    }
+    
+    function capitalizeSentence(stringX) {
+    	return stringX.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+    }
+    
+    function sortByProperty(property) {
+    	var sortOrder = 1;
+        if(property[0] === "-") {
+            sortOrder = -1;
+            property = property.substr(1);
+        }
+        return function (a,b) {
+            var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+            return result * sortOrder;
+        }
     }
     
     function exportToPdf(company, object, id) {

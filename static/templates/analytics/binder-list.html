@@ -1,0 +1,80 @@
+<div class="portlet light">		
+
+    <div class="portlet-header">
+        <div class="title col-md-12">Binders - List</div>
+        <div ncy-breadcrumb class="title col-md-6 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-6 breadcrumb ">
+          <div class="pull-right" style="margin-top: -5px">
+				<div class="btn-group pull-right" style="margin-top: 3px">
+				<a href="" ui-sref="binders" role="button"
+					id="show_binder_templates" class="btn btn-small pull-right"> Back to Templates </i>
+				</a>
+			    </div>
+			</div>
+        
+        </div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
+
+	<div class="portlet-body"
+		style="padding-left: 0 !important; padding-right: 0 !important">
+		<div class="clearfix">
+			<div class="col-md-12"
+				style="padding-left: 0 !important; padding-right: 0 !important">
+				<div ng-show="createBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-template.html'"></ng-include>
+				</div>
+				<!-- div ng-show="showBinder" class="animate-show-hide">
+					<ng-include
+						src="'/static/templates/analytics/binder-show.html'"></ng-include>
+				</div -->
+				
+				<table ng-hide="!binders || !binders.length || createBinder || showBinder"  class="table table-striped table-hover actionTable dataTable"
+					id="binders_table" dt-options="vm.dtOptions" ng-cloak>
+					<thead>
+						<tr>
+						    <th class="center">&nbsp;</th>
+							<th class="">Name</th>
+							<th class="">Created on</th>
+							<th class=""># Pages</th>
+							
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr ng-repeat="binder in binders">
+						    <td class="center">
+							<a class="btn btn-sm" ui-sref="binder-show({'binder':binder, 'binderId':binder.id})" href="javascript:;">Details</a>
+						    </td>
+							<td class="">
+							{{ binder.name }}
+							</td>
+							<td class="">
+							<time title="{{ binder.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
+							{{ binder.updated_date | amCalendar }}
+							</time>
+							</td>
+							<td class="">
+							{{ binder.pages.length }}
+							</td>
+							
+						</tr>
+					</tbody>
+					<div ng-hide="binders && binders.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no binders available.</em>
+						</div>
+					</div>
+
+				</table>
+
+
+				<!--  end of first col-md-6 -->
+			</div>
+			<!--  clearfix end -->
+		</div>
+	</div>

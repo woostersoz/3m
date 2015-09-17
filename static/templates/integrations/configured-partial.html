@@ -1,6 +1,6 @@
 <div class="tab-pane active" id="new_tab">
-	<div class="note note-success" style="line-height:25px">
-		<p>These are the connections that you have already set up. You need to authorize them before they become useful. <p>Authorized systems are marked with a <span style="display:inline-block; height:15px;"><span style="display:table-cell; height:20px; vertical-align:middle"><i class="font-green-jungle fa fa-2x fa-check-circle"></i></span></span></p></p>
+	<div class="note note-success italic" style="line-height:25px">
+		<p>These are the connections that you have already set up. You need to authorize them before they become useful.</p>
 	</div>
 	<div class="clearfix margin-bottom-20" ng-repeat="system in vm.existingSystems">
 		<ul class="media-list">
@@ -8,22 +8,24 @@
 				<div class="pull-right media-button">
 					<form name="integration_form">
 						<div class="form-group" ng-hide="existingSystems[getId(system)]">
-						    <a href="#" ng-click="deleteSystem(system)" class="btn red-flamingo">
+						    <a href="#" ng-click="deleteSystem(system)" class="btn action-button">
 								<span class="glyphicon glyphicon-trash"></span> Delete
 							</a>&nbsp;&nbsp;
-							<a href="#" ng-click="editSystem(system)" class="btn blue-madison">
+							<a href="#" ng-click="editSystem(system)" class="btn action-button">
 								<span class="glyphicon glyphicon-pencil"></span> Edit
 							</a>&nbsp;&nbsp;
-							<a ng-hide="system.company_info.access_token.length > 0" href="#" ng-click="authorize(system.company_info)" class="btn green-jungle">
-								<span class="glyphicon glyphicon-off"></span> Authorize
+							<div class="pull-right authorized-icon" title="Authorize" ng-hide="system.company_info.access_token.length > 0">
+							<a title="Authorize" href="#" ng-click="authorize(system.company_info)">
+								<i class="font-green-jungle fa fa-2x fa-exclamation-triangle"></i>
 							</a>
+							</div>
 							<div class="pull-right authorized-icon" title="Authorized" ng-show="system.company_info.access_token.length > 0"><i class="font-green-jungle fa fa-2x fa-check-circle"></i></div>
 						</div>
 						<div class="form-group" ng-show="existingSystems[getId(system)]">
-						    <a href="#" ng-click="confirmedDeleteSystem(system)" class="btn red-flamingo">
+						    <a href="#" ng-click="confirmedDeleteSystem(system)" class="btn action-button">
 								<span class="glyphicon glyphicon-ok"></span> Confirm
 							</a>&nbsp;&nbsp;
-							<a href="#" ng-click="cancelDeleteSystem(system)" class="btn green-jungle">
+							<a href="#" ng-click="cancelDeleteSystem(system)" class="btn action-button">
 								<span class="glyphicon glyphicon-remove"></span> Cancel
 							</a>
 						</div>
@@ -35,7 +37,7 @@
 			    </a>
 				<div class="media-body">
 					<h4 class="media-heading">{{ system.name }}</h4>
-					<small class="text-muted">{{ system.description }}</small>
+					<small class="text-muted italic">{{ system.description }}</small>
 				</div>
 			</li>
 		</ul>

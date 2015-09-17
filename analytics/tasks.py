@@ -3862,6 +3862,19 @@ def hspt_form_fills(user_id, company_id, chart_name, mode, start_date):
             #get all leads who have a recent conversion date today
             querydict = {company_field_qry: company_id, hspt_recent_conversion_date_start_qry: utc_day_start, hspt_recent_conversion_date_end_qry: utc_day_end}
             recentConversionLeads =  Lead.objects(**querydict).aggregate(
+                { "$project": { #additional project and match stages for Recent dates to ensure non-duplication where Recent and First are the same
+                   "leads.hspt.properties.recent_conversion_date": 1,
+                   "leads.hspt.properties.first_conversion_date": 1,
+                   "leads.hspt.properties.country": 1,
+                   "leads.hspt.properties.recent_conversion_event_name": 1, 
+                   "hspt_id": 1,
+                   "isDifferent": {"$gt": ["$leads.hspt.properties.recent_conversion_date", "$leads.hspt.properties.first_conversion_date"]}
+                               }
+                },
+                {  "$match": {
+                    "isDifferent": True          
+                              }  
+                },
                 { "$group": {
                     "_id": {
                         "country": "$leads.hspt.properties.country",
@@ -3887,6 +3900,7 @@ def hspt_form_fills(user_id, company_id, chart_name, mode, start_date):
             )
             
             recentList = list(recentConversionLeads)
+            print 'recent list ' + str(recentList)
             
             results_data, results_ids = _process_form_list(recentList)  
             result_data['recent'] = results_data
@@ -3952,7 +3966,7 @@ def _process_form_list(listx):
 
 def _process_country(entry):
     #normalize countries
-    
+    from mmm.countries import countries 
     country = entry['_id']
     if country is None: # if country is None, don't try to do much more with it
         entry['geo'] = 'others'
@@ -3972,6 +3986,12 @@ def _process_country(entry):
                     super_country = SuperCountry(country=location.address.lower())
                     super_country['alternatives'] = []
                     super_country['alternatives'].append(country.lower())
+                    super_country['lat'] = str(location.latitude)
+                    super_country['long'] = str(location.longitude)
+                    super_country['continent'] = 'unknown'
+                    for countryx in countries:
+                        if countryx['name'].lower() == location.address.lower():
+                            super_country['continent'] = countryx['continent'].lower()
                     super_country.save()
                 else:
                     super_country['alternatives'].append(country.lower())

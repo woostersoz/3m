@@ -1,24 +1,31 @@
 <!-- BEGIN TABLE PORTLET-->
-<div class="portlet light" style="padding-top: 0px !important; padding-left: 0px !important; padding-right: 0px !important">
+<div class="portlet light">
+    <div class="portlet-header">
+        <div class="title col-md-12">{{ chartTitle }}</div>
+        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-3 breadcrumb">
+           <a href="#" ui-sref="charts" class="pull-right" style="font-weight:700;">Back to Charts</a>
+	    </div>
+    </div>
 	<div class="portlet-title">
-		<div class="caption">
-			<i class="fa fa-bullseye font-blue-madison"></i><span
+		<div class="caption col-md-9">
+			<i class="fa fa-signal font-blue-madison"></i><span
 				class="caption-subject bold uppercase font-blue-madison">Chart</span>
 		</div>
-		<a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right small  animate-show-hide" style="padding:10px 0; color:#0491c3 !important; font-size:14px !important;font-weight:700;">Back to Charts</a>
+		<div class="input-group col-md-3 pull-right" style="padding-top:2px;">
+			<span class="input-group-addon"><span
+				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
+				date-range-picker class="form-control date-picker pull-right"
+				style="font-size: 0.7rem !important; width: 100% !important"
+				name="groupDates.date" ng-model="groupDates.date" options="opts"
+				placeholder="Select date range" />
+		</div>
 	</div>
 	<div class="portlet-bodyx">
 
     <div ng-if="showChart">
-		<div class="input-group col-sm-4 pull-left">
-			<span class="input-group-addon"><span
-				class="glyphicon glyphicon-calendar"></span></span> <input type="text"
-				date-range-picker class="form-control date-picker"
-				style="font-size: 0.7rem !important; width: 75% !important"
-				name="groupDates.date" ng-model="groupDates.date" options="opts"
-				placeholder="Select date range" />
-		</div>
-		<div class="input-group col-sm-4 pull-left" id="filters">
+		
+		<div class="input-group col-sm-8 pull-left" id="filters">
 			<select name="google_profiles" class="input-small form-control" style="clear:none; margin-right:5px"
 					ng-options="item.profile_id as item.account_name + '- ' + item.profile_name for item in filterValues['google_profiles']"
 					ng-model="selectedFilterValues['google_profile']" ng-show="filters['google_profiles']" ng-required="filters['google_profiles']">
@@ -41,17 +48,17 @@
 			</select>
 		</div>
 		<div class="col-sm-4 pull-right chart-tools">
-			<a href="#" class="btn btn-sm green-jungle pull-right"
+			<a href="#" class="btn btn-sm pull-right"
 				ng-click="postToChannel()" title="Post to Channel">
 				<span class="glyphicon glyphicon-headphones"></span>
 				Post
 			</a>
-			<a href="#"  class="btn btn-sm blue-steel pull-right"
+			<a href="#"  class="btn btn-sm pull-right"
 				ng-click="snapshot()" title="Take Snapshot">
 				<span class="glyphicon glyphicon-camera"></span>
 				Snapshot
 			</a>
-			<a href="#"  class="btn btn-sm yellow-casablanca pull-right"
+			<a href="#"  class="btn btn-sm pull-right"
 				ng-click="createNote()" title="Add Sticky">
 				<span class="glyphicon glyphicon-comment"></span>
 				Sticky
@@ -76,13 +83,12 @@
 		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
 		</div>
 	</div>
-	
-	<div ng-if="!showChart" class="text-center">
-	
-	<h3 class="text-muted">Select a chart from above</h3>
-	
-	</div>
-	
-	
-	
+
+</div>
+<h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+
+<div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+<div style="margin-left:-20px; margin-right:-20px" ng-show="showTweets" class="animate-show-hide"><ng-include src="'/static/templates/social/analytics-social.html'"></ng-include></div>
+<div style="margin-left:-20px; margin-right:-20px" ng-show="showWebsiteVisitors" class="animate-show-hide"><ng-include src="'/static/templates/websites/analytics-websites.html'"></ng-include></div>
+	    
 </div>

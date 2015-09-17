@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import serializers as drfme_serial, DocumentSerializer
 
-from leads.models import Lead
+from leads.models import Lead, LeadWithForm
 
 class LeadSerializer(DocumentSerializer):       
 #     company_id = drfme_serial.IntegerField()
@@ -33,4 +33,16 @@ class LeadSerializer(DocumentSerializer):
                 setattr(instance, k, v)
             return instance
         return Lead(**attrs)
+    
+class LeadWithFormSerializer(DocumentSerializer):  
+    class Meta:
+        model = LeadWithForm
+        #fields = ('company_id', 'leads', 'contacts', 'activities', 'lists', 'statuses', 'contacts', 'opportunities', 'updated_date', 'source_first_name', 'source_last_name', 'source_email', 'source_company', 'source_created_date', 'source_status', 'source_stage', 'source_source', )
+
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            for k, v in attrs.iteritems():
+                setattr(instance, k, v)
+            return instance
+        return LeadWithForm(**attrs)     
     

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic.base import TemplateView
 from django.utils.decorators import method_decorator
@@ -8,16 +9,29 @@ from itertools import tee, izip, islice
 from nltk import bigrams
 from operator import itemgetter
 from tempfile import NamedTemporaryFile
+import csv
+import time
+import os
 
-from rest_framework import status, views
+from rest_framework import status, views, permissions, viewsets
 from subprocess import PIPE, STDOUT, Popen, call
 from django.core.files import File
-from django.http import HttpResponse, JsonResponse
+from django.core.servers.basehttp import FileWrapper
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from rest_framework.response import Response
+from mmm.celery import app
+from celery import task
+from mongoengine.queryset.visitor import Q
+from bson import ObjectId
 
 from company.models import TempData, TempDataDelta
 from nltk.parse.pchart import ProbabilisticBottomUpInitRule
 from rest_framework.decorators import renderer_classes
+
+from collab.signals import send_notification
+from collab.models import Notification 
+from mmm.models import ExportFile
+from mmm.serializers import ExportFilesSerializer
 
 
 class IndexView(TemplateView):
@@ -36,7 +50,7 @@ class TimezoneMiddleware(object):
         else:
             timezone.deactivate()
             
-def _str_from_date(dateTime, format=None): # returns a datetime object from a timezone like string 
+def _str_from_date(dateTime, format=None): # returns a timezone like string from a datetime object
     
     if format == 'short': # short format of date string found in Mkto created date
         return datetime.strftime(dateTime, '%Y-%m-%d')
@@ -271,4 +285,161 @@ class ExportView(views.APIView):
         response['Content-Disposition'] = 'attachment; filename=binder_pdf.pdf'
         return response
 
+@app.task
+def exportToCsv(object_type, system_code, data, chart_name, user_id, company_id):
+    if object_type is None or system_code is None or data is None:
+        return 
+    try:
+        if object_type == 'lead':
+            result = exportLeadsToCsv(system_code, data, chart_name, user_id, company_id)
+            print 'got result ' + str(result)
+            file_name = result['file_name']
+            content_type = result['content_type']
+            export_file = open(file_name, 'rb')
+            exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=chart_name, type=content_type, file_name=os.path.basename(file_name))
+            exportFile.file.put(export_file, content_type=content_type)
+            exportFile.save()
+            try:
+                message = 'CSV file successfully exported'
+                notification = Notification()
+                #notification.company_id = company_id
+                notification.owner = user_id
+                notification.module = 'Exports'
+                notification.type = 'Background task' 
+                notification.method = os.path.basename(__file__)
+                notification.message = message
+                notification.success = True
+                notification.read = False
+                notification.save()
+            except Exception as e:
+                send_notification(dict(
+                     type='error',
+                     success=False,
+                     message=str(e)
+                    ))          
+        else:
+            return
+    except Exception as e:
+        print 'exception while trying to save CSV file: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))        
+
+       
+def exportLeadsToCsv(system_code, data, chart_name, user_id, company_id):
+    if system_code == 'hspt':
+        result = exportHsptLeadsToCsv(data, chart_name, user_id, company_id)
+    else:
+        return 
+    return result
+ 
+      
+def exportHsptLeadsToCsv(data, chart_name, user_id, company_id):
+    
+    leads = data.get('results', None) #because this is being sent from the Lead drilldown view
+    portal_id = data.get('portal_id', None)
+    if leads is None or portal_id is None:
+        return
+    try:
+        #open a temp file for writing
+        end_date_string = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime())
+        base_file_name = end_date_string + '_' + chart_name + '_leads' + '_cx.csv'
+        file_name = '/tmp/' +  base_file_name
+        csv_out = open(file_name, 'wb')
+        fieldnames = ['Hubspot ID', 'First Name', 'Last Name', 'Email', 'City', 'Country', 'Current Stage', 'Source', 'Subscriber Date', 'Lead Date', 'MQL Date', 'SQL Date', 'Opportunity Date', 
+                      'Customer Date', 'First Visit Date', 'Last Visit Date', 'First Form', 'First Form Date', 'Recent Form', 'Recent Form Date',  ]
         
+        #create writer
+        csv_writer = csv.DictWriter(csv_out, fieldnames=fieldnames, restval='', extrasaction='ignore')
+        csv_writer.writeheader()
+        
+        for lead in leads:
+            subscriber_date = lead_date = mql_date = sql_date = opp_date = customer_date = first_visit_date = last_visit_date = first_conversion_date = recent_conversion_date = ''
+            
+            hspt_id_url = "http://app.hubspot.com/contacts/" + str(portal_id) + "/contact/" +  str(lead['hspt_id']) 
+            hspt_id = '=HYPERLINK("' + hspt_id_url + '", "' + str(lead['hspt_id']) + '")'
+            if 'hspt_subscriber_date' in lead and lead['hspt_subscriber_date'] is not None:
+                subscriber_date = datetime.strftime(lead['hspt_subscriber_date'], '%Y-%m-%d %H:%M:%S')
+            if 'hspt_lead_date' in lead and lead['hspt_lead_date'] is not None:
+                lead_date = datetime.strftime(lead['hspt_lead_date'], '%Y-%m-%d %H:%M:%S')
+            if 'hspt_mql_date' in lead and lead['hspt_mql_date'] is not None:
+                mql_date = datetime.strftime(lead['hspt_mql_date'], '%Y-%m-%d %H:%M:%S')
+            if 'hspt_sql_date' in lead and lead['hspt_sql_date'] is not None:
+                sql_date = datetime.strftime(lead['hspt_sql_date'], '%Y-%m-%d %H:%M:%S')
+            if 'hspt_opp_date' in lead and lead['hspt_opp_date'] is not None:    
+                opp_date = datetime.strftime(lead['hspt_opp_date'], '%Y-%m-%d %H:%M:%S')
+            if 'hspt_customer_date' in lead and lead['hspt_customer_date'] is not None:    
+                customer_date = datetime.strftime(lead['hspt_customer_date'], '%Y-%m-%d %H:%M:%S')
+            if lead['leads']['hspt']['properties'].get('hs_analytics_first_visit_timestamp', '')  != '':
+                first_visit_date = datetime.strftime(lead['leads']['hspt']['properties'].get('hs_analytics_first_visit_timestamp', ''), '%Y-%m-%d %H:%M:%S')
+            if lead['leads']['hspt']['properties'].get('hs_analytics_last_visit_timestamp', '')  != '':
+                last_visit_date = datetime.strftime(lead['leads']['hspt']['properties'].get('hs_analytics_last_visit_timestamp', ''), '%Y-%m-%d %H:%M:%S')
+            if lead['leads']['hspt']['properties'].get('first_conversion_date', '')  != '':
+                first_conversion_date = datetime.strftime(lead['leads']['hspt']['properties'].get('first_conversion_date', ''), '%Y-%m-%d %H:%M:%S')
+            if lead['leads']['hspt']['properties'].get('recent_conversion_date', '')  != '':
+                recent_conversion_date = datetime.strftime(lead['leads']['hspt']['properties'].get('recent_conversion_date', ''), '%Y-%m-%d %H:%M:%S')
+            
+            csv_writer.writerow({'Hubspot ID' : hspt_id, 'First Name': lead['source_first_name'].encode('utf-8'), 'Last Name': lead['source_last_name'].encode('utf-8'), 'Email': lead['source_email'].encode('utf-8'), 'Country': lead['leads']['hspt']['properties'].get('country', '').encode('utf-8'), 
+                                 'City': lead['leads']['hspt']['properties'].get('city', '').encode('utf-8'), 'Current Stage': lead['source_stage'].encode('utf-8'),
+                                 'Source': lead['source_source'], 'Subscriber Date': subscriber_date, 'Lead Date': lead_date,
+                                 'MQL Date': mql_date, 'SQL Date': sql_date, 'Opportunity Date': opp_date,
+                                 'Customer Date': customer_date, 'First Visit Date': first_visit_date, 
+                                 'Last Visit Date': last_visit_date, 'First Form': lead['leads']['hspt']['properties'].get('first_conversion_event_name', '').encode('utf-8'),
+                                 'First Form Date': first_conversion_date, 'Recent Form': lead['leads']['hspt']['properties'].get('recent_conversion_event_name', '').encode('utf-8'),
+                                 'Recent Form Date': recent_conversion_date})
+        
+        csv_out.close()
+        try:
+            message = 'CSV file successfully exported'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Exports'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+        except Exception as e:
+            send_notification(dict(
+                 type='error',
+                 success=False,
+                 message=str(e)
+                ))          
+        return {'file_name': file_name, 'content_type' : 'text/csv'}
+    except Exception as e:
+        print 'exception while trying to create CSV file: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e))) 
+        
+class ManageExports(viewsets.ModelViewSet):  
+    
+    serializer_class = ExportFilesSerializer
+        
+    def list(self, request):
+        try:
+            user_id = request.user.id  
+            results = ExportFile.objects(owner_id=user_id).exclude("file")
+            count = results.count()
+            serializedList = ExportFilesSerializer(results, many=True)
+            return JsonResponse({'results' : serializedList.data, 'count': count})
+        except Exception as e:
+                return Response(str(e))    
+            
+class SingleExport(viewsets.ModelViewSet):  
+    
+    serializer_class = ExportFilesSerializer
+        
+    def list(self, request, file_id):
+        try:
+            user_id = request.user.id  
+            result = ExportFile.objects(Q(owner_id=user_id) & Q(id=ObjectId(file_id))).first()
+            if result is None:
+                return JsonResponse({'Error' : 'File not found to download'})
+            export_file = result.file
+            chunk_size = 8192
+            response = StreamingHttpResponse(FileWrapper(export_file, chunk_size), content_type=result['type'])
+            response['Content-Disposition'] = "attachment; filename=%s" % os.path.basename(result['file_name'])
+            return response
+        except Exception as e:
+                return Response(str(e))    
+            
+    

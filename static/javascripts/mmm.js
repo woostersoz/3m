@@ -41,8 +41,8 @@
     'FBAngular',
     'angular.filter',
     'nemLogging',
-    'leaflet-directive'
-    
+    'leaflet-directive',
+    'ncy-angular-breadcrumb'
   ]);
 
   angular
@@ -62,13 +62,13 @@
     .module('mmm')
     .run(run);
 
-  run.$inject = ['$http', '$rootScope', 'editableOptions'];
+  run.$inject = ['$http', '$rootScope', 'editableOptions', '$state'];
 
 /**
 * @name run
 * @desc Update xsrf $http headers to align with Django's defaults
 */
-function run($http, $rootScope, editableOptions) {
+function run($http, $rootScope, editableOptions, $state) {
   $http.defaults.xsrfHeaderName = 'X-CSRFToken';
   $http.defaults.xsrfCookieName = 'csrftoken';
   $rootScope.$on("$stateChangeError", console.log.bind(console));
@@ -83,5 +83,13 @@ function run($http, $rootScope, editableOptions) {
 	      }, 0);
 	    });
   };
+  
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState) {
+  	if (toState.redirectTo) {
+  		event.preventDefault();
+  		$state.go(toState.redirectTo, toParams);
+  	}
+  });
+  
 }
 })();

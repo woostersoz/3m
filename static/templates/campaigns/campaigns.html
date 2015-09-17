@@ -1,18 +1,14 @@
-<div class="row" ng-show="vm.campaigns">
-	<div class="col-md-12">
-		<!-- BEGIN TABLE PORTLET-->
+<!-- BEGIN TABLE PORTLET-->
 		<div class="portlet light">
-			<div class="portlet-title">
-				<div class="caption">
-					<i class="fa fa-volume-up font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Campaigns</span>
-				</div>
-				<div class="tools">
-					<a href="javascript:;" class="collapse"> </a> <a
-						href="#portlet-config" data-toggle="modal" class="config"> </a> <a
-						href="javascript:;" class="reload"> </a> <a href="javascript:;"
-						class="remove"> </a>
-				</div>
-			</div>
+			<div class="portlet-header short">
+        <div class="title col-md-12">Campaigns Summary</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
 			<div class="portlet-body">
 				<div class="table-toolbar" ng-hide="!vm.campaigns || !vm.campaigns.length">
 					<div class="row">
@@ -76,6 +72,4 @@
 			</div>
 		</div>
 		<!-- END EXAMPLE TABLE PORTLET-->
-	</div>
-</div>
 <!-- END PAGE CONTENT -->

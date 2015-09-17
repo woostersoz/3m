@@ -1,6 +1,8 @@
-<div class="row" ng-show="vm.snapshots.length">
-	<div class="col-md-12">
-		<!-- BEGIN TABLE PORTLET-->
+<!-- BEGIN TABLE PORTLET-->
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
 			<div class="portlet-body">
 				<div class="table-toolbar" ng-hide="!vm.snapshots || !vm.snapshots.length" >
 					<div class="row">
@@ -18,29 +20,29 @@
 						</div>
 					</div>
 				</div>
-				<table ng-hide="!vm.snapshots || !vm.snapshots.length"  class="table table-striped table-hover table-bordered dataTable"
-					id="snapshots_table" datatable="ng" dt-options="vm.dtOptions" ng-cloak>
+				<table ng-hide="!vm.snapshots || !vm.snapshots.length"  class="table table-striped table-hover actionTable dataTable"
+					id="snapshots_table" ng-cloak>
 					<thead>
 						<tr>
-							<th class="center">Source Chart</th>
-							<th class="center">Created on</th>
-							<th class="center">&nbsp;</th>
+						    <th>&nbsp;</th>
+							<th>Source Chart</th>
+							<th>Created on</th>
 						</tr>
 					</thead>
 
 					<tbody>
 						<tr ng-repeat="snapshot in vm.snapshots">
 							<td class="center">
+							<a class="btn btn-sm blue-steel" ng-click="showSnapshot(snapshot.id)" href="javascript:;">Show</a>
+						    </td>
+							<td>
 							{{ snapshot.chart_name }}
 							</td>
-							<td class="center">
+							<td>
 							<time title="{{ snapshot.updated_date | amDateFormat:'dddd, MMMM Do YYYY, h:mm a' }}">
 							{{ snapshot.updated_date | amCalendar }}
 							</time>
 							</td  class="center">
-							<td>
-							<a class="btn btn-sm blue-steel" ng-click="showSnapshot(snapshot.id)" href="javascript:;">Show</a>
-						    </td>
 						</tr>
 					</tbody>
 					<div ng-hide="vm.snapshots && vm.snapshots.length">
@@ -52,6 +54,4 @@
 				</table>
 			</div>
 		<!-- END EXAMPLE TABLE PORTLET-->
-	</div>
-</div>
 <!-- END PAGE CONTENT -->

@@ -78,9 +78,12 @@ class SuperUrlMapping(Document):
 class SuperCountry(Document):
    
     country = StringField()
+    lat = StringField()
+    long = StringField()
+    continent = StringField()
     alternatives = ListField(StringField())
    
-    meta = {'collection': 'superCountry', 'indexes': ['country', 'alternatives']}
+    meta = {'collection': 'superCountry', 'indexes': ['country', 'continent', 'alternatives']}
     
 class SuperDashboards(Document):
     title = StringField(max_length=1000)

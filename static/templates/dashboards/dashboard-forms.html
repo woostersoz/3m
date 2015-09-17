@@ -1,44 +1,47 @@
-<div class="row">
-	<div class="col-md-12">
-	
-	<!--  dashboard -->
+<!--  dashboard -->
 <div class="portlet light">
+
+  <div class="portlet-header">
+        <div class="title col-md-12">Form Fills</div>
+        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-3 breadcrumb">
+           <a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right animate-show-hide" style="font-weight:700;">Back to Dashboards</a>
+	    </div>
+  </div>
   
   <div class="portlet-title">
-    <div class="caption" ng-class="(hideTimeFilterOnTop) ? 'col-md-12' :'col-md-6'">
-      <i class="fa fa-random font-blue-madison"></i>
-      <span class="caption-subject bold uppercase font-blue-madison">Form Fills
-      From <span class="label label-info">{{ currentPage.dashboardData.start_date }}</span> to <span class="label label-info">{{ currentPage.dashboardData.end_date }}</span>
+    <div class="caption col-md-9" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-9': hideTimeFilterOnTop}">
+      <i class="glyphicon glyphicon-th font-blue-madison"></i>
+      <span class="caption-subject bold font-blue-madison">Form Fills
+      <span class="italic filter-text">Filtered from {{ currentPageBinder.dashboardData.start_date }} to {{ currentPageBinder.dashboardData.end_date }}</span>
       </span>
     </div>   
     
-    <div ng-hide='hideTimeFilterOnTop' class="col-md-6">
-	    <div class="input-group col-sm-7 pull-right">
-				<span class="input-group-addon"><span
-					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
-					date-range-picker class="form-control date-picker"
-					style="font-size: 0.7rem !important; width: 75% !important"
-					name="groupDates.date" ng-model="groupDates.date" options="opts"
-					placeholder="Select date range" />
+    <div ng-hide='hideTimeFilterOnTop' class="col-md-3" style="padding-right:0px">
+	    <div class="input-group col-md-12 pull-right" style="padding-top:2px;">
+			<span class="input-group-addon"><span
+				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
+				date-range-picker class="form-control date-picker pull-right"
+				style="font-size: 0.7rem !important; width: 100% !important"
+				name="groupDates.date" ng-model="groupDates.date" options="opts"
+				placeholder="Select date range" />
 		</div>
 	</div>
     
   </div>
   
   <div class="main-body">
-    <leaflet center="center" legend="legend" geojson="geojson" markers="markers"></leaflet>      
+    <leaflet center="center" legend="legend" geojson="geojson" markers="markers" defaults="defaults"></leaflet>      
   </div> <!--  end portlet body -->
     
     <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
   
-</div>  
+ 
 <!--  end of dashboard -->
 
-    <div ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
-	<div ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+    <div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+	<div style="margin-left:-20px; margin-right:-20px" ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
 		
 	
-		
-	</div>
-</div>
+</div> 
 <!-- END PAGE CONTENT -->

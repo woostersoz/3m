@@ -4,7 +4,7 @@ body{
 }
 
 a {
-	color: #1f8a70;
+	color: #0491c3; /* #1f8a70; */
 }
 
 .nav, .pagination, .carousel, .panel-title a {
@@ -445,7 +445,7 @@ g.nv-series-7 path.nv-line {
 
 .chartTop {
 	margin-top:20px;
-	border: 1px solid gray;
+	border: 1px solid #eee;
 }
 
 /* sticky note */
@@ -577,7 +577,7 @@ g.nv-series-7 path.nv-line {
 
 .chart-tools {
 	padding-top: 5px;
-	/* padding-right: 0px; */
+	padding-right: 0px !important; 
 }
 
 .chart-tools a, .tools a {
@@ -706,6 +706,7 @@ g.nv-series-7 path.nv-line {
 
 .table-pagination-counter {
 	font-size: 0.75rem !important;	
+	line-height: 36px;
 }
 
 .blue-madison {
@@ -751,7 +752,7 @@ us-spinner {
 }
 
 .table thead tr th {
-	color: #f05f2a;
+	color: #023d52;
 	font-weight:bolder !important;
 }
 
@@ -801,6 +802,10 @@ input.ng-invalid.ng-touched, textarea.ng-invalid.ng-touched, select.ng-invalid.n
 
 .portlet-title .search-form .input-group .input-group-btn .btn > i {
   color: #ced6de;
+}
+
+.portlet.light {
+	padding: 20px !important;
 }
 
 .portlet.light .portlet-body {
@@ -1320,6 +1325,19 @@ ul.analytics-charts > li {
     margin-right: 8px;
 }
 
+.leaflet-label {
+	pointer-events: all !important;
+}
+
+.marker-cluster-small {
+	background-color: #1680cc !important;
+}
+
+.marker-cluster-small div {
+	background-color: rgba(22, 128, 204, 0.6) !important;
+	color: #fff !important;
+}
+
 /* left menu changes - Sept 2015 */
 
 .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a > i[class^="icon-"], .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a > i[class*="icon-"], .page-sidebar .page-sidebar-menu > li > a > i[class^="icon-"], .page-sidebar .page-sidebar-menu > li > a > i[class*="icon-"] {
@@ -1402,4 +1420,110 @@ ul.analytics-charts > li {
 
 .label-info {
 	background-color: #04a1d9 !important;
+}
+
+.portlet-header {
+	margin-top: -10px;
+	min-height: 72px;
+    border-bottom: 1px #eee solid;
+}
+
+.short {
+	min-height: 48px;
+}
+
+.portlet-header .title {
+	font-size: 1.5rem;
+	padding-left:  0px;
+	color: #666;
+}
+
+.filter-text {
+	color: #666;
+}
+
+.breadcrumb {
+	color:#0491c3 !important; 
+	font-size:14px !important;
+}
+
+.breadcrumb > li + li:before {
+	display: inline-block !important; 
+	color:#0491c3 !important; 
+	content: ">";
+	padding: 0 5px;
+}
+
+.portlet-title {
+	padding-top: 5px !important; 
+}
+
+.note {
+	padding: 15px !important; 
+	margin-top: 10px !important; 
+	margin-bottom: 15px !important;  
+}
+
+.header-box {
+	padding-top: 20px;
+	padding-bottom: 20px;
+	border: 1px solid #eee;
+	border-radius: 2px;
+	text-align: center;
+	margin-right: 20px;
+}
+
+.dataTable tr th, .dataTable tr td {
+	border:1px solid #eee !important;
+}
+
+.actionTable tr th:first-child {
+	border:0px !important;
+	width: 10%;
+}
+
+.actionTable tr td:first-child {
+	background-color:#fff !important;
+}
+
+.dataTable .row-details {
+    height: 18px;
+    width: 18px;	
+}
+
+.dataTable .row-details.row-details-open {
+	background: url('../images/row-open.png') no-repeat 0 0;
+}
+
+.dataTable .row-details.row-details-close {
+	background: url('../images/row-closed.png') no-repeat 0 0;
+}
+
+.pagination {
+	margin-top: 0px;
+}
+
+.pagination .active > a, .pagination .active > a:hover {
+    color: #0491c3 !important;
+    font-weight: 700 !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+}
+
+.pagination > li > a, .pagination > li > span {
+	color: #666;
+}
+
+.pagination > li > a:focus, .pagination > li > a:hover, .pagination > li > span:focus, .pagination > li > span:hover {
+	color: #333;
+}
+
+.action-button {
+	background-color: #0497d5 !important;
+	color: #fff !important;
+}
+
+.add-button {
+	background-color: #0497d5 !important;
+	color: #fff !important;
 }

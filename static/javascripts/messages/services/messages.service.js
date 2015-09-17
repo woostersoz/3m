@@ -32,7 +32,9 @@
       joinRoom: joinRoom,
       createRoom: createRoom,
       submitMessage: submitMessage,
-      getMessages: getMessages
+      getMessages: getMessages,
+      getUserExports: getUserExports,
+      downloadFile: downloadFile
       
     };
 
@@ -127,6 +129,14 @@
     
     function getMessages(user, roomId) {
     	return $http.get('/api/v1/company/' + user.company + '/collab/room/messages/?roomId=' + roomId );
+    }
+    
+    function getUserExports(user) {
+    	return $http.get('/api/v1/exports/');
+    }
+    
+    function downloadFile(user, file_id) {
+    	return $http.get('/api/v1/download/' + file_id );
     }
   }
 })();

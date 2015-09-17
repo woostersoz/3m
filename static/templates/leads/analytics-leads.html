@@ -8,7 +8,7 @@
 				</div>
 				<div class="btn-group col-sm-4 pull-right chart-tools">
 				    
-					<a href="#" class="btn btn-sm green-jungle pull-right"
+					<a href="#" class="btn btn-sm pull-right"
 						ng-click="downloadLeadsCsv()" title="Download as CSV">
 						<span class="glyphicon glyphicon-download"></span>
 						Download CSV
@@ -16,7 +16,7 @@
 					</a>
 			    </div>
 			</div>
-			<div class="portlet-body">
+			<div class="portlet-body" style="margin-left:-20px; margin-right:-20px" >
 				<div class="table-toolbar" ng-hide="!vm.leads || !vm.leads.length" >
 					<div class="row">
 						<div class="col-md-12">
@@ -33,20 +33,23 @@
 						</div>
 					</div>
 				</div>
-				<table ng-hide="!vm.leads || !vm.leads.length"  class="table table-striped table-hover table-bordered dataTable"
+				<table ng-hide="!vm.leads || !vm.leads.length"  class="table table-striped table-hover dataTable"
 					id="leads_table" ng-cloak>
 					<thead ng-show="showLeads"> <!-- ng-hide="showLeadsDuration && showLeads" && !showLeadsDuration -->
 						<tr>
 							<th ng-hide="hideDetailColumn" class="center"></th>
-							<th class="center">ID</th>
-							<th class="center">First Name</th>
-							<th class="center">Last Name</th>
-							<th class="center">Email</th>
+							<th>ID</th>
+							<th>First Name</th>
+							<th>Last Name</th>
+							<th ng-hide="showFormData">Email</th>
 							<!--  th class="center">Company</th -->
-							<th ng-hide="filterBySource || filterByRevenueSource" class="center">Source</th>
-							<th class="center">Source Detail</th>
-							<th class="center">Campaign</th>
-							<th ng-show="filterByRevenueSource" class="center">Revenue</th>
+							<th ng-hide="filterBySource || filterByRevenueSource">Source</th>
+							<th ng-hide="showFormData">Source Detail</th>
+							<th ng-hide="showFormData">Campaign</th>
+							<th ng-show="filterByRevenueSource">Revenue</th>
+							<th ng-show="showFormData">Form</th>
+							<th ng-show="showFormData">Country</th>
+							<th ng-show="showFormData">City</th>
 							<!-- th ng-hide="filterBySource || filterByRevenueSource" class="center">System</th -->
 						</tr>
 					</thead>
@@ -78,35 +81,44 @@
 							   <span class="row-details row-details-open"></span>
 							</a>
 							</td>
-							<td class="center">
-							<a ng-if="source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{lead.id}}">{{ lead.id }}</a>
+							<td>
+							<a ng-if="lead.sourceSystem=='HSPT' || source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{lead.id}}">{{ lead.id }}</a>
 							<a ng-if="lead.sourceSystem=='MKTO'" target="_blank" href="http://app-sj09.marketo.com/leadDatabase/loadLeadDetail?leadId={{lead.id}}">{{ lead.id }}</a>
 							<a ng-if="lead.sourceSystem=='SFDC'" target="_blank" href="https://na17.salesforce.com/{{lead.id}}">{{ lead.id }}</a>
 							</td>
-							<td class="center">
+							<td>
 							{{ lead.FirstName }}
 							</td>
-							<td class="center">
+							<td>
 							{{ lead.LastName }}
 							</td>
-							<td class="center">
+							<td ng-hide="showFormData">
 							{{ lead.Email }}
 							</td>							
 							<!-- td class="center">
 							{{ lead.Company }}</td -->
-							<td ng-hide="filterBySource || filterByRevenueSource"  class="center">
+							<td ng-hide="filterBySource || filterByRevenueSource">
 							{{ lead.sourceChannel }}
 							</td>
 							<!-- td ng-hide="filterBySource || filterByRevenueSource"  class="center">
 							{{ lead.sourceSystem }}
 							</td -->
-							<td class="center">
+							<td ng-hide="showFormData" >
 							{{ lead.sourceChannelDetail }}
 							</td>
-							<td class="center">
+							<td ng-hide="showFormData" >
 							{{ lead.sourceChannelCampaign }}
 							</td>
-							<td ng-show="filterByRevenueSource"  class="center">
+							<td ng-show="showFormData" >
+							{{ lead.Form }}
+							</td>
+							<td ng-show="showFormData" >
+							{{ lead.Country }}
+							</td>
+							<td ng-show="showFormData" >
+							{{ lead.City }}
+							</td>
+							<td ng-show="filterByRevenueSource">
 							{{ lead.properties.total_revenue | number : 0 }}
 							</td>
 						</tr>
@@ -170,8 +182,13 @@
 					</div>
 
 				</table>
-				<div class="table-pagination-counter" ng-hide="!vm.leads || !vm.leads.length" >Showing {{startLeadCounter}} to {{endLeadCounter}} of {{totalLeads}}</div><dir-pagination-controls ng-hide="!vm.leads || !vm.leads.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
-			</div>
+				</div>
+				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+				   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!vm.leads || !vm.leads.length" >Showing {{startLeadCounter}} to {{endLeadCounter}} of {{totalLeads}}</div>
+				   <div class="col-md-9" style="padding-left:0px; padding-right:0px"> 
+				       <dir-pagination-controls class="pull-right" ng-hide="!vm.leads || !vm.leads.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			       </div>
+			    </div>
 		</div>
 		<!-- END EXAMPLE TABLE PORTLET-->
 	</div>

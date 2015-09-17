@@ -35,6 +35,7 @@ from leads.tasks import retrieveMktoLeads, retrieveSfdcLeads, retrieveHsptLeads
 from superadmin.models import SuperIntegration
 from company.models import CompanyIntegration
 from analytics.models import AnalyticsData, AnalyticsIds
+from mmm.views import exportToCsv
 
 # get leads 
 
@@ -157,6 +158,7 @@ def filterLeads(request, id):
     items_per_page = int(request.GET.get('per_page'))
     system_type = request.GET.get('system_type')
     chart_name = request.GET.get('chart_name')
+    export_type = request.GET.get('export_type')
     offset = (page_number - 1) * items_per_page
     
     user_id = request.user.id
@@ -176,16 +178,23 @@ def filterLeads(request, id):
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
-            result = filterLeadsMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name)
+            result = filterLeadsMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name, export_type=export_type)
         elif code == 'sfdc': 
             pass
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
-            result = filterLeadsHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name)
+            result = filterLeadsHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name, export_type=export_type)
             result['portal_id'] = client_secret
         else:
             result =  'Nothing to report'
-        return result
+            
+        export_types = ['csv']
+        #if not export to CSV or other format
+        if export_type not in export_types:    
+            return JsonResponse(result)
+        else:
+            exportToCsv.delay('lead', code, result, chart_name, user_id, company_id)
+            return JsonResponse({'Success' : 'File export started'})
     except Exception as e:
         print 'exception while retrieving leads ' + str(e)
         return JsonResponse({'Error' : str(e)})
@@ -205,6 +214,7 @@ def filterLeadsByDuration(request, id):
     items_per_page = int(request.GET.get('per_page'))
     system_type = request.GET.get('system_type')
     chart_name = request.GET.get('chart_name')
+    export_type = request.GET.get('export_type')
     offset = (page_number - 1) * items_per_page
     
     user_id = request.user.id
@@ -222,12 +232,12 @@ def filterLeadsByDuration(request, id):
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
-            result = filterLeadsByDurationMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name)
+            result = filterLeadsByDurationMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name, export_type=export_type)
         elif code == 'sfdc': 
             pass
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
-            result = filterLeadsByDurationHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name)
+            result = filterLeadsByDurationHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, chart_name=chart_name, export_type=export_type)
         else:
             result =  'Nothing to report'
         return result
@@ -254,6 +264,7 @@ def filterLeadsBySource(request, id):
     items_per_page = int(request.GET.get('per_page'))
     system_type = request.GET.get('system_type')
     chart_name = request.GET.get('chart_name')
+    export_type = request.GET.get('export_type')
     offset = (page_number - 1) * items_per_page
     
     user_id = request.user.id
@@ -271,12 +282,12 @@ def filterLeadsBySource(request, id):
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
-            result = filterLeadsBySourceMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source)
+            result = filterLeadsBySourceMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, export_type=export_type)
         elif code == 'sfdc': 
             pass
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
-            result = filterLeadsBySourceHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source)
+            result = filterLeadsBySourceHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, export_type=export_type)
         else:
             result =  'Nothing to report'
         return result
@@ -303,6 +314,7 @@ def filterLeadsByRevenueSource(request, id):
     items_per_page = int(request.GET.get('per_page'))
     system_type = request.GET.get('system_type')
     chart_name = request.GET.get('chart_name')
+    export_type = request.GET.get('export_type')
     offset = (page_number - 1) * items_per_page
     
     user_id = request.user.id
@@ -320,19 +332,19 @@ def filterLeadsByRevenueSource(request, id):
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
-            result = filterLeadsByRevenueSourceMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, chart_name=chart_name)
+            result = filterLeadsByRevenueSourceMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, chart_name=chart_name, export_type=export_type)
         elif code == 'sfdc': 
             pass
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
-            result = filterLeadsByRevenueSourceHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, chart_name=chart_name)
+            result = filterLeadsByRevenueSourceHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, chart_name=chart_name, export_type=export_type)
         else:
             result =  'Nothing to report'
         return result
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
 
-def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name):    
+def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name, export_type):    
     #print 'start is ' + str(time.time())
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
@@ -402,7 +414,7 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             #print 'start6 is ' + str(time.time())
         
             serializer = LeadSerializer(leads, many=True)   
-            return JsonResponse({'count' : total, 'results': serializer.data})   
+            return {'count' : total, 'results': serializer.data}   
     
         else: #not done. need to loop through leads to find which leads truly meet the criteria
             system_type_qry = 'system_type'
@@ -423,12 +435,12 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             #print 'start6 is ' + str(time.time())
         
         serializer = LeadSerializer(leads, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data})   
+        return {'count' : total, 'results': serializer.data}   
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
 
 #filter leads for Pipeline Duration chart       
-def filterLeadsByDurationMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name):
+def filterLeadsByDurationMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name, export_type):
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
         local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
@@ -477,7 +489,7 @@ def filterLeadsByDurationMkto(user_id, company_id, start_date, end_date, lead_ty
         return JsonResponse({'Error' : str(e)})  
     
 #filter leads for Source Breakdown chart    
-def filterLeadsBySourceMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source):
+def filterLeadsBySourceMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, export_type):
     
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
@@ -511,7 +523,7 @@ def filterLeadsBySourceMkto(user_id, company_id, start_date, end_date, lead_type
     
 #filter leads for Revenue Source  chart
 #@renderer_classes((JSONRenderer,))    
-def filterLeadsByRevenueSourceMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, chart_name):
+def filterLeadsByRevenueSourceMkto(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, chart_name, export_type):
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
         local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
@@ -561,7 +573,7 @@ def filterLeadsByRevenueSourceMkto(user_id, company_id, start_date, end_date, le
     except Exception as e:
         return JsonResponse({'Error' : str(e)})  
     
-def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name):    
+def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name, export_type):    
     #print 'start is ' + str(time.time())
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
@@ -575,7 +587,8 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
         #local_end_date = get_current_timezone().localize(local_end_date_naive, is_dst=None)
     #print 'filter start us ' + str(local_start_date) + ' and edn is ' + str(local_end_date)
     #code = _get_code(company_id, system_type)
-     
+    export_types = ['csv']
+    
     try:
         leads = []
         
@@ -626,17 +639,25 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             
             
             collection = Lead._get_collection()
-            leads_cursor = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
-            leads = list(leads_cursor)
-            total = len(leads)
+            if export_type not in export_types:
+                leads_cursor = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+                leads = list(leads_cursor)
+                total = len(leads)
+                serializer = LeadSerializer(leads, many=True)   
+                return {'count' : total, 'results': serializer.data} 
+            else:
+                leads_cursor = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)})
+                leads = list(leads_cursor)
+                total = len(leads)
+                result = [lead.to_mongo().to_dict() for lead in leads]  
+                #print 'result is ' + str(result)
+                return {'count' : total, 'results': result}
             #print 'start5 is ' + str(time.time())
             #now do the calculations
             #total = Lead.objects(hspt_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
-            serializer = LeadSerializer(leads, many=True)   
-            
-            return JsonResponse({'count' : total, 'results': serializer.data})    
+               
     
         else: #not done. need to loop through leads to find which leads truly meet the criteria
             system_type_qry = 'system_type'
@@ -650,8 +671,18 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             #print 'lead type is ' + lead_type
             ids = analyticsIds['results'].get(lead_type, None)
             #print 'ids is ' + str(ids)
-            leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('source_first_name', 'source_last_name').skip(offset).limit(items_per_page).hint('co_hspt_id_fname_lname')
-            total = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).hint('co_hspt_id_fname_lname').count()
+            if export_type not in export_types:
+                leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('source_first_name', 'source_last_name').skip(offset).limit(items_per_page).hint('co_hspt_id_fname_lname')
+                total = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).hint('co_hspt_id_fname_lname').count()
+                serializer = LeadSerializer(leads, many=True)   
+                return {'count' : total, 'results': serializer.data} 
+            else:
+                leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('source_first_name', 'source_last_name').hint('co_hspt_id_fname_lname')
+                leads = list(leads)
+                #total = len(leads)
+                result = [lead.to_mongo().to_dict() for lead in leads]  
+                #print 'result is ' + str(result)
+                return {'results': result}
             #total = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).count()
             #leads = Lead.objects(hspt_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
             #print 'start5 is ' + str(time.time())
@@ -659,8 +690,7 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
             #total = Lead.objects(hspt_id__in=ids).count() #len(leads)
             #print 'start6 is ' + str(time.time())
         
-        serializer = LeadSerializer(leads, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data})   
+          
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     
@@ -726,7 +756,7 @@ def filterLeadsHspt_deprecated(user_id, company_id, start_date, end_date, lead_t
         return JsonResponse({'Error' : str(e)})  
     
 
-def filterLeadsByDurationHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name):
+def filterLeadsByDurationHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, chart_name, export_type):
     
     offset = (page_number - 1) * items_per_page
     
@@ -1048,7 +1078,7 @@ def filterLeadsByDurationDeprecated(request, id):
         return JsonResponse({'Error' : str(e)})
     
 #filter leads for Source Breakdown chart  
-def filterLeadsBySourceHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source):
+def filterLeadsBySourceHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, export_type):
     
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
@@ -1079,7 +1109,7 @@ def filterLeadsBySourceHspt(user_id, company_id, start_date, end_date, lead_type
     
 #filter leads for Revenue Source  chart
 #@renderer_classes((JSONRenderer,))    
-def filterLeadsByRevenueSourceHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, chart_name):
+def filterLeadsByRevenueSourceHspt(user_id, company_id, start_date, end_date, lead_type, series_type, query_type, page_number, items_per_page, system_type, offset, code, source, chart_name, export_type):
     if start_date is not None:
         local_start_date_naive = datetime.fromtimestamp(float(start_date))
         local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)

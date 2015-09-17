@@ -1,25 +1,30 @@
-<div class="row">
-	<div class="col-md-12">
-	
-	<!--  dashboard -->
+<!--  dashboard -->
 <div class="portlet light">
+
+  <div class="portlet-header">
+        <div class="title col-md-12">Funnel</div>
+        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-3 breadcrumb">
+           <a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right animate-show-hide" style="font-weight:700;">Back to Dashboards</a>
+	    </div>
+  </div>
   
   <div class="portlet-title">
-    <div class="caption" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-7': hideTimeFilterOnTop}">
-      <i class="fa fa-random font-blue-madison"></i>
-      <span class="caption-subject bold uppercase font-blue-madison">Funnel
-      From <span class="label label-info">{{ currentPage.dashboardData.start_date }}</span> to <span class="label label-info">{{ currentPage.dashboardData.end_date }}</span>
+    <div class="caption col-md-9" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-9': hideTimeFilterOnTop}">
+      <i class="glyphicon glyphicon-th font-blue-madison"></i>
+      <span class="caption-subject bold font-blue-madison">Funnel
+      <span class="italic filter-text">Filtered from {{ currentPageBinder.dashboardData.start_date }} to {{ currentPageBinder.dashboardData.end_date }}</span>
       </span>
     </div>   
     
-    <div ng-hide='hideTimeFilterOnTop' class="col-md-6">
-	    <div class="input-group col-sm-7 pull-right">
-				<span class="input-group-addon"><span
-					class="glyphicon glyphicon-calendar"></span></span> <input type="text"
-					date-range-picker class="form-control date-picker"
-					style="font-size: 0.7rem !important; width: 75% !important"
-					name="groupDates.date" ng-model="groupDates.date" options="opts"
-					placeholder="Select date range" />
+    <div ng-hide='hideTimeFilterOnTop' class="col-md-3" style="padding-right:0px">
+	    <div class="input-group col-md-12 pull-right" style="padding-top:2px;">
+			<span class="input-group-addon"><span
+				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
+				date-range-picker class="form-control date-picker pull-right"
+				style="font-size: 0.7rem !important; width: 100% !important"
+				name="groupDates.date" ng-model="groupDates.date" options="opts"
+				placeholder="Select date range" />
 		</div>
 	</div>
     
@@ -34,7 +39,7 @@
   
   <div class="col-xs-2 text-center" style="margin-top:30px">
     
-    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{currentPage.dashboardData.created_count | number:0}}</h4> <h5> ( {{ currentPage.dashboardData.percentage_increase | number:2 }}% ) </h5>
+    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{currentPageBinder.dashboardData.created_count | number:0}}</h4> <h5> ( {{ currentPageBinder.dashboardData.percentage_increase | number:2 }}% ) </h5>
     <a class="btn btn-lg text-center" style="color:#1f8a70 !important; background-color:transparent !important;">
       <i class="fa fa-group fa-2x" style="color:#003d50; font-size:1.5em !important"></i>
     </a>
@@ -58,7 +63,7 @@
     <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Sources</h5>
     <hr style="border-top:1px solid #8fc2bb; clear:both; margin-top:5px; margin-bottom:0px;">
     <ul style="list-style:none; padding:0px" class="text-center">
-      <li ng-repeat='(key, value) in currentPage.dashboardData.created_source' class="info-list-item-compressed text-center">
+      <li ng-repeat='(key, value) in currentPageBinder.dashboardData.created_source' class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#007d6d !important; background-color:transparent !important;">
             <i ng-show="key == 'EMAIL_MARKETING'" class="fa fa-envelope"></i>
             <i ng-show="key == 'DIRECT_TRAFFIC'" class="fa fa-bullseye"></i>
@@ -97,42 +102,42 @@
             <i class="fa fa-user"></i>
          </a>
          <h6 class="info-label">{{ stageNames['subscriber'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['subscriber'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['subscriber'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-bullhorn"></i>
          </a>
          <h6 class="info-label">{{ stageNames['lead'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['lead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['lead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
         <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-check-square-o"></i>
          </a>
          <h6 class="info-label">{{ stageNames['marketingqualifiedlead'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['marketingqualifiedlead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-thumbs-o-up"></i>
          </a>
          <h6 class="info-label">{{ stageNames['salesqualifiedlead'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['salesqualifiedlead'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-money"></i>
          </a>
          <h6 class="info-label">{{ stageNames['opportunity'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['opportunity'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['opportunity'] || 0 | number:0 }}</p>
       </li>
       <li class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#fd7400 !important;background-color:transparent !important;">
             <i class="fa fa-heart"></i>
          </a>
          <h6 class="info-label">{{ stageNames['customer'] }}</h6>
-         <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['customer'] || 0 | number:0 }}</p>
+         <p class="info-label info-metric">{{ currentPageBinder.dashboardData.created_stage['customer'] || 0 | number:0 }}</p>
       </li>
     </ul>
   </div>
@@ -166,7 +171,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['subscriber'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPageBinder.dashboardData.leads_inflow_count['subscriber'] | number:0 }}</h4>
   
   </div>
   
@@ -180,7 +185,7 @@
       <i class="fa fa-user info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['subscriber'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['subscriber'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPageBinder.dashboardData.leads_outflow_duration['subscriber'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -193,7 +198,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['subscriber'] | number:0  }} </h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPageBinder.dashboardData.leads_outflow_count['subscriber'] | number:0  }} </h4>
   </div>
   
   </div>
@@ -210,7 +215,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['lead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPageBinder.dashboardData.leads_inflow_count['lead'] | number:0 }}</h4>
   
   </div>
   
@@ -224,7 +229,7 @@
       <i class="fa fa-bullhorn info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['lead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['lead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPageBinder.dashboardData.leads_outflow_duration['lead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -237,7 +242,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['lead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPageBinder.dashboardData.leads_outflow_count['lead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -254,7 +259,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPageBinder.dashboardData.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
   
   </div>
   
@@ -268,7 +273,7 @@
       <i class="fa fa-check-square-o info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['marketingqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPageBinder.dashboardData.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -281,7 +286,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPageBinder.dashboardData.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -299,7 +304,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPageBinder.dashboardData.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
   
   </div>
   
@@ -313,7 +318,7 @@
       <i class="fa fa-thumbs-o-up info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['salesqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPageBinder.dashboardData.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -326,7 +331,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPageBinder.dashboardData.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -345,7 +350,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['opportunity'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPageBinder.dashboardData.leads_inflow_count['opportunity'] | number:0 }}</h4>
   
   </div>
   
@@ -359,7 +364,7 @@
       <i class="fa fa-money info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="margin-left:-12px; font-size:110%; text-transform:uppercase">{{ stageNames['opportunity'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['opportunity'] | number:0}} days</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{currentPageBinder.dashboardData.leads_outflow_duration['opportunity'] | number:0}} days</h3>
     
     </div>
   </div>
@@ -372,7 +377,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['opportunity'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPageBinder.dashboardData.leads_outflow_count['opportunity'] | number:0  }}</h4>
   </div>
   
   </div>
@@ -389,7 +394,7 @@
      <a class="btn btn-lg text-center" style="color:#1f8a70 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['customer'] | number:0 }}</h4>
+    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ currentPageBinder.dashboardData.leads_inflow_count['customer'] | number:0 }}</h4>
   
   </div>
   
@@ -403,7 +408,7 @@
       <i class="fa fa-heart info-icon"></i>
     </a>
     <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['customer'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{currentPage.dashboardData.closed_deal_value | currency:"$" }}</h3>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{currentPageBinder.dashboardData.closed_deal_value | currency:"$" }}</h3>
     
     </div>
   </div>
@@ -416,7 +421,7 @@
     <a class="btn btn-lg text-center" style="color:#ff6800 !important;background-color:transparent !important;">
       <i class="fa fa-money info-icon"></i>
     </a>
-   <h4 class="info-label" title="Highest value of deal closed in this time period">{{ currentPage.dashboardData.max_deal_value | currency:"$"  }}</h4>
+   <h4 class="info-label" title="Highest value of deal closed in this time period">{{ currentPageBinder.dashboardData.max_deal_value | currency:"$"  }}</h4>
   </div>
   
   </div>
@@ -439,7 +444,5 @@
 </div>  
 <!--  end of dashboard -->
 	
-		
-	</div>
-</div>
+
 <!-- END PAGE CONTENT -->

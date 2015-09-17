@@ -1,26 +1,30 @@
-	<div class="portlet-title">
-		<div class="caption  col-md-6">
-			<i class="fa fa-file-image-o font-blue-madison"></i><span
-				class="caption-subject bold uppercase font-blue-madison">New Binder Template</span>
-		</div>
-		<div class="col-md-6">
-			<div class="pull-right" style="margin-top: 3px">
+<div class="portlet light">	
+	<div class="portlet-header">
+        <div class="title col-md-12">New Binder Template</div>
+        <div ncy-breadcrumb class="title col-md-6 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-6 breadcrumb ">
+          <div class="pull-right" style="margin-top: -5px">
 				<!-- ng-click="addRow()"   -->
 				<a href="" ng-click="saveBinderTemplate(binder_new)" role="button" id="save_binder" ng-disabled="binder_new.$invalid"
-					class="btn green-jungle"> Save
-				</a> <a href="" ng-click="cancelBinderTemplate(binder_new)" role="button"
-					id="cancel_binder" class="btn red-flamingo"> Cancel
+					class="btn action-button"> Save
+				</a> <a href="" ui-sref="binders" role="button"
+					id="cancel_binder" class="btn action-button"> Cancel
 				</a>
 			</div>
-		</div>
-	</div>
+        
+        </div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
 
 	<div class="portlet-body"
 		style="padding-left: 0 !important; padding-right: 0 !important">
 		<div class="clearfix">
 			<div class="col-md-12"
 				style="padding-left: 0 !important; padding-right: 0 !important">
-				<div ng-show="createBinder" class="animate-show-hide">
+				<div class="animate-show-hide">
 
 <div class="row" style="margin-top:10px"> <!-- Main Toolbar -->
 		<form name="binder_new" novalidate role="form">
@@ -182,3 +186,4 @@
 			</div>	
 		</div>
 	</div>
+</div>

@@ -1,27 +1,14 @@
-<div class="row" ng-show="vm.accounts">
-	<div class="col-md-12">
-		<!-- BEGIN TABLE PORTLET-->
+<!-- BEGIN TABLE PORTLET-->
 		<div class="portlet light">
-			<div class="portlet-title">
-				<div class="caption">
-					<i class="fa fa-bullseye font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Accounts</span>
-				</div>
-				<form name="search-form" class="search-form open" ng-submit="searchAccountsByName()">
-					<div class="input-group">
-						<input type="text" class="form-control input-sm" placeholder="Search..." name="account_query" ng-model="accountName">
-						<span class="input-group-btn">
-						<a href="javascript:;" title="Click to search" class="btn" ng-click="searchAccountsByName()"><i class="icon-magnifier"></i></a>
-						<a href="javascript:;" title="Reset" class="btn" ng-click="resetSearchAccountsByName()"><i class="icon-refresh"></i></a>
-						</span>
-					</div>
-			    </form>
-				<div class="tools">
-					<a href="javascript:;" class="collapse"> </a> <a
-						href="#portlet-config" data-toggle="modal" class="config"> </a> <a
-						href="javascript:;" class="reload"> </a> <a href="javascript:;"
-						class="remove"> </a>
-				</div>
-			</div>
+			<div class="portlet-header short">
+        <div class="title col-md-12">Accounts</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
 			<div class="portlet-body">
 				<div class="table-toolbar" ng-hide="!vm.accounts || !vm.accounts.length">
 					<div class="row">
@@ -39,7 +26,7 @@
 						</div>
 					</div>
 				</div>
-				<table ng-hide="!vm.accounts || !vm.accounts.length" class="table table-striped table-hover table-bordered dataTable"
+				<table ng-hide="!vm.accounts || !vm.accounts.length" class="table table-striped table-hover dataTable"
 					id="accounts_table" ng-cloak>
 					<thead>
 						<tr>
@@ -82,10 +69,14 @@
 						</div>
 					</div> 
 				</table>
-				<div class="table-pagination-counter" ng-hide="!vm.accounts || !vm.accounts.length" >Showing {{startAccountCounter}} to {{endAccountCounter}} of {{totalAccounts}}</div><dir-pagination-controls ng-hide="!vm.accounts || !vm.accounts.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
-			</div>
+				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+				   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!vm.accounts || !vm.accounts.length" >Showing {{startAccountCounter}} to {{endAccountCounter}} of {{totalAccounts}}</div>
+				   <div class="col-md-9" style="padding-left:0px; padding-right:0px"> 
+				       <dir-pagination-controls class="pull-right" ng-hide="!vm.accounts || !vm.accounts.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			       </div>
+			    </div>
+				</div>
 		</div>
 		<!-- END EXAMPLE TABLE PORTLET-->
-	</div>
-</div>
+	
 <!-- END PAGE CONTENT -->

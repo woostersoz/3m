@@ -144,9 +144,11 @@
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.5/angular-filter.min.js"></script>
 
 <script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
-<script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.label.js"></script>
+<script src="{% static 'lib/angular-leaflet/leaflet.label.js' %}"></script>
+<script src="{% static 'lib/angular-leaflet/leaflet.markercluster.js' %}"></script>
 <script type="text/javascript" src="{% static 'lib/angular-leaflet/angular-simple-logger.js' %}"></script>
 <script type="text/javascript" src="{% static 'lib/angular-leaflet/angular-leaflet-directive.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'lib/angular-breadcrumb/angular-breadcrumb.min.js' %}"></script>
 
 <!-- script type="text/javascript" src="{% static 'scripts/notifications.js' %}"></script -->
 {% endcompress %}
