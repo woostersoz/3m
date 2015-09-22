@@ -14,28 +14,28 @@
   <div class="portlet-body" ng-hide="showBinder || showBinders || createBinder">
 
 	<div class="row list-separated">
-		<div class="col-md-2 col-sm-2 col-xs-3  header-box">
-			<div class="font-grey-mint font-sm">Total Templates</div>
+		<div class="col-md-3 col-sm-3 col-xs-4   header-box header-box-grey">
 			<div class="uppercase font-hg font-blue-madison">{{ templateCount
 				}}</div>
+			<div class="font-grey-mint font-sm">Total Templates</div>
 		</div>
 
-		<div class="col-md-2 col-sm-2 col-xs-3  header-box">
-			<div class="font-grey-mint font-sm">Latest Template</div>
-			<div class="uppercase font-hg font-blue-madison">{{
+		<div class="col-md-3 col-sm-3 col-xs-4  header-box">
+			<div class="font-20 font-blue">{{
 				templateLastCreated | amCalendar }}</div>
+			<div class="font-grey-mint font-sm">Latest Template</div>
 		</div>
 
-		<div class="col-md-2 col-sm-2 col-xs-3  header-box">
-			<div class="font-grey-mint font-sm">Total Binders</div>
+		<div class="col-md-3 col-sm-3 col-xs-4   header-box header-box-grey">
 			<div class="uppercase font-hg font-blue-madison">{{
 				binderCount }}</div>
+			<div class="font-grey-mint font-sm">Total Binders</div>
 		</div>
 		
-		<div class="col-md-2 col-sm-2 col-xs-3  header-box">
-			<div class="font-grey-mint font-sm">Latest Binder</div>
-			<div class="uppercase font-hg font-blue-madison">{{
+		<div class="col-md-3 col-sm-3 col-xs-4  header-box">
+			<div class="font-20 font-blue">{{
 				binderLastCreated | amCalendar }}</div>
+			<div class="font-grey-mint font-sm">Latest Binder</div>
 		</div>
 		
 		<div class="col-md-2 col-sm-2 col-xs-3 header-box hidden">
@@ -90,7 +90,7 @@
 					<tbody>
 						<tr ng-repeat="binderTemplate in binderTemplates">
 						    <td class="center">
-							<a class="btn btn-sm" ng-click="editBinderTemplate(binderTemplate.id)" href="javascript:;">Edit</a>
+							<a class="" ng-click="editBinderTemplate(binderTemplate.id)" href="javascript:;" title="Edit"><span class="glyphicon glyphicon-pencil"></span></a>
 						    </td>
 							<td>
 							{{ binderTemplate.name }}

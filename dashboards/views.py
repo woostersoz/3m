@@ -155,12 +155,12 @@ def getDashboards(request, company_id):
     
 #@app.task
 def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : hspt_funnel, "social" : hspt_social_roi, "waterfall" : None, "form_fills": hspt_form_fills}
+    method_map = { "funnel" : hspt_funnel, "social_roi" : hspt_social_roi, "waterfall" : None, "form_fills": hspt_form_fills}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
 def retrieveMktoDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : None, "social" : None, "waterfall" : mkto_waterfall, "form_fills": None}
+    method_map = { "funnel" : None, "social_roi" : None, "waterfall" : mkto_waterfall, "form_fills": None}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 

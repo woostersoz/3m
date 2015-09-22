@@ -30,7 +30,7 @@
 		$scope.leads = [];
 	    $scope.totalLeads = 0;
 	    $scope.leadsPerPage = 10;
-	    $scope.currentPage = 1;
+	    $scope.currentPageNumber = 1;
 	    
 	    vm.deals = [];
 		$scope.deals = [];
@@ -225,8 +225,8 @@
 		
 		function DashboardSuccessFxn(data, status, headers, config) {
 			//$scope.results = data.data;
-			$scope.currentPageBinder = {};
-			$scope.currentPageBinder.dashboardData = data.data; // these 2 lines needed to enable dashboard data in binders
+			$scope.currentPage = {};
+			$scope.currentPage.dashboardData = data.data; // these 2 lines needed to enable dashboard data in binders
 			$scope.now = moment();
 			if ($scope.map) // if showing a map, create markers
 				createMarkers();
@@ -244,43 +244,9 @@
 		}
         
         function createMarkers() {
-        	var continents = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania'];
-        	var countries = $scope.currentPageBinder.dashboardData.countries;
-        	var markers = {};
-        	var layers = {};
-        	var myIcon = L.divIcon({className: 'my-div-icon'});
-        	for (var key in countries) {
-        		if (countries.hasOwnProperty(key))
-        		{
-        			var upperKey = Common.capitalizeSentence(key); 
-        			var continent = Common.capitalizeSentence(countries[key]['continent']);
-        			//
-        			var msg = '<div><a href="#" ng-click="drilldown(\'contacts\', \'' + key + '\', \'Form Fills\', \'form_fills\')" >' + upperKey + ': ' + countries[key]['count'] + '</a></div>';
-        			//var linkFn = $compile(angular.element(msg));
-        			//var popup = linkFn($scope);
-            		markers[key] = {'group': continent , 'message': '', 'clickable' : false, 'getMessageScope': function() { return $scope; }, 'getLabelScope': function() { return $scope; }, 'icon': myIcon, 'lat': Number(countries[key]['lat']), 'lng': Number(countries[key]['long']), 'title': upperKey, 'focus': false, 'label': {'message' : msg, 'options' : {'noHide': true, 'direction': 'auto', 'compileMessage': true}}, 'draggable': false, 'riseOnHover': true, 'opacity': 1};
-        		}
-        	}		
-    		/*layers['baselayers'] = {
-                    mapbox_light: {
-                        name: 'Mapbox Light',
-                        url: 'http://api.tiles.mapbox.com/v4/{mapid}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoid29vc3RlcnNveiIsImEiOiJjaWVra2hubzUwMDE4c3NtNHkyY3JsbHM5In0.s_oBGYyv3sUXDCkez4Ojug',
-                        type: 'xyz',
-                        layerOptions: {
-                            apikey: 'pk.eyJ1Ijoid29vc3RlcnNveiIsImEiOiJjaWVra2hubzUwMDE4c3NtNHkyY3JsbHM5In0.s_oBGYyv3sUXDCkez4Ojug',
-                            mapid: 'bufanuvols.lia22g09'
-                        }
-                    }
-            };
-    		console.log(layers);
-    		var overlays = {};
-    		for (var i=0; i < continents.length; i++) {	
-    			overlays[continents[i]] = {'name' : continents[i], type: "markercluster", visible: true};
-    		}
-    		layers['overlays'] = overlays;*/
-               
+        	
         	//angular.extend($scope, {
-        	$scope.markers = markers;
+        	$scope.markers = Dashboards.createMarkers($scope.currentPage.dashboardData.countries, $scope);
         	//$scope.layers = layers;
         	//});
         }
@@ -344,9 +310,9 @@
         		{
         		   $scope.filterTitle = ' for ' + Common.capitalizeFirstLetter($scope.section) + ' ' + Common.capitalizeFirstLetter($scope.object) + ' from ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date / 1000 ).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date / 1000).format("YYYY-MM-DD");
         		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
-        		     Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+        		     Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
         		   else if ($scope.object == 'deals' )
-        			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+        			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
         		}
         }
         
@@ -355,8 +321,8 @@
         	{
 	        	$scope.totalLeads = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
-				$scope.startLeadCounter = ($scope.currentPage - 1) * $scope.leadsPerPage + 1;
-			    $scope.endLeadCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startLeadCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.leadsPerPage;
+				$scope.startLeadCounter = ($scope.currentPageNumber - 1) * $scope.leadsPerPage + 1;
+			    $scope.endLeadCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startLeadCounter + $scope.thisSetCount -1 : $scope.currentPageNumber * $scope.leadsPerPage;
 				
 				vm.leads = Leads.cleanLeadsBeforeDisplay(data.data.results, false, '', '');
 				vm.leads.sort(Common.sortByProperty("id"));
@@ -389,8 +355,8 @@
         	{
         		$scope.totalDeals = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
-				$scope.startDealCounter = ($scope.currentPage - 1) * $scope.leadsPerPage + 1;
-			    $scope.endDealCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startDealCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.leadsPerPage;
+				$scope.startDealCounter = ($scope.currentPageNumber - 1) * $scope.leadsPerPage + 1;
+			    $scope.endDealCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startDealCounter + $scope.thisSetCount -1 : $scope.currentPageNumber * $scope.leadsPerPage;
 				
 				//vm.leads = Leads.cleanLeadsBeforeDisplay(data.data.results, false, '', '');
 			    vm.deals = data.data.results;
@@ -419,13 +385,13 @@
 		}
         
         $scope.pageChanged = function(newPage) {
-			$scope.currentPage = newPage;
+			$scope.currentPageNumber = newPage;
 			if (account)
     		{
     		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
-    			   Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+    			   Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
     		   else if ($scope.object == 'deals' )
-    			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPage, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+    			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
     		}
 	    }
 

@@ -33,7 +33,7 @@
 					<tbody>
 						<tr ng-repeat="snapshot in vm.snapshots">
 							<td class="center">
-							<a class="btn btn-sm blue-steel" ng-click="showSnapshot(snapshot.id)" href="javascript:;">Show</a>
+							<a class="" ui-sref="snapshots-detail({id: snapshot.id})" href="javascript:;"><span class="glyphicon glyphicon-eye-open"></a>
 						    </td>
 							<td>
 							{{ snapshot.chart_name }}

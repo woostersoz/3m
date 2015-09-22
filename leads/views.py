@@ -160,6 +160,7 @@ def filterLeads(request, id):
     chart_name = request.GET.get('chart_name')
     export_type = request.GET.get('export_type')
     offset = (page_number - 1) * items_per_page
+    export_types = ['csv']
     
     user_id = request.user.id
     company_id = request.user.company_id
@@ -187,13 +188,12 @@ def filterLeads(request, id):
             result['portal_id'] = client_secret
         else:
             result =  'Nothing to report'
-            
-        export_types = ['csv']
+        
         #if not export to CSV or other format
         if export_type not in export_types:    
             return JsonResponse(result)
         else:
-            exportToCsv.delay('lead', code, result, chart_name, user_id, company_id)
+            exportToCsv.delay('lead', code, result, 'chart', chart_name, user_id, company_id)
             return JsonResponse({'Success' : 'File export started'})
     except Exception as e:
         print 'exception while retrieving leads ' + str(e)
@@ -677,12 +677,12 @@ def filterLeadsHspt(user_id, company_id, start_date, end_date, lead_type, series
                 serializer = LeadSerializer(leads, many=True)   
                 return {'count' : total, 'results': serializer.data} 
             else:
-                leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('source_first_name', 'source_last_name').hint('co_hspt_id_fname_lname')
-                leads = list(leads)
+                #leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('hspt_id').hint('company_id_1_hspt_id_1')
+                #leads = list(leads)
                 #total = len(leads)
-                result = [lead.to_mongo().to_dict() for lead in leads]  
+                #result = [lead.to_mongo().to_dict() for lead in leads]  
                 #print 'result is ' + str(result)
-                return {'results': result}
+                return {'results': ids} #return only the IDs here - let the export fxn take care of retrieving leads else takes too long
             #total = collection.find({'hspt_id' : {'$in': ids}, 'company_id': int(company_id)}).count()
             #leads = Lead.objects(hspt_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
             #print 'start5 is ' + str(time.time())

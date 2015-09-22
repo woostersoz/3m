@@ -9,13 +9,13 @@
     .module('mmm.authentication.services')
     .factory('Authentication', Authentication);
 
-  Authentication.$inject = ['$cookies', '$http'];
+  Authentication.$inject = ['$cookies', '$http', '$rootScope', '$location'];
 
   /**
   * @namespace Authentication
   * @returns {Factory}
   */
-  function Authentication($cookies, $http) {
+  function Authentication($cookies, $http, $rootScope, $location) {
     /**
     * @name Authentication
     * @desc The Factory to be returned
@@ -72,8 +72,10 @@
        */
       function loginSuccessFn(data, status, headers, config) {
         Authentication.setAuthenticatedAccount(data.data);
-
         window.location = '/';
+        if ($rootScope.hasNextUrl)
+        	window.location = $rootScope.returnToPath;
+        //window.location = '/';
       }
 
       /**

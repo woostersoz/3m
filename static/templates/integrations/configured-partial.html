@@ -8,15 +8,15 @@
 				<div class="pull-right media-button">
 					<form name="integration_form">
 						<div class="form-group" ng-hide="existingSystems[getId(system)]">
-						    <a href="#" ng-click="deleteSystem(system)" class="btn action-button">
+						    <a href="#" ng-click="deleteSystem(system)" class="btn secondary-button">
 								<span class="glyphicon glyphicon-trash"></span> Delete
 							</a>&nbsp;&nbsp;
-							<a href="#" ng-click="editSystem(system)" class="btn action-button">
+							<a href="#" ng-click="editSystem(system)" class="btn secondary-button">
 								<span class="glyphicon glyphicon-pencil"></span> Edit
 							</a>&nbsp;&nbsp;
 							<div class="pull-right authorized-icon" title="Authorize" ng-hide="system.company_info.access_token.length > 0">
 							<a title="Authorize" href="#" ng-click="authorize(system.company_info)">
-								<i class="font-green-jungle fa fa-2x fa-exclamation-triangle"></i>
+								<i class="font-action-button fa fa-2x fa-exclamation-triangle"></i>
 							</a>
 							</div>
 							<div class="pull-right authorized-icon" title="Authorized" ng-show="system.company_info.access_token.length > 0"><i class="font-green-jungle fa fa-2x fa-check-circle"></i></div>

@@ -130,12 +130,14 @@ class IntegrationFormView(FormView):
 #         return super(MktoFormView, self).dispatch(*args, **kwargs)
 # 
     def post(self, request, **kwargs):
-        #print 'posting'
-        if request.is_ajax():
-            return self.ajax(request)
+        print 'posting'
+        #if request.is_ajax():
+        #print 'is ajax'
+        return self.ajax(request)
         return super(IntegrationFormView, self).post(request, **kwargs)
  
     def ajax(self, request):
+        print 'in ajax'
         code = self.kwargs['code']
         #print 'new code is ' + code
         self.form_class = self.get_form_class();
@@ -150,6 +152,7 @@ class IntegrationFormView(FormView):
                     existingDict[code] = form.cleaned_data
                     existingDict[code]['access_token'] = ''
                     CompanyIntegration.objects(company_id = company_id ).update(integrations=existingDict)
+                    print "Updated data for " + code
                     return HttpResponse("Updated data for " + code, status=status.HTTP_200_OK)
                 else:
                     #existingIntegration.integrations[code] = form.cleaned_data

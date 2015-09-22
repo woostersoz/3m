@@ -9,14 +9,14 @@
 	angular.module('mmm.binders.controllers', [ 'datatables', 'mmm.analytics.services', 'mmm.dashboards.services' ]).controller(
 			'BindersController', BindersController);
 
-	BindersController.$inject = [ '$scope', '$filter', '$state', '$stateParams', '$document', '$window', '$sce', 'Binders', 'Authentication', 'Analytics', '$location', 'DTOptionsBuilder', 'DTColumnDefBuilder',
-			'DTColumnBuilder', 'DTInstances', 'BinderPage', 'Common', '$q', '$compile', 'Sticky', 'Fullscreen', 'Dashboards', 'Charts'];
+	BindersController.$inject = [ '$scope', 'Binders', 'Dashboards', 'Authentication', 'Analytics', 'BinderPage', 'Common', 'Fullscreen', 'Sticky', 'AnalyticsCharts', '$filter', '$state', '$stateParams', '$document', '$window', '$sce', '$location', 'DTOptionsBuilder', 'DTColumnDefBuilder',
+			'DTColumnBuilder', 'DTInstances',  '$q', '$compile'];
 
 	/**
 	 * @namespace BindersController
 	 */
-	function BindersController($scope, $filter, $state, $stateParams, $document, $window, $sce, Binders, Authentication, Analytics, $location, DTOptionsBuilder, DTColumnDefBuilder,
-			DTColumnBuilder, DTInstances, BinderPage, Common, $q, $compile, Sticky, Fullscreen, Dashboards, Charts, $interval) {
+	function BindersController($scope, Binders, Dashboards, Authentication, Analytics, BinderPage, Common, Fullscreen, Sticky, AnalyticsCharts, $filter, $state, $stateParams, $document, $window, $sce, $location, DTOptionsBuilder, DTColumnDefBuilder,
+			DTColumnBuilder, DTInstances, $q, $compile,  $interval) {
 		
 		var vm = this;
 		
@@ -70,6 +70,55 @@
 				startDate : moment().subtract(6, "days").startOf("day"),
 				endDate : moment().endOf("day")
 		};
+		
+		$scope.stageNames = {'marketingqualifiedlead' : 'MQL', 'salesqualifiedlead' : 'SQL', 'customer' : 'Customer', 'subscriber' : 'Subscriber', 'lead' : 'Lead', 'opportunity' : 'Opportunity'};
+		$scope.sourceNames = {'DIRECT_TRAFFIC' : 'Direct', 'EMAIL_MARKETING': 'Email', 'OFFLINE': 'Offline', 'ORGANIC_SEARCH': 'Organic', 'REFERRALS': 'Referrals', 'SOCIAL_MEDIA': 'Social', 'PAID_SEARCH': 'Paid', 'OTHER_CAMPAIGNS': 'Others', 'Unknown': 'Unknown'};
+
+		var continentProperties= {
+                "009": {
+                        name: 'Oceania',
+                        colors: [ '#CC0066', '#993366', '#990066', '#CC3399', '#CC6699' ]
+                },
+                "019": {
+                        name: 'America',
+                        colors: [ '#006699', '#336666', '#003366', '#3399CC', '#6699CC' ]
+                },
+                "150": {
+                        name: 'Europe',
+                        colors: [ '#FF0000', '#CC3333', '#990000', '#FF3333', '#FF6666' ]
+                },
+                "002": {
+                        name: 'Africa',
+                        colors: [ '#00CC00', '#339933', '#009900', '#33FF33', '#66FF66' ]
+                },
+                "142": {
+                        name: 'Asia',
+                        colors: [ '#FFCC00', '#CC9933', '#999900', '#FFCC33', '#FFCC66' ]
+                },
+        };
+        
+     // Get a country paint color from the continents array of colors
+        function getColor(country) {
+            if (!country || !country["region-code"]) {
+                return "#FFF";
+            }
+
+            var colors = continentProperties[country["region-code"]].colors;
+            var index = country["alpha-3"].charCodeAt(0) % colors.length ;
+            return colors[index];
+        }
+
+        
+        function style(feature) {
+            return {
+                fillColor: getColor($scope.countries[feature.id]),
+                weight: 2,
+                opacity: 1,
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
 		
 		$scope.$watch('currentPage.chartFilters.groupDates.date', function(newDate, oldDate) { 
 			if (!newDate || !oldDate) return;
@@ -186,9 +235,9 @@
 	    {
 	    	getBinderTemplates();
 	    }
-		else if ($state.href($state.current.name) == '/binder-new')
+		else if ($state.current.name == 'binder-new')
 	    {
-			createBinderFxn();
+			$scope.createBinderFxn();
 	    }
 		else if ($state.current.name == 'binders-list')
 		{
@@ -198,11 +247,16 @@
 		}
 		else if ($state.current.name == 'binder-show')
 		{
-			if ($stateParams.binder)
-			{
-				showBinderFxn($stateParams.binder);
-				$scope.breadcrumbName = $stateParams.binder.id;
-			}
+			if (!$stateParams.binderId)
+				toastr.error('Unable to get binder');
+			if ($stateParams.binder != null)
+			    showBinderFxn($stateParams.binder);
+			else
+				{
+				var account = Authentication.getAuthenticatedAccount();
+				Binders.getSingleBinder(account.company, $stateParams.binderId).then(GetSingleBinderSuccessFn, GetSingleBinderErrorFn);
+				}
+			$scope.breadcrumbName = $stateParams.binderId;
 		}
 		
 		
@@ -290,6 +344,7 @@
 		    {
 		    	$scope.binderTemplates = data.data.results;
 		    	toastr.success("Binder template saved");
+		    	$location.path('/binders');
 		    }
 		   
 		}
@@ -352,7 +407,7 @@
         		return Analytics.retrieveChart(account.company, request.name, request.startDate, request.endDate, request.systemType);
         	})).then(function(results){
         		var resultsPosition = 0;
-        		var scope_options = Charts.getScopeOptions($scope);
+        		var scope_options = AnalyticsCharts.getScopeOptions($scope);
         		$scope = scope_options['scope'];
         		for (var i=0; i < $scope.pages.length; i++)
         		{
@@ -364,7 +419,7 @@
 	        				//if ($scope.pages[i].chartType.name == "sources_bar"  || $scope.pages[i].chartType.name == "website_traffic"  || $scope.pages[i].chartType.name == "tw_performance") {
 	        				if ($scope.pages[i].chartType.chart_type == 'multibar') {	
 	        				        chartData = results[resultsPosition].data.map(function(d) {
-	        						d.values = d.values.sort(Charts.natcmp);
+	        						d.values = d.values.sort(AnalyticsCharts.natcmp);
 	        						return d;
 	        					});
 	        				}
@@ -409,6 +464,27 @@
 	        				dashboardType['pageUrl'] = staticUrl("templates/dashboards/") + $scope.pages[i].dashboardType.template + ".html";
 	        				$scope.pages[i].dashboardType = dashboardType;
 	        				$scope.pages[i].dashboardData = dashboardData;	
+	        				if ($scope.pages[i].dashboardType.name == 'form_fills')
+	        				// if showing a map, create markers and fill other scope variables
+	        				{
+	        					angular.extend($scope, {
+	        						center: {
+	        							lat: 40.8741,
+	        							lng: 14.0625,
+	        							zoom: 2
+	        						},
+	        						legend: {
+	        		                    colors: [ '#CC0066', '#006699', '#FF0000', '#00CC00', '#FFCC00' ],
+	        		                    labels: [ 'Oceania', 'America', 'Europe', 'Africa', 'Asia' ]
+	        		                },
+	        		                defaults: {
+	        		                	scrollWheelZoom: false
+	        		                }
+	        					});
+	        					
+	        					Common.getCountriesData().then(CountriesDataSuccessFxn, CountriesDataErrorFxn);
+	        					createMarkers($scope.pages[i].dashboardData.countries);
+	        				}
 	        			    resultsPosition++;
 	        			    
 	        			}
@@ -544,12 +620,16 @@
 			}*/
 			var account = Authentication.getAuthenticatedAccount();
 			if (account) {
-			   Common.exportToPdf(account.company, "binder", $scope.newBinder.id).then(ExportToPdfSuccessFxn, ExportToPdfErrorFxn);
+			   Common.exportToPdf(account.company, "binder", $scope.newBinder.id, encodeURIComponent($scope.newBinder.binder_template.name), 'binder').then(ExportToPdfSuccessFxn, ExportToPdfErrorFxn);
 		    }
         }
         
         function ExportToPdfSuccessFxn(data, status, headers, config) { 
-        	var anchor = angular.element('<a>');
+        	if (data.data.Error)
+        		toastr.error(data.data.Error);
+        	else
+        	    toastr.info('Export is scheduled. Check My Exports for details');
+        	/*var anchor = angular.element('<a>');
         	var file = new Blob([data.data], { type: 'application/pdf'});
         	var fileURL = URL.createObjectURL(file);
         	console.log(fileURL);
@@ -560,16 +640,12 @@
         		href: trustedURL,
         		download: 'binder.pdf'
         	})[0].click();
-        	/*anchor.attr({
-        		href: 'data:attachment/pdf;charset=utf-8,' + encodeURI(data),
-        		target: '_blank',
-        		download: 'binder.pdf'
-        	})[0].click();*/
-			toastr.success('Exported to PDF');
+        	
+			toastr.success('Exported to PDF');*/
 		}
         
         function ExportToPdfErrorFxn(data, status, headers, config) { 
-			toastr.error('Could not export to PDF');
+        	toastr.error('Export to PDF could not be scheduled');
 		}
 		
 		function readHtmlLoop(i) {
@@ -585,5 +661,41 @@
 					  readHtmlLoop(i);
 				  }, 100);
 		}
+		
+function CountriesDataSuccessFxn(data, status, headers, config) {
+        	
+			$scope.countries = {};
+            for (var i=0; i< data.data.length; i++) {
+                var country = data.data[i];
+                $scope.countries[country['alpha-3']] = country;
+            }
+            
+            Common.getCountriesGeoData().then(CountriesGeoSuccessFxn, CountriesDataErrorFxn);	
+        }
+        
+        function CountriesGeoSuccessFxn(data, status, headers, config) {
+        	angular.extend($scope, {
+                geojson: {
+                    data: data.data,
+                    style: style,
+                    resetStyleOnMouseout: true
+                },
+                selectedCountry: {}
+            }); 	
+        }
+
+        function CountriesDataErrorFxn(data, status, headers, config) {
+        	
+        	
+        }
+        
+        function createMarkers(countries) {
+        	
+        	//angular.extend($scope, {
+        	$scope.markers = Dashboards.createMarkers(countries, $scope);
+        	//$scope.layers = layers;
+        	//});
+        }
+	    
 	}
 })();

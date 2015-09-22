@@ -9,8 +9,10 @@
     </div>
 	<div class="portlet-title">
 		<div class="caption col-md-9">
-			<i class="fa fa-signal font-blue-madison"></i><span
-				class="caption-subject bold uppercase font-blue-madison">Chart</span>
+			<i class="fa fa-signal font-blue-madison"></i>
+			<span class="caption-subject bold font-blue-madison">
+                 <span class="italic filter-text">Filtered from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
+            </span>
 		</div>
 		<div class="input-group col-md-3 pull-right" style="padding-top:2px;">
 			<span class="input-group-addon"><span
@@ -50,7 +52,7 @@
 		<div class="col-sm-4 pull-right chart-tools">
 			<a href="#" class="btn btn-sm pull-right"
 				ng-click="postToChannel()" title="Post to Channel">
-				<span class="glyphicon glyphicon-headphones"></span>
+				<span class="fa fa-volume-up"></span>
 				Post
 			</a>
 			<a href="#"  class="btn btn-sm pull-right"

@@ -13,7 +13,7 @@
 	                                'Leads', 'Snapshots', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
-	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'Charts', 'Social', 'Websites', '$q'];
+	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'AnalyticsCharts', 'Social', 'Websites', '$q'];
 
 	/**
 	 * @namespace AnalyticsController
@@ -21,7 +21,7 @@
 	function AnalyticsController($scope, Analytics, Authentication, Leads,
 			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
-			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, Charts, Social, Websites, $q, $interval) {
+			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, AnalyticsCharts, Social, Websites, $q, $interval) {
 
 		var vm = this;
 		vm.analytics = [];
@@ -165,7 +165,7 @@
 		      $scope.spinneractive = false;
 	    });
 	    
-	    var scope_options = Charts.getScopeOptions($scope);
+	    var scope_options = AnalyticsCharts.getScopeOptions($scope);
 		$scope = scope_options['scope'];
 	
 		function drawChart(chartTitle, chartName, chartType, systemType, chartFilters) { //$event
@@ -635,7 +635,7 @@
 				//if ($scope.chartName == "sources_bar" || $scope.chartName == "website_traffic" || $scope.chartName == "tw_performance" || $scope.chartName == "google_analytics") {
 				if ($scope.chartType == 'multibar') {
 				    $scope.data = data.data.map(function(d) {
-						d.values = d.values.sort(Charts.natcmp);
+						d.values = d.values.sort(AnalyticsCharts.natcmp);
 						return d;
 					});
 				}
@@ -820,11 +820,11 @@
 		}
 	
 	    function CsvDownloadSuccessFxn(data, status, headers, config) {
-	    	toastr.info('Download is scheduled. Check My Exports for details');
+	    	toastr.info('Export to CSV is scheduled. Check My Exports for details');
 	    }
 	    
 	    function CsvDownloadErrorFxn(data, status, headers, config) {
-	    	toastr.error('Download could not be scheduled');
+	    	toastr.error('Export to CSV could not be scheduled');
 	    }
 
 		function snapshot() {
@@ -929,6 +929,7 @@
 			if (data.data["Error"]) {
 				toastr.error(data.data["Error"]);
 			} else {
+				toastr.success("Message posted!");
 				$scope.$parent.socket2.emit('user message', data.data.message,
 						$scope.lastRoomId);
 			}

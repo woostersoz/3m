@@ -403,6 +403,16 @@
 				    	parent: 'analytics'
 				    }
 				})
+				.state('snapshots-detail', {
+					url : '/snapshots/:id',
+					controller : 'SnapshotsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/snapshots.html',
+					ncyBreadcrumb: {
+				    	label: '{{snapshot_id}}',
+				    	parent: 'snapshots'
+				    }
+				})
 				.state('snapshot', {
 					url : '/snapshot:html',
 					controller : 'SnapshotsController',

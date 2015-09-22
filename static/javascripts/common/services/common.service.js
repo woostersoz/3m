@@ -96,8 +96,8 @@
         }
     }
     
-    function exportToPdf(company, object, id) {
-    	return $http.get('/api/v1/export/pdf/?object=' + object + '&id=' + id + '&company=' + company, {responseType: 'arraybuffer'});
+    function exportToPdf(company, object, id, template_name, source_type) {
+    	return $http.get('/api/v1/export/pdf/?object=' + object + '&id=' + id + '&company=' + company + '&template_name=' + template_name + '&source_type=' + source_type); //, {responseType: 'arraybuffer'}
     }
     
     function getCountriesData() {

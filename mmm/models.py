@@ -18,10 +18,11 @@ class ExportFile(Document):
     owner_id = ObjectIdField()
     file_name = StringField()
     source = StringField()
+    source_type = StringField()
     file = FileField()
     type = StringField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'exportFile', 'indexes': ['company_id', 'type', 'owner_id'], 
+    meta = {'collection': 'exportFile', 'indexes': ['company_id', 'type', 'owner_id', 'source_type'], 
                 'ordering':['-updated_date']}
 

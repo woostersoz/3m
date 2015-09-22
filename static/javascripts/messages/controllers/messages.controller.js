@@ -58,7 +58,7 @@
 		  } 
 		  else if ($state.current.name == "exports") {
 			  if (account)
-		         Messages.getUserExports(account).then(getUserExportsSuccessFxn, getUserExportsErrorFxn);
+		         Messages.getUserExports(account, $scope.currentPage, $scope.exportsPerPage).then(getUserExportsSuccessFxn, getUserExportsErrorFxn);
 		  }
 		  else {
 			activate();
@@ -97,7 +97,7 @@
 		function getUserExportsSuccessFxn(data, status, headers, config) {
 			if (data.data.results) {
 				vm.exports = data.data.results;
-				$scope.thisSetCount = data.data.count;
+				$scope.thisSetCount = data.data.results.length;
 				$scope.totalExports = data.data.count;
 				$scope.startExportCounter = ($scope.currentPage - 1) * $scope.exportsPerPage + 1;
 			    $scope.endExportCounter = ($scope.thisSetCount < $scope.exportsPerPage) ? $scope.startExportCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.exportsPerPage;
@@ -118,13 +118,24 @@
 		}
 		
 		function downloadFileSuccess(data, status, headers, config) {
+			var headers = data.headers();
+			var content_type = 'application/pdf';
+			if (headers['content-type'])
+			   content_type = headers['content-type'];
 			var anchor = angular.element('<a/>');
 			anchor.css({display: 'none'});
 			angular.element(document.body).append(anchor);
 			
-			anchor.attr({
+			/*anchor.attr({
 				href: 'data:attachment/csv,' + encodeURIComponent(data.data),
 				target: '_blank',
+				download: $scope.downloadFileName
+			})[0].click();*/
+			var csvData = new Blob([data.data], { type: content_type });
+			var csvUrl = URL.createObjectURL(csvData);
+			
+			anchor.attr({
+				href: csvUrl,
 				download: $scope.downloadFileName
 			})[0].click();
 			
@@ -137,6 +148,8 @@
 		
 		$scope.pageChanged = function(newPage) {
 			$scope.currentPage = newPage;
+			if (account)
+		         Messages.getUserExports(account, $scope.currentPage, $scope.exportsPerPage).then(getUserExportsSuccessFxn, getUserExportsErrorFxn);
 	    }
 
 		function RoomsSuccessFn(data, status, headers, config) {

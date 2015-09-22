@@ -5,24 +5,39 @@
 
 	<div class="portlet light" ng-class="{'padding0': channelInModal}">
 
-		<div ng-show="channelInModal" class="modal-header">
-			<h3>Post to Channel</h3>
+		<div ng-show="channelInModal" class="modal-header font-blue-madison">
+			<h3><i class="fa fa-volume-up"></i> Post to Channel</h3>
 		</div>
 
 			<div class="portlet-title" ng-class="{'modal-body': channelInModal}">
+				
+				<div class="btn-group" dropdown>
+			      <button id="split-button" type="button" class="btn italic muted-text">Choose
+								Channel</button>
+			      <button type="button" class="btn" dropdown-toggle>
+			        <span class="caret"></span>
+			      </button>
+			      <ul class="dropdown-menu" role="menu" aria-labelledby="split-button">
+			        <li ng-repeat="room in rooms">{{ room.name }}</li>
+			      </ul>
+			    </div>
+				
+				
+				
 				<div class="caption">
-					<i class="fa fa-headphones font-blue-madison"></i><span
+					<span
 						class="caption-subject bold uppercase font-blue-madison"
 						ng-hide="channelInModal"> {{vm.enteredRoom.room.name}} </span>
 						<span
 						ng-show="channelInModal">
-						<select
+						<div class="dropdown"
 						name="selected_room" class="small"
 						ng-options="room.room.id as room.room.name for room in rooms"
 						ng-model="newMessage.room.id" required>
+						
 						<option value="">Choose
 								Channel</option>
-						</select>
+						</div>
 						</span>
 						<span class="x-small error"
 					ng-show="form.roomForm.selected_room.$invalid && form.roomForm.selected_room.$dirty">Select
@@ -33,10 +48,14 @@
 			</div>
 
             <div class="" ng-class="{'modal-body': channelInModal}">
-				<div ng-show="channelInModal" class="muted-text" style="margin-top:-10px; margin-bottom:10px">
+				<div ng-show="channelInModal" class="muted-text italic smaller-font" style="margin-top:-10px; margin-bottom:10px;">
 				    Post your
 					message (including snapshots of the related chart) to channels
 					directly from here
+				</div>
+				
+				<div class="bold smaller-font">
+				Message:
 				</div>
 
 				<div class="form-group">
@@ -44,18 +63,22 @@
 						ng-model="newMessage.message" required cols="" rows="" />
 				</div>
 				
+				<div class="bold smaller-font">
+				Snapshot:
+				</div>
+				
 				<div class="form-group">
-				    <input bs-switch ng-init="newMessage.snapshot=0" switch-on-text="With Snapshot" switch-off-text="Without Snapshot" type="checkbox" id="newMessage__snapshot" ng-model="newMessage.snapshot" />
+				    <input bs-switch ng-init="newMessage.snapshot=0" switch-on-text="On" switch-off-text="Off" type="checkbox" id="newMessage__snapshot" ng-model="newMessage.snapshot" />
 				</div>
 
 			</div>
 
 			<div ng-class="{'modal-footer': channelInModal}">
 				<div class="pull-right">
-				   <a href="#" class="btn red-flamingo" ng-click="cancel()">Cancel</a>
+				   <a href="#" class="btn secondary-button" ng-click="cancel()">Cancel</a>
 &nbsp;
-					<button type="submit" href="#" class="btn green-jungle"
-						ng-disabled="form.roomForm.$invalid">Send Message</button>
+					<button type="submit" href="#" class="btn action-button"
+						ng-disabled="form.roomForm.$invalid">Post</button>
 				</div>
 			</div>
 

@@ -1,7 +1,13 @@
 <!--  dashboard -->
 <div class="portlet light">
 
-  <div class="portlet-header">
+<div class="portlet-header short" ng-show="showBinder"> 
+        <span class="caption-subject bold font-blue-madison" style="font-size:80%">
+           <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
+        </span>
+  </div>
+
+  <div class="portlet-header" ng-hide="showBinder">
         <div class="title col-md-12">Form Fills</div>
         <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
         <div class="title col-md-3 breadcrumb">
@@ -9,11 +15,11 @@
 	    </div>
   </div>
   
-  <div class="portlet-title">
+  <div class="portlet-title" ng-hide="showBinder">
     <div class="caption col-md-9" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-9': hideTimeFilterOnTop}">
       <i class="glyphicon glyphicon-th font-blue-madison"></i>
-      <span class="caption-subject bold font-blue-madison">Form Fills
-      <span class="italic filter-text">Filtered from {{ currentPageBinder.dashboardData.start_date }} to {{ currentPageBinder.dashboardData.end_date }}</span>
+      <span class="caption-subject bold font-blue-madison">
+      <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
       </span>
     </div>   
     
@@ -34,7 +40,7 @@
     <leaflet center="center" legend="legend" geojson="geojson" markers="markers" defaults="defaults"></leaflet>      
   </div> <!--  end portlet body -->
     
-    <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+    <h5 ng-hide="showBinder" class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
   
  
 <!--  end of dashboard -->

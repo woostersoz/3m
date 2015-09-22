@@ -487,7 +487,8 @@ g.nv-series-7 path.nv-line {
 
 .modal-header {
 	padding: 15px 10px 15px 15px !important;
-	background-color: #eee;
+	background-color: #fff;
+	border-radius: 4px;
 }
 
 .modal-header h3 {
@@ -556,7 +557,7 @@ g.nv-series-7 path.nv-line {
 }
 
 .portlet .bootstrap-switch {
-	width:50%;
+	/* width:50%; */
 }
 
 .modal-large {
@@ -727,7 +728,7 @@ us-spinner {
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > i[class^="icon-"], .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > i[class*="icon-"], .page-sidebar .page-sidebar-menu > li > a:hover > i[class^="icon-"], .page-sidebar .page-sidebar-menu > li > a:hover > i[class*="icon-"] {
-	color: #bedb39 !important;
+	color:  #50bde4 !important; /* #bedb39; */
 }
 
 .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu .sub-menu > li:hover > a, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu .sub-menu > li.open > a, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu .sub-menu > li.active > a, .page-sidebar .page-sidebar-menu .sub-menu > li:hover > a, .page-sidebar .page-sidebar-menu .sub-menu > li.open > a, .page-sidebar .page-sidebar-menu .sub-menu > li.active > a {
@@ -736,7 +737,7 @@ us-spinner {
 }
 
 .page-header.navbar .top-menu .navbar-nav > li.dropdown-user > .dropdown-toggle > .username {
-	color: #1f8a70 !important;
+	color: #0497d5 !important;
 }
 
 .vendor_logo {
@@ -805,7 +806,7 @@ input.ng-invalid.ng-touched, textarea.ng-invalid.ng-touched, select.ng-invalid.n
 }
 
 .portlet.light {
-	padding: 20px !important;
+	padding: 20px;
 }
 
 .portlet.light .portlet-body {
@@ -949,6 +950,11 @@ div[binderpage] .portlet .portlet-title .tools {
 	margin-left:15px;
 }
 
+.info-list-item-compressed-binder {
+	margin-right:10px !important;
+	margin-left:10px !important;
+}
+
 .info-icon {
 	font-size: 2em !important;
 }
@@ -987,7 +993,6 @@ div[binderpage] .portlet .portlet-title .tools {
 	margin-top:75px; 
 	margin-left:5px; 
 	margin-right: 5px;
-	width: 15%;
 }
 
 .right-divider {
@@ -995,11 +1000,12 @@ div[binderpage] .portlet .portlet-title .tools {
 	margin-top:75px; 
 	margin-left:5px; 
 	margin-right: 5px;
-	width: 15%;
 }
 
 .funnel-detailed-row {
 	padding:0; 
+	padding-left:15px;
+	padding-right:15px;
 	margin-top:30px; 
 	margin-left:0px;
 }
@@ -1349,7 +1355,7 @@ ul.analytics-charts > li {
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar .page-sidebar-menu > li > a:hover > .title, .page-sidebar .page-sidebar-menu > li > a:hover > .title {
-	color: #bedb39;
+	color: #50bde4 !important; /* #bedb39; */
 }
 
 .page-sidebar .page-sidebar-menu li > a > .arrow:before, .page-sidebar .page-sidebar-menu li > a > .arrow.open:before {
@@ -1361,11 +1367,11 @@ ul.analytics-charts > li {
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow:before {
-	color: #bedb39;
+	color: #50bde4 !important; /* #bedb39; */
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow.open:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow.open:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow.open:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow.open:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow.open:before {
-	color: #bedb39;
+	color: #50bde4 !important; /* #bedb39; */
 }
 
 .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu li > a > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu li > a > .arrow.open:before, {
@@ -1395,12 +1401,12 @@ ul.analytics-charts > li {
 	min-height: 500px;
 }
 
-.chart-tools .btn {
+.chart-tools .btn, .secondary-button {
 	background-color: #cdecf7 !important;
 	color: #0491c3 !important;
 }
 
-.chart-tools .btn:hover {
+.chart-tools .btn:hover, .secondary-button:hover {
 	background-color: #04a1d9 !important;
 	color: #fff !important;
 }
@@ -1429,7 +1435,7 @@ ul.analytics-charts > li {
 }
 
 .short {
-	min-height: 48px;
+	min-height: 36px;
 }
 
 .portlet-header .title {
@@ -1471,6 +1477,7 @@ ul.analytics-charts > li {
 	border-radius: 2px;
 	text-align: center;
 	margin-right: 20px;
+	width: 22%;
 }
 
 .dataTable tr th, .dataTable tr td {
@@ -1519,11 +1526,114 @@ ul.analytics-charts > li {
 }
 
 .action-button {
-	background-color: #0497d5 !important;
+	background-color: #0491c3 !important;
 	color: #fff !important;
 }
 
+.font-action-button {
+	color: #0491c3 !important;
+}
+
 .add-button {
-	background-color: #0497d5 !important;
+	background-color: #0491c3 !important;
 	color: #fff !important;
+}
+
+.capitalize {
+	text-transform: capitalize;
+}
+
+.font-blue {
+	color: #04a1d9 !important;
+}
+
+.font-20 {
+	font-size:20px !important;
+}
+
+.font-hg {
+	font-size: 40px !important;
+}
+
+.header-box-grey {
+	background-color: #fafafa !important;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external {
+  background: #9bd9f0;
+  border-radius: 0px !important;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external:first-child {
+  border-top-left-radius: 4px !important;
+  border-top-right-radius: 4px !important;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu:after {
+  border-bottom-color: #9bd9f0;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external > h3 {
+  color: #0491c3;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu {
+  background: #fff;
+  border: 1px solid #eee;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu .dropdown-menu-list > li a:hover {
+  background: #eee;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu.dropdown-menu-default > li a, .page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu .dropdown-menu-list > li a {
+  color: #888;
+  border-bottom: 1px solid #eee !important;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external > a {
+  color: #0491c3;
+  font-weight: 700;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external > a:hover {
+  color: #0491c3;
+  font-weight: 100;
+}
+
+.muted-text {
+	color: #888;
+}
+
+/* styles for PDF printing */
+
+@media print {
+
+	svg.nvd3-svg {
+	height: 450px;
+	width: 100%;
+	}
+
+}
+
+.pdf-footer {
+	page-break-after:always;
+}
+
+.padding-zero {
+	padding-left: 0px !important;
+	padding-right: 0px !important;
+}
+
+.padding-top-zero {
+	padding-top: 2px !important;
+}
+
+.margin-zero {
+	margin-left: 0px !important;
+	margin-right: 0px !important;
+}
+
+.smaller-font {
+	font-size:85% !important;
 }

@@ -119,6 +119,12 @@
 				      <textarea ng-model="note.body" ng-change="updateNote(note)" placeholder='Your note goes here' class="body">{{note.body}}</textarea>
 				      
 				 </div>
+				 
+				 <div class="portlet-header short" ng-if="currentPage.type == 'chart'"  style="margin-top:0px"> 
+				        <span class="caption-subject bold font-blue-madison" style="font-size:80%">
+				           <span class="italic filter-text">Filtered from {{ currentPage.chartFilters.groupDates.date.startDate | amDateFormat:'YYYY-MM-DD' }} to {{ currentPage.chartFilters.groupDates.date.endDate | amDateFormat:'YYYY-MM-DD' }}</span>
+				        </span>
+				 </div>
                  <nvd3 ng-if="currentPage.type == 'chart'" options="currentPage.chartOptions" data="currentPage.chartData" config="config">
 		
 		         </nvd3>

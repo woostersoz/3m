@@ -131,12 +131,12 @@
     	return $http.get('/api/v1/company/' + user.company + '/collab/room/messages/?roomId=' + roomId );
     }
     
-    function getUserExports(user) {
-    	return $http.get('/api/v1/exports/');
+    function getUserExports(user, page_number, per_page) {
+    	return $http.get('/api/v1/exports/?page_number=' + page_number + '&per_page=' + per_page);
     }
     
     function downloadFile(user, file_id) {
-    	return $http.get('/api/v1/download/' + file_id );
+    	return $http.get('/api/v1/download/' + file_id, {responseType: 'arraybuffer'} );
     }
   }
 })();

@@ -1,24 +1,30 @@
 <!--  dashboard -->
 <div class="portlet light">
 
-  <div class="portlet-header">
-        <div class="title col-md-12">Waterfall</div>
-        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
-        <div class="title col-md-3 breadcrumb">
+<div class="portlet-header short" ng-show="showBinder"> 
+        <span class="caption-subject bold font-blue-madison" style="font-size:80%">
+           <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
+        </span>
+  </div>
+
+  <div class="portlet-header" ng-hide="showBinder">
+        <div class="title col-xs-12">Waterfall</div>
+        <div ncy-breadcrumb class="title col-xs-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-xs-3 breadcrumb">
            <a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right animate-show-hide" style="font-weight:700;">Back to Dashboards</a>
 	    </div>
   </div>
   
-  <div class="portlet-title">
-    <div class="caption col-md-9" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-9': hideTimeFilterOnTop}">
+  <div class="portlet-title" ng-hide="showBinder">
+    <div class="caption col-xs-9" ng-class="{'col-xs-12' : hideTimeFilterOnTop==false, 'col-xs-9': hideTimeFilterOnTop}">
       <i class="glyphicon glyphicon-th font-blue-madison"></i>
-      <span class="caption-subject bold font-blue-madison">Waterfall
-      <span class="italic filter-text">Filtered from {{ currentPageBinder.dashboardData.start_date }} to {{ currentPageBinder.dashboardData.end_date }}</span>
+      <span class="caption-subject bold font-blue-madison">
+      <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
       </span>
     </div>   
     
-    <div ng-hide='hideTimeFilterOnTop' class="col-md-3" style="padding-right:0px">
-	    <div class="input-group col-md-12 pull-right" style="padding-top:2px;">
+    <div ng-hide='hideTimeFilterOnTop' class="col-xs-3" style="padding-right:0px">
+	    <div class="input-group col-xs-12 pull-right" style="padding-top:2px;">
 			<span class="input-group-addon"><span
 				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
 				date-range-picker class="form-control date-picker pull-right"
@@ -31,87 +37,87 @@
   </div>
   
   <div class="main-body">
-     <div id="top-half" class="text-center" style="background-color:#fff; margin-left:auto; margin-right: auto; margin-top:20px">
-     <div class="col-md-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Marketing</div>
-     <div class="col-md-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Sales</div>
-<div style="display:inline-block; margin-top:20px">
+     <div id="top-half" class="text-center" style="background-color:#fff; margin-left:auto; margin-right: auto; margin-top:0px">
+     <div class="col-xs-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Marketing</div>
+     <div class="col-xs-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Sales</div>
+<div style="display:inline-block; margin-top:0px">
   <div class="cont">
-    <div class="taper-left" ><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'raw_leads', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_raw_leads | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(currentPageBinder.dashboardData.num_mktg_raw_leads) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_mql) / parseInt(currentPageBinder.dashboardData.num_mktg_raw_leads) * 100 | number:1)  }}%)</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'raw_leads', 'waterfall')">{{ currentPage.dashboardData.num_mktg_raw_leads | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{ parseInt(currentPage.dashboardData.num_mktg_raw_leads) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_mql) / parseInt(currentPage.dashboardData.num_mktg_raw_leads) * 100 | number:1)  }}%)</div></div>
     <div class="taper-center" style="width:290px;">
       <div class="part-b">
          <div class="background"></div>
-                <div class="col-md-12"><a href=""><i class="fa fa-user dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header">Raw Leads</div> 
-	            <div class="col-md-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'raw_leads', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_raw_leads + currentPageBinder.dashboardData.num_sales_raw_leads | number:0 }}</a></div>
+                <div class="col-xs-12"><i class="fa fa-user dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header">Raw Leads</div> 
+	            <div class="col-xs-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'raw_leads', 'waterfall')">{{ currentPage.dashboardData.num_mktg_raw_leads + currentPage.dashboardData.num_sales_raw_leads | number:0 }}</a></div>
     </div>
     
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'raw_leads', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_raw_leads | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(currentPageBinder.dashboardData.num_sales_raw_leads) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_sales_sal) / parseInt(currentPageBinder.dashboardData.num_sales_raw_leads) * 100  | number:1)  }}%)</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'raw_leads', 'waterfall')">{{ currentPage.dashboardData.num_sales_raw_leads | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{ parseInt(currentPage.dashboardData.num_sales_raw_leads) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_sales_sal) / parseInt(currentPage.dashboardData.num_sales_raw_leads) * 100  | number:1)  }}%)</div></div>
 </div>
 <div class="spacer"></div>
 <div class="cont" style="margin-left: 25px;">
-    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'mql', 'waterfall')">{{ currentPageBinder.dashboardData.num_mql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(currentPageBinder.dashboardData.num_mql) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_mktg_sal) / parseInt(currentPageBinder.dashboardData.num_mql) * 100  | number:1) }}%)</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'mql', 'waterfall')">{{ currentPage.dashboardData.num_mql | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{parseInt(currentPage.dashboardData.num_mql) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_mktg_sal) / parseInt(currentPage.dashboardData.num_mql) * 100  | number:1) }}%)</div></div>
     <div class="taper-center" style="width: 240px;">
     <div class="part-b">
          <div class="background"></div>
-	            <div class="col-md-12"><a href=""><i class="fa fa-bullhorn dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header">MQLs</div> 
-	            <div class="col-md-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'mql', 'waterfall')">{{ currentPageBinder.dashboardData.num_mql | number:0 }}</a></div>
+	            <div class="col-xs-12"><i class="fa fa-bullhorn dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header">MQLs</div> 
+	            <div class="col-xs-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'mql', 'waterfall')">{{ currentPage.dashboardData.num_mql | number:0 }}</a></div>
     </div>
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric">N/A</div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric">N/A</div><div class="col-xs-12 mktg-metric info-label">&nbsp;</div></div>
 </div>
 <div class="spacer"></div>
 <div class="cont" style="margin-left: 50px;">
-    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sal', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_sal | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(currentPageBinder.dashboardData.num_mktg_sal) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_mktg_sql) / parseInt(currentPageBinder.dashboardData.num_mktg_sal) * 100  | number:1) }}%)</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sal', 'waterfall')">{{ currentPage.dashboardData.num_mktg_sal | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{parseInt(currentPage.dashboardData.num_mktg_sal) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_mktg_sql) / parseInt(currentPage.dashboardData.num_mktg_sal) * 100  | number:1) }}%)</div></div>
     <div class="taper-center" style="width: 190px">
     <div class="part-b">
          <div class="background"></div>
-	            <div class="col-md-12"><a href=""><i class="fa fa-check-square-o dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header">SALs</div> 
-	            <div class="col-md-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'sal', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_sal + currentPageBinder.dashboardData.num_sales_sal | number:0 }}</a></div>
+	            <div class="col-xs-12"><i class="fa fa-check-square-o dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header">SALs</div> 
+	            <div class="col-xs-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'sal', 'waterfall')">{{ currentPage.dashboardData.num_mktg_sal + currentPage.dashboardData.num_sales_sal | number:0 }}</a></div>
     </div>
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sal', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_sal | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(currentPageBinder.dashboardData.num_sales_sal) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_sales_sql) / parseInt(currentPageBinder.dashboardData.num_sales_sal) * 100  | number:1) }}%)</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sal', 'waterfall')">{{ currentPage.dashboardData.num_sales_sal | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{ parseInt(currentPage.dashboardData.num_sales_sal) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_sales_sql) / parseInt(currentPage.dashboardData.num_sales_sal) * 100  | number:1) }}%)</div></div>
 </div>
 <div class="spacer"></div>
 <div class="cont" style="margin-left: 75px;">
-    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sql', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_sql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(currentPageBinder.dashboardData.num_mktg_sql) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_mktg_opps) / parseInt(currentPageBinder.dashboardData.num_mktg_sql) * 100  | number:1) }}%)</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'sql', 'waterfall')">{{ currentPage.dashboardData.num_mktg_sql | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{parseInt(currentPage.dashboardData.num_mktg_sql) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_mktg_opps) / parseInt(currentPage.dashboardData.num_mktg_sql) * 100  | number:1) }}%)</div></div>
     <div class="taper-center" style="width: 140px;">
     <div class="part-b">
          <div class="background"></div>
-	            <div class="col-md-12"><a href=""><i class="fa fa-thumbs-o-up dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header">SQLs</div> 
-	            <div class="col-md-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'sql', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_sql + currentPageBinder.dashboardData.num_mktg_sql | number:0 }}</a></div>
+	            <div class="col-xs-12"><i class="fa fa-thumbs-o-up dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header">SQLs</div> 
+	            <div class="col-xs-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'sql', 'waterfall')">{{ currentPage.dashboardData.num_sales_sql + currentPage.dashboardData.num_mktg_sql | number:0 }}</a></div>
     </div>
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sql', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_sql | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(currentPageBinder.dashboardData.num_sales_sql) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_sales_opps) / parseInt(currentPageBinder.dashboardData.num_sales_sql) * 100 | number:1) }}%)</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'sql', 'waterfall')">{{ currentPage.dashboardData.num_sales_sql | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{ parseInt(currentPage.dashboardData.num_sales_sql) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_sales_opps) / parseInt(currentPage.dashboardData.num_sales_sql) * 100 | number:1) }}%)</div></div>
 </div>
 <div class="spacer"></div>
 <div class="cont" style="margin-left: 100px;">
-    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'opps', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_opps | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{parseInt(currentPageBinder.dashboardData.num_mktg_opps) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_mktg_closed_deals) / parseInt(currentPageBinder.dashboardData.num_mktg_opps) * 100  | number:1) }}%)</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'opps', 'waterfall')">{{ currentPage.dashboardData.num_mktg_opps | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{parseInt(currentPage.dashboardData.num_mktg_opps) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_mktg_closed_deals) / parseInt(currentPage.dashboardData.num_mktg_opps) * 100  | number:1) }}%)</div></div>
     <div class="taper-center" style="width: 90px">
     <div class="part-b">
          <div class="background"></div>
-	            <div class="col-md-12"><a href=""><i class="fa fa-money dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header">Deals</div> 
-	            <div class="col-md-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'opps', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_opps + currentPageBinder.dashboardData.num_sales_opps | number:0 }}</a></div>
+	            <div class="col-xs-12"><i class="fa fa-money dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header">Deals</div> 
+	            <div class="col-xs-12 info-metric">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'opps', 'waterfall')">{{ currentPage.dashboardData.num_mktg_opps + currentPage.dashboardData.num_sales_opps | number:0 }}</a></div>
     </div>
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'opps', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_opps | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">({{ parseInt(currentPageBinder.dashboardData.num_sales_opps) === 0 ? "N/A " : (parseInt(currentPageBinder.dashboardData.num_sales_closed_deals) / parseInt(currentPageBinder.dashboardData.num_sales_opps) * 100 | number:1)  }}%)</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'opps', 'waterfall')">{{ currentPage.dashboardData.num_sales_opps | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">({{ parseInt(currentPage.dashboardData.num_sales_opps) === 0 ? "N/A " : (parseInt(currentPage.dashboardData.num_sales_closed_deals) / parseInt(currentPage.dashboardData.num_sales_opps) * 100 | number:1)  }}%)</div></div>
 </div>
 <div class="spacer"></div>
 <div class="cont" style="margin-left: 125px">
-    <div class="taper-left"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'closed_deals', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_closed_deals | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+    <div class="taper-left" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'mktg', 'closed_deals', 'waterfall')">{{ currentPage.dashboardData.num_mktg_closed_deals | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">&nbsp;</div></div>
     <div class="taper-center" style="width: 40px">
     <div class="part-b">
          <div class="background"></div>
-	            <div class="col-md-12"><a href=""><i class="fa fa-heart dark-blue-font"></i></a></div>
-	            <div class="col-md-12 info-label info-header" style="padding-left:0px">Won</div> 
-	            <div class="col-md-12 info-metric"  style="padding-left:15px">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'closed_deals', 'waterfall')">{{ currentPageBinder.dashboardData.num_mktg_closed_deals + currentPageBinder.dashboardData.num_sales_closed_deals | number:0 }}</a></div>
+	            <div class="col-xs-12"><i class="fa fa-heart dark-blue-font"></i></div>
+	            <div class="col-xs-12 info-label info-header" style="padding-left:0px">Won</div> 
+	            <div class="col-xs-12 info-metric"  style="padding-left:15px">&nbsp;<a href="#" ng-click="drilldown('leads', 'all', 'closed_deals', 'waterfall')">{{ currentPage.dashboardData.num_mktg_closed_deals + currentPage.dashboardData.num_sales_closed_deals | number:0 }}</a></div>
     </div>
     </div>
-    <div class="taper-right"><div class="col-md-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'closed_deals', 'waterfall')">{{ currentPageBinder.dashboardData.num_sales_closed_deals | number:0 }}</a></div><div class="col-md-12 mktg-metric info-label">&nbsp;</div></div>
+    <div class="taper-right" ng-class="{'padding-top-zero' : showBinder}"><div class="col-xs-12 mktg-metric info-metric"><a href="#" ng-click="drilldown('leads', 'sales', 'closed_deals', 'waterfall')">{{ currentPage.dashboardData.num_sales_closed_deals | number:0 }}</a></div><div class="col-xs-12 mktg-metric info-label">&nbsp;</div></div>
 </div>
 
 </div>
@@ -119,7 +125,7 @@
       
     </div> <!--  end portlet body -->
     
-    <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+    <h5 ng-hide="showBinder" class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
 
 
     <div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>

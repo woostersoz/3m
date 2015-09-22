@@ -62,13 +62,13 @@
     .module('mmm')
     .run(run);
 
-  run.$inject = ['$http', '$rootScope', 'editableOptions', '$state'];
+  run.$inject = ['$http', '$rootScope', 'editableOptions', '$state', 'Authentication', '$location'];
 
 /**
 * @name run
 * @desc Update xsrf $http headers to align with Django's defaults
 */
-function run($http, $rootScope, editableOptions, $state) {
+function run($http, $rootScope, editableOptions, $state, Authentication, $location) {
   $http.defaults.xsrfHeaderName = 'X-CSRFToken';
   $http.defaults.xsrfCookieName = 'csrftoken';
   $rootScope.$on("$stateChangeError", console.log.bind(console));
@@ -77,15 +77,23 @@ function run($http, $rootScope, editableOptions, $state) {
   $rootScope.htmlReady = function() {
 	    $rootScope.$evalAsync(function() {
 	      setTimeout(function() {
-	        var evt = document.createEvent('Event');
-	        evt.initEvent('_htmlReady', true, true);
-	        document.dispatchEvent(evt);
+	        if (typeof window.callPhantom == 'function') {
+	        	window.callPhantom();
+	        }
 	      }, 0);
 	    });
   };
   
   $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState) {
-  	if (toState.redirectTo) {
+  	  
+	  if (toState.name != 'login' && !Authentication.isAuthenticated())
+	  {
+		  $rootScope.hasNextUrl = true;
+		  $rootScope.returnToPath = $location.path();
+		  $location.path('/login');
+	  }
+	  
+	  if (toState.redirectTo) {
   		event.preventDefault();
   		$state.go(toState.redirectTo, toParams);
   	}

@@ -17,9 +17,9 @@
 	/**
 	 * @namespace SnapshotsController
 	 */
-	function SnapshotsController($scope, Snapshots, Authentication, Leads, $state,
-			$stateParams, $location, DTOptionsBuilder, DTColumnDefBuilder,
-			DTColumnBuilder, DTInstances, $filter, $document, $window, $interval) {
+	function SnapshotsController($scope, Snapshots, Authentication, Leads, $location, DTOptionsBuilder, DTColumnDefBuilder,
+			DTColumnBuilder, DTInstances, $filter, $state,
+			$stateParams, $document, $window, $interval) {
 		
 		var vm = this;
 		
@@ -56,6 +56,13 @@
 	    
         function GetSnapshotsErrorFn(data, status, headers, config) { 
 		    
+		}
+        
+        if ($state.current.name == 'snapshots-detail')
+		{
+			if ($stateParams.id)
+				$scope.snapshot_id = $stateParams.id;
+			showSnapshot($scope.snapshot_id);
 		}
         
         function showSnapshot(snapshot_id) {

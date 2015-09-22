@@ -4,6 +4,7 @@ from django.views.generic.base import TemplateView
 from django.utils.decorators import method_decorator
 import pytz, string, unicodedata, nltk
 from django.utils import timezone
+from django.core.mail import send_mail
 from datetime import timedelta, date, datetime
 from itertools import tee, izip, islice
 from nltk import bigrams
@@ -18,7 +19,9 @@ from subprocess import PIPE, STDOUT, Popen, call
 from django.core.files import File
 from django.core.servers.basehttp import FileWrapper
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.templatetags.static import static
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, renderer_classes
 from mmm.celery import app
 from celery import task
 from mongoengine.queryset.visitor import Q
@@ -32,6 +35,8 @@ from collab.signals import send_notification
 from collab.models import Notification 
 from mmm.models import ExportFile
 from mmm.serializers import ExportFilesSerializer
+from authentication.models import CustomUser
+from leads.models import Lead
 
 
 class IndexView(TemplateView):
@@ -246,47 +251,93 @@ def replace_dots(obj):
                 del obj[key]
     return obj
 
-class ExportView(views.APIView):
-    
-    def get(self, request, type=None):
+
+@api_view(['GET'])
+# @renderer_classes((JSONRenderer,))    
+def exportFileToPdf(request, type=None):
+    try:
         #set the renderer class
         #renderer_classes = (PDFRenderer, )
         #get URL parameters
         object = request.GET.get('object', None)
         id = request.GET.get('id', None)
-        company = request.GET.get('company', None)
-        if object is None or id is None or company is None:
-            return
+        user_id = str(request.user.id) # need to convert to string in order to pass it to celery task else it complains.. so reconvert back to objectid in celery task
+        company_id = request.GET.get('company', None)
+        template_name = request.GET.get('template_name', None)
+        print 'template is ' + str(template_name)
+        source_type = request.GET.get('source_type', None)
+        if object is None or id is None or company_id is None or template_name is None:
+            return JsonResponse({'Error' : 'Input parameter was empty'})
         #get cookie
         cookies = request.COOKIES
         token = cookies['csrftoken']
         sessionid = cookies['sessionid']
         authenticatedAccount = cookies['authenticatedAccount']
         #set up variables
-        file_name = '/tmp/test.pdf'
-        phantomjs_script = '/var/www/webapps/3m/mmm/staticfiles/javascripts/common/services/generate_pdf.js' 
+        end_date_string = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime())
+        base_file_name = end_date_string + '_binder' + '_cx.pdf'
+        file_name = '/tmp/' +  base_file_name
+        phantomjs_script = '/var/www/webapps/3m/mmm/staticfiles/javascripts/common/services/generate_pdf.js'
+        #phantomjs_script = '/home/satya/workspace/3m/mmm/static/javascripts/common/services/generate_pdf.js'
         url = ''
         if object == 'binder':
             url = 'http://app.claritix.io/pdf/binder/' + str(id)
-            
- 
+            #url = 'http://localhost:8000/integrations'
+
+        #output = NamedTemporaryFile(delete=False)
+        #error = NamedTemporaryFile(delete=False)
+        content_type = 'application/pdf'
+        exportToPdf.delay(company_id, user_id, template_name, source_type, content_type, phantomjs_script, url, token, sessionid, authenticatedAccount, file_name) #, output, error
+        
+        return JsonResponse({'Success' : 'File export started'})
+    except Exception as e:
+        print 'exception while trying to create PDF file: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e))) 
+        
+        
+@app.task    
+def exportToPdf(company_id, user_id, template_name, source_type, content_type, phantomjs_script, url, token, sessionid, authenticatedAccount, file_name): #, output, error
+    try:
+        user_id = ObjectId(user_id)
         output = NamedTemporaryFile(delete=False)
         error = NamedTemporaryFile(delete=False)
+        external_process = Popen(["phantomjs", phantomjs_script, url, token, sessionid, authenticatedAccount, file_name], stdout=output, stderr=error) #
+        external_process.communicate(30)
+        export_file = open(file_name, 'rb')
+        exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=template_name, source_type=source_type, type=content_type, file_name=os.path.basename(file_name))
+        exportFile.file.put(export_file, content_type=content_type)
+        exportFile.save()
         
         try:
-            external_process = Popen(["phantomjs", phantomjs_script, url, token, sessionid, authenticatedAccount, file_name], stdout=output, stderr=error)
-            external_process.communicate()
+            message = 'PDF file successfully exported'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Exports'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+            user = CustomUser.objects(id=user_id).first()
+            if user is not None:
+                html_msg = '<p>Hola ' + user['first_name'] + '</p><p>Your export of data from ' + template_name + ' is ready. It is available in My Exports with the file name ' + os.path.basename(file_name) + '.</p><p>Cheers</p><p>The Claritix crew<p>'
+                send_mail('[Claritix] Your PDF export is baked and ready', '', 'admin@claritix.io', [user['email']], html_message=html_msg)
         except Exception as e:
-            print 'exception was ' + str(e)
-            return str(e)
+            send_notification(dict(
+                 type='error',
+                 success=False,
+                 message=str(e)
+                ))     
+    except Exception as e:
+        print 'exception was ' + str(e)
+        return str(e)
         
-        file_data = open(file_name, 'rb').read()
-        response = HttpResponse(file_data, content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename=binder_pdf.pdf'
-        return response
+        
 
 @app.task
-def exportToCsv(object_type, system_code, data, chart_name, user_id, company_id):
+def exportToCsv(object_type, system_code, data, source_type, chart_name, user_id, company_id):
     if object_type is None or system_code is None or data is None:
         return 
     try:
@@ -296,7 +347,7 @@ def exportToCsv(object_type, system_code, data, chart_name, user_id, company_id)
             file_name = result['file_name']
             content_type = result['content_type']
             export_file = open(file_name, 'rb')
-            exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=chart_name, type=content_type, file_name=os.path.basename(file_name))
+            exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=chart_name, source_type=source_type, type=content_type, file_name=os.path.basename(file_name))
             exportFile.file.put(export_file, content_type=content_type)
             exportFile.save()
             try:
@@ -311,6 +362,10 @@ def exportToCsv(object_type, system_code, data, chart_name, user_id, company_id)
                 notification.success = True
                 notification.read = False
                 notification.save()
+                user = CustomUser.objects(id=user_id).first()
+                if user is not None:
+                    html_msg = '<p>Hola ' + user['first_name'] + '</p><p>Your export of data from ' + chart_name + ' is ready. It is available in My Exports with the file name ' + os.path.basename(file_name) + '.</p><p>Cheers</p><p>The Claritix crew<p>'
+                    send_mail('[Claritix] Your CSV export is baked and ready', '', 'admin@claritix.io', [user['email']], html_message=html_msg)
             except Exception as e:
                 send_notification(dict(
                      type='error',
@@ -333,12 +388,18 @@ def exportLeadsToCsv(system_code, data, chart_name, user_id, company_id):
  
       
 def exportHsptLeadsToCsv(data, chart_name, user_id, company_id):
+    ids = data.get('results', None)
+    leads = Lead.objects().filter(company_id=company_id, hspt_id__in=ids).order_by('hspt_id').hint('company_id_1_hspt_id_1')
+    leads = list(leads)
     
-    leads = data.get('results', None) #because this is being sent from the Lead drilldown view
+    leads = [lead.to_mongo().to_dict() for lead in leads]  
+                
     portal_id = data.get('portal_id', None)
     if leads is None or portal_id is None:
+        print 'input is none'
         return
     try:
+        print 'input not none'
         #open a temp file for writing
         end_date_string = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime())
         base_file_name = end_date_string + '_' + chart_name + '_leads' + '_cx.csv'
@@ -387,24 +448,7 @@ def exportHsptLeadsToCsv(data, chart_name, user_id, company_id):
                                  'Recent Form Date': recent_conversion_date})
         
         csv_out.close()
-        try:
-            message = 'CSV file successfully exported'
-            notification = Notification()
-            #notification.company_id = company_id
-            notification.owner = user_id
-            notification.module = 'Exports'
-            notification.type = 'Background task' 
-            notification.method = os.path.basename(__file__)
-            notification.message = message
-            notification.success = True
-            notification.read = False
-            notification.save()
-        except Exception as e:
-            send_notification(dict(
-                 type='error',
-                 success=False,
-                 message=str(e)
-                ))          
+        
         return {'file_name': file_name, 'content_type' : 'text/csv'}
     except Exception as e:
         print 'exception while trying to create CSV file: ' + str(e)
@@ -416,9 +460,12 @@ class ManageExports(viewsets.ModelViewSet):
         
     def list(self, request):
         try:
+            page_number = int(request.GET.get('page_number'))
+            items_per_page = int(request.GET.get('per_page'))
+            offset = (page_number - 1) * items_per_page
             user_id = request.user.id  
-            results = ExportFile.objects(owner_id=user_id).exclude("file")
-            count = results.count()
+            results = ExportFile.objects(owner_id=user_id).exclude("file").skip(offset).limit(items_per_page).order_by('-updated_date')
+            count = ExportFile.objects(owner_id=user_id).count()
             serializedList = ExportFilesSerializer(results, many=True)
             return JsonResponse({'results' : serializedList.data, 'count': count})
         except Exception as e:

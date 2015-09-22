@@ -116,11 +116,14 @@
                  <a href="#" e-name="contentTitle" editable-text="currentPage.contentTitle">{{ currentPage.contentTitle }}</a>
                  <div class="italic x-small" ng-show='!currentPage.chartType.title && currentPage.type == "chart"'>Select Chart Type on the right</div>
                  <div class="italic x-small" ng-show='currentPage.chartType.title && currentPage.type == "chart"'>{{currentPage.chartType.title}} selected</div>
+                 <div class="italic x-small" ng-show='!currentPage.dashboardType.title && currentPage.type == "dashboard"'>Select Dashboard Type on the right</div>
+                 <div class="italic x-small" ng-show='currentPage.dashboardType.title && currentPage.type == "dashboard"'>{{currentPage.dashboardType.title}} selected</div>
               </div>
               <div id="content-body">
                  <!-- img id="content-body-image" src="static/images/analytics-bar.png" / -->
                  <i class="fa fa-font fa-10x" ng-if="currentPage.type == 'text'" ></i>
-                 <i class="fa fa-bar-chart-o fa-10x" ng-if="currentPage.type == 'chart'" ></i>
+                 <i class="glyphicon glyphicon-th fa-10x" ng-if="currentPage.type == 'dashboard'" ></i>
+                 <i class="glyphicon glyphicon-signal fa-10x" ng-if="currentPage.type == 'chart'" ></i>
                  <div style="clear:both">&nbsp</div>
                  <div class="pull-right x-small" id="content-page-number">{{currentPage.position}}</div>
               </div>
@@ -147,7 +150,7 @@
 	            <select name="binder_chart_type" class="form-control" style="width:100% !important"
 					ng-options="chart.title for chart in charts track by chart.name"
 					ng-model="currentPage.chartType" ng-required="currentPage.type == 'chart'">
-					<option value="">Select Chart</option>
+					<option value="">Select Chart Type</option>
 				</select>
 				<div class="input-group pull-left binder-chart-filter">
 					<span class="input-group-addon"><span
@@ -164,7 +167,7 @@
 	            <select name="binder_dashboard_type" class="form-control" style="width:100% !important"
 					ng-options="dashboard.title for dashboard in dashboards track by dashboard.name"
 					ng-model="currentPage.dashboardType" ng-required="currentPage.type == 'dashboard'">
-					<option value="">Select Dashboard</option>
+					<option value="">Select Dashboard Type</option>
 				</select>
 				<div class="input-group pull-left binder-chart-filter">
 					<span class="input-group-addon"><span

@@ -28,34 +28,40 @@
 						</div>
 					</div>
 				</div>
-				<table ng-hide="!vm.exports || !vm.exports.length"  class="table table-striped table-hover dataTable"
+				<table ng-hide="!vm.exports || !vm.exports.length"  class="table table-striped table-hover actionTable dataTable"
 					id="exports_table" ng-cloak>
 					<thead>
 						<tr>
+						    <th></th>
 							<th>File Name</th>
 							<th>Date</th>
-							<th>Type</th>
+							<th>File Type</th>
 							<th>Source</th>
-							<th></th>
+							<th>Source Type</th>
 						</tr>
 					</thead>
 
 					<tbody>
 						<tr dir-paginate="export in vm.exports | itemsPerPage:10" total-items="totalExports" current-page="pagination.current">
+							<td class="center">
+							<a href="" ng-click="downloadFile(export.id, export.file_name)" title="Download" "><span class="glyphicon glyphicon-download" style="font-size:18px; vertical-align:bottom"></span></a>
+							</td>
 							<td>
 							{{ export.file_name }}
 							</td>
 							<td>
 							{{ export.updated_date | amCalendar  }}
 							</td>
-							<td>
+							<td class="capitalize">
 							{{ export.type }}
 							</td>							
 							<td>
-							{{ export.source }}</td>
-							<td>
-							<a href="" ng-click="downloadFile(export.id, export.file_name)">Download</a>
+							{{ export.source }}
 							</td>
+							<td class="capitalize">
+							{{ export.source_type }}
+							</td>
+							
 						</tr>
 					</tbody>
 					<div ng-hide="vm.exports && vm.exports.length">

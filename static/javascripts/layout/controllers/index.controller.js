@@ -9,13 +9,18 @@
     .module('mmm.layout.controllers')
     .controller('IndexController', IndexController);
 
-  IndexController.$inject = ['$scope', 'Authentication', '$location', '$timeout', '$state', 'Messages', '$modal', '$templateCache'];
+  IndexController.$inject = ['$scope', 'Authentication', '$location', '$timeout', '$state', 'Messages', '$modal', '$templateCache', '$rootScope'];
 
   /**
   * @namespace IndexController
   */
-  function IndexController($scope, Authentication, $location, $timeout, $state, Messages, $modal, $templateCache) {
-	  var vm = this;
+  function IndexController($scope, Authentication, $location, $timeout, $state, Messages, $modal, $templateCache, $rootScope) {
+	
+	if (typeof window.callPhantom === 'function') {
+		$timeout(function() { $rootScope.htmlReady(); }, 1000);
+	}
+	  
+	var vm = this;
 
     vm.isAuthenticated = Authentication.isAuthenticated();
     $scope.rooms = [];
@@ -52,8 +57,7 @@
       if (Authentication.getAuthenticatedAccount()) 
          $scope.account = Authentication.getAuthenticatedAccount();
       else {
-    	  //toastr.error('You need to login first');
-    	  $location.path('/login'); 
+    	  //$location.path('/login'); 
       }
       
     }
@@ -297,7 +301,7 @@
     	toastr.error("Could not create channel");
     }
     
-    $scope.htmlReady(); // needed for PhantomJS to render correctly
+    
   }
   
   var modalController = function ($scope, $modalInstance, rooms, room) {

@@ -39,7 +39,7 @@
                         </a>
                         <ul class="dropdown-menu">
                           <li class="external">
-				             <h3 class="">Channels you can join</h3>
+				             <h3  class="bold font-blue-madison" >Channels I can join</h3>
 				             <a href="#" ng-click=addChannel()>Create new</a>
 				          </li>
 				          <li>   
@@ -57,7 +57,7 @@
 							</ul>
 					     </li>
 					     <li class="external">
-				             <h3 class="title">Channels you belong to</h3>
+				             <h3 class="title bold font-blue-madison" >Channels I belong to</h3>
 				         </li>
 				         <li>
 				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
@@ -82,7 +82,7 @@
                         </a>
                         <ul class="dropdown-menu" ng-show="showNotificationsDropdown">
                             <li class="external">
-                               <h3>
+                               <h3 class="bold font-blue-madison">
                                   {% verbatim %} <span class="bold">{{ $parent.notifications.unreadCount }} unread </span> {% endverbatim %}notifications
                                </h3>
                                <a href="#" ui-sref="notifications">View all</a>
@@ -108,19 +108,25 @@
                             </li>
                         </ul>
                     </li>
-			        <li class="dropdown dropdown-user dropdown-dark">
+			        <li class="dropdown dropdown-user dropdown-extended dropdown-dark">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
-						<span class="username username-hide-on-mobile">
-						{{ user.username }} </span>
-						<!-- DOC: Do not remove below empty space(&nbsp;) as its purposely used -->
 						<img alt="" class="img-circle" ng-src="/static/images/{{ user.image_url }}"/>
+						<span class="username username-hide-on-mobile">
+						{{ user.first_name }}  <i class="fa fa-angle-down"></i></span>
+						<!-- DOC: Do not remove below empty space(&nbsp;) as its purposely used -->
+						
 						</a>
-						<ul class="dropdown-menu dropdown-menu-default">
+						<ul class="dropdown-menu">
+						    <li class="external">
+                               <h3 class="bold font-blue-madison">
+                                  My Corner
+                               </h3>
+                            </li>
 							<li>
 								<a href="/users/{{ user.id }}/settings">
 								<i class="icon-user"></i> My Profile </a>
 							</li>
-							<li>
+							<li class="hidden">
 								<a href="page_calendar.html">
 								<i class="icon-calendar"></i> My Calendar </a>
 							</li>
@@ -129,17 +135,11 @@
 								<i class="icon-envelope-open"></i> My Exports
 								</a>
 							</li>
-							<li>
+							<li class="hidden">
 								<a href="/notifications">
 								<i class="icon-rocket"></i> My Notifications <span class="badge badge-success">
 								{% verbatim %} {{ $parent.notifications.count }} {% endverbatim %}</span>
 								</a>
-							</li>
-							<li class="divider">
-							</li>
-							<li>
-								<a href="extra_lock.html">
-								<i class="icon-lock"></i> Lock Screen </a>
 							</li>
 							<li>
 								<a href="javascript:void(0)" ng-click="vm.logout()">

@@ -20,7 +20,7 @@ from authentication.models import CustomUser, Company
 from leads.models import Lead
 from campaigns.models import Campaign
 from analytics.models import AnalyticsData, AnalyticsIds
-from company.models import CompanyIntegration, TempData
+from company.models import CompanyIntegration, TempData, TempDataDelta
 from accounts.models import Account
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from collab.signals import send_notification
@@ -283,6 +283,16 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
             count = TempData.objects(job_id__in=successfulJobsList).count()
             TempData.objects(job_id__in=successfulJobsList).delete()
             _superJobMonitorAddTask(superJobMonitor, "Claritix", str(count) + " records deleted from temp data table")
+        #delete all data from past successful delta runs in Temp Table
+        if run_type == 'delta':
+            _superJobMonitorAddTask(superJobMonitor, "Claritix", "Deletion of temp data delta table started") 
+            successfulJobs = SuperJobMonitor.objects(Q(company_id=company_id) & Q(type='delta') & Q(status='Completed'))
+            successfulJobsListTemp = list(successfulJobs)
+            print 'found delta job ids ' + str(len(successfulJobsListTemp))
+            successfulJobsList = [i.id for i in successfulJobsListTemp]
+            count = TempDataDelta.objects(job_id__in=successfulJobsList).count()
+            TempDataDelta.objects(job_id__in=successfulJobsList).delete()
+            _superJobMonitorAddTask(superJobMonitor, "Claritix", str(count) + " records deleted from temp data delta table")
         #update last run date for initial run in Company Integration record
         
         _superJobMonitorEnd(superJobMonitor, existingIntegration, run_type, 'Completed', 'All tasks completed successfully') 
