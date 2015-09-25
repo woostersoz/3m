@@ -75,8 +75,8 @@
 			if (data.data.results.length > 0) // they could contain  Mkto, SFDC or HSPT leads
 			{ 
 				$scope.charts = data.data.results;
-				for (var i=0; i < $scope.charts.length; i++)
-					$scope.charts[i].src = staticUrl($scope.charts[i].src);
+				/*for (var i=0; i < $scope.charts.length; i++)
+					$scope.charts[i].src = staticUrl($scope.charts[i].src);*/
 				if ($stateParams.url) // if being called for a specific chart
 				{
 					var chart = $scope.charts.filter(function(obj) {

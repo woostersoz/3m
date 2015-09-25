@@ -539,7 +539,7 @@ g.nv-series-7 path.nv-line {
 }
 
 .timeline {
-	max-height: 350px;
+	/* max-height: 350px; */
 	overflow-y: auto;
 	outline: 0;
 }
@@ -964,7 +964,7 @@ div[binderpage] .portlet .portlet-title .tools {
 }
 
 .info-box-green {
-	background-color: #cce5e2; /*#007f6d; /*#f5eee5;*/
+	background-color: #b4e3f4; /*#cce5e2; /*#007f6d; /*#f5eee5;*/
 	padding-top: 10px;
 	border-radius:5px;
 	padding-right:5px;
@@ -972,7 +972,7 @@ div[binderpage] .portlet .portlet-title .tools {
 }
 
 .info-box-orange {
-	background-color: #ffe1cc; /*#007f6d; /*#f5eee5;*/
+	background-color: #e6f6fb; /*#ffe1cc; /*#007f6d; /*#f5eee5;*/
 	padding-top: 10px;
 	border-radius:5px;
 	padding-right:5px;
@@ -989,14 +989,14 @@ div[binderpage] .portlet .portlet-title .tools {
 }
 
 .left-divider {
-	border-top:2px solid #007f6b; 
+	border-top:2px solid #b4e3f4; /*#007f6b; */
 	margin-top:75px; 
 	margin-left:5px; 
 	margin-right: 5px;
 }
 
 .right-divider {
-	border-top:2px solid #ff6800; 
+	border-top:2px solid #04a1d9; /* #ff6800; */
 	margin-top:75px; 
 	margin-left:5px; 
 	margin-right: 5px;
@@ -1007,7 +1007,7 @@ div[binderpage] .portlet .portlet-title .tools {
 	padding-left:15px;
 	padding-right:15px;
 	margin-top:30px; 
-	margin-left:0px;
+	/* margin-left:0px; */
 }
 
 .funnel-detailed-row a {
@@ -1193,13 +1193,13 @@ ul.analytics-charts > li {
 }
 
 .row-header-1 {
-	background-color: #ffe1cc; /*rgba(255, 106, 0, 1); */
-	border-bottom: 1px dotted #cc5a00;
+	background-color: #e6f6fb; /*#ffe1cc; /*rgba(255, 106, 0, 1); */
+	border-bottom: 1px dotted #9bd9f0; /*#cc5a00;*/
 }
 
 .row-header-2 {
-	background-color: #cce5e2; /*rgba(0, 127, 109, 1); */
-	border-bottom: 1px dotted #006c5e;
+	background-color: #b4e3f4; /*#cce5e2; /*rgba(0, 127, 109, 1); */
+	border-bottom: 1px dotted #8cd1ec; /* #006c5e; */
 }
 
 .row-body-1, .row-body-2  {
@@ -1207,21 +1207,21 @@ ul.analytics-charts > li {
 }
 
 .row-body-1 {
-	background-color: #ffe1cc; /*#ffa773;  #ffc4a3; /* /*  rgba(255, 106, 0, 1);#ff6a00; */
-	border-right:1px solid #cc5a00;
+	background-color: #e6f6fb; /* #ffe1cc; /*#ffa773;  #ffc4a3; /* /*  rgba(255, 106, 0, 1);#ff6a00; */
+	border-right:1px solid #9bd9f0; /*#cc5a00;*/
 }
 
 .row-body-1 i {
-	color: #cc5a00;
+	color: #04a1d9; /*#cc5a00;*/
 }
 
 .row-body-2 {
-	background-color: #cce5e2;  /* #82b4aa; #adccc7; /* /* rgba(0, 127, 109, 1); #007f6d; */
-	border-right:1px solid #006c5e;
+	background-color: #b4e3f4; /* #cce5e2;  /* #82b4aa; #adccc7; /* /* rgba(0, 127, 109, 1); #007f6d; */
+	border-right:1px solid #8cd1ec; /*#006c5e;*/
 }
 
 .row-body-2 i {
-	color: #006c5e;
+	color: #04a1d9; /* #006c5e;*/
 }
 
 .row-body-no-border {
@@ -1241,7 +1241,7 @@ ul.analytics-charts > li {
 .taper-right {
     width: 200px;
     height: 0px;
-    border-color: #cce5e2 transparent;
+    border-color: #b4e3f4 transparent; /* #cce5e2*/
     border-style: solid;
     border-width: 75px 25px 0 0px;
     float: left;
@@ -1250,7 +1250,7 @@ ul.analytics-charts > li {
 .taper-left {
     width: 200px;
     height: 0px;
-    border-color: #ffe1cc transparent;
+    border-color: #e6f6fb transparent; /* #ffe1cc */
     border-style: solid;
     border-width: 75px 0px 0px 25px;
     float: left;
@@ -1273,7 +1273,7 @@ ul.analytics-charts > li {
 }
 
 .part-b {
-    background: #cce5e2;
+    background: #b4e3f4; /* #cce5e2; */
     overflow: hidden;
     position: relative;
     -webkit-padding-before: 3px;
@@ -1284,7 +1284,7 @@ ul.analytics-charts > li {
     left: 0px;
     width: 50%;
     height: 100%;
-    background-color: #ffe1cc;
+    background-color: #e6f6fb; /*#ffe1cc; */
     -webkit-margin-before: -3px;
 }
 

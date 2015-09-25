@@ -92,6 +92,7 @@ class SuperDashboards(Document):
     system_type = StringField()
     object = StringField()
     category = StringField()
+    src = StringField(max_length=200)
     status = StringField()
     descr = StringField()
     template = StringField()

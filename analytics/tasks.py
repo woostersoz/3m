@@ -1283,8 +1283,10 @@ def hspt_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
             lead_counter += 1
             print 'leadcount is ' + str(lead_counter)
             s = local_start_date - timedelta(days=1)
+            current_state = None
+            if 'source_stage' in lead:
             #properties = lead.leads['hspt']['properties']
-            current_stage = lead['source_stage']
+                current_stage = lead['source_stage']
             if current_stage not in date_field_map or current_stage is None: #if the stage is not defined in our map, skip the lead
                 continue
             if date_field_map[current_stage] not in lead: #weird case where there's no date for current stage

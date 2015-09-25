@@ -1,0 +1,33 @@
+<div class="portlet light">
+
+  <div class="portlet-header">
+        <div class="title col-md-12">Dashboards</div>
+        <div ncy-breadcrumb class="title col-md-12 breadcrumb animate-show-hide"></div>
+  </div>
+  
+  <div class="portlet-title">
+      <div class="note note-info italic col-md-12">
+		<p>Select the dashboard to view</p>
+      </div>   
+  </div>
+  
+<div class="portlet-body padding-zero ">
+<ul class="analytics-category">
+  <li ng-repeat="(key, value) in dashboards | groupBy: 'category'">
+    <div class="col-md-12 font-blue-madison padding-zero" style="margin-bottom:10px"><i style="top:0px;" class="glyphicon glyphicon-th"></i> {{key}}</div>
+    <ul class="analytics-charts">
+	    <li ng-repeat="dashboard in value" class="col-md-3 col-xs-6 col-sm-3  header-box">
+	      <div class="col-sm-3">
+	         <a ui-sref="dashboards({type: dashboard.name })"><span style="font-size:24px; font-weight:700;" class="{{dashboard.src}}"></span></a>
+	      </div>
+	      <div class="col-sm-9 left" style="text-align:left;">
+	         <a ui-sref="dashboards({type: dashboard.name })"><div class="chart-title"><strong>{{dashboard.title}}</strong></div></a>
+	         <div class="chart-descr">{{dashboard.descr}}</div>
+	      </div>
+	    </li>
+    </ul>
+  </li>
+</ul>
+
+</div>
+</div>

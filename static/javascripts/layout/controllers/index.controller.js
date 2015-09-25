@@ -57,7 +57,7 @@
       if (Authentication.getAuthenticatedAccount()) 
          $scope.account = Authentication.getAuthenticatedAccount();
       else {
-    	  //$location.path('/login'); 
+    	 $location.path('/login'); 
       }
       
     }

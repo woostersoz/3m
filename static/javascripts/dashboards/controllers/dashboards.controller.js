@@ -156,6 +156,10 @@
 			$location.url = '/login';
 		}
 		
+		if ($state.current.name == 'dashboards-listing') {
+			getDashboards();
+		}
+		
 		if ($state.params.type == 'funnel') {
 			$scope.dashboard_name = 'funnel';
 		}

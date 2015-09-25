@@ -1,7 +1,7 @@
 <!--  dashboard -->
 <div class="portlet light">
 
-<div class="portlet-header short" ng-show="showBinder"> 
+  <div class="portlet-header short" ng-show="showBinder"> 
         <span class="caption-subject bold font-blue-madison" style="font-size:80%">
            <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
         </span>
@@ -10,8 +10,8 @@
   <div class="portlet-header" ng-hide="showBinder">
         <div class="title col-xs-12">Social ROI</div>
         <div ncy-breadcrumb class="title col-xs-9 breadcrumb animate-show-hide"></div>
-        <div class="title col-xs-3 breadcrumb">
-           <a href="#" ng-click="showTheCarousel()" ng-hide="showCarousel"  class="pull-right animate-show-hide" style="font-weight:700;">Back to Dashboards</a>
+        <div class="title col-md-3 breadcrumb">
+           <a href="#" ui-sref="dashboards-listing" class="pull-right" style="font-weight:700;">Back to Dashboards</a>
 	    </div>
   </div>
   
@@ -73,7 +73,7 @@
 		        </li>
 	          
 	          </ul>
-	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <hr style="border-top:1px solid #9bd9f0; clear:both;">
 	          <ul class="col-xs-12">
 	            <li class="text-center col-xs-3">
 		            <i class="fa fa-external-link"></i>
@@ -118,7 +118,7 @@
 		        </li>
 	          
 	          </ul>
-	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <hr style="border-top:1px solid #8cd1ec;; clear:both;">
 	          <ul class="col-xs-12">
 	            <li class="text-center col-xs-3">
 		            <i class="fa fa-external-link"></i>
@@ -164,7 +164,7 @@
 		        </li>
 	          
 	          </ul>
-	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <hr style="border-top:1px solid #9bd9f0; clear:both;">
 	          <ul class="col-xs-12">
 	            <li class="text-center col-xs-4">
 		            <i class="fa fa-user"></i>
@@ -202,7 +202,7 @@
 		        </li>
 	          
 	          </ul>
-	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <hr style="border-top:1px solid #8cd1ec;; clear:both;">
 	          <ul class="col-xs-12">
 	            <li class="text-center col-xs-4">
 		            <i class="fa fa-user"></i>
@@ -236,11 +236,11 @@
 		        </li>
 		        
 	          </ul>
-	          <hr style="border-top:1px solid #cc5a00; clear:both;">
+	          <hr style="border-top:1px solid #9bd9f0; clear:both;">
 	          <ul class="col-xs-12" style="margin-bottom:0px">
 	            <li class="text-center col-xs-12">
 		            <i class="fa fa-minus-square-o"></i>
-		            <p class="dashboard-metric-name" ng-class="{'smaller-font' : showBinder}">Spend</p>
+		            <p class="dashboard-metric-name smaller-font" ng-class="{'smaller-font' : showBinder}">Spend</p>
 		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Organic.Spend | currency:"$ " }}</p>
 		        </li>
 	          
@@ -259,11 +259,11 @@
 		        </li>
 		        
 	          </ul>
-	          <hr style="border-top:1px solid #006c5e; clear:both;">
+	          <hr style="border-top:1px solid #8cd1ec;; clear:both;">
 	          <ul class="col-xs-12" style="margin-bottom:0px">
 	            <li class="text-center col-xs-12">
 		            <i class="fa fa-minus-square-o"></i>
-		            <p class="dashboard-metric-name" ng-class="{'smaller-font' : showBinder}">Spend</p>
+		            <p class="dashboard-metric-name smaller-font" ng-class="{'smaller-font' : showBinder}">Spend</p>
 		            <p class="dashboard-metric-value">{{ currentPage.dashboardData.roi.Facebook.Paid.Spend | currency:"$ " }}</p>
 		        </li>
 	          

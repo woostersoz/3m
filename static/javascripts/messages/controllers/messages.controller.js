@@ -84,6 +84,8 @@
 		function getMessagesSuccessFn(data, status, headers, config) {
 			if (data.data) {
 				vm.messages = data.data;
+				//for (var i=0; i < vm.messages.length; i++)
+				//	vm.messages[i].user.image_url = staticUrl(vm.messages[i].user.image_url);
 				//$scope.roomName = vm.messages[0].room.name;
 				//$scope.roomDescription = vm.messages[0].room.description;
 				scrollToBottom();

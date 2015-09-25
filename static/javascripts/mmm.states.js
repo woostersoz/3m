@@ -26,6 +26,7 @@
 					url : '/dashboards',
 					controller : 'DashboardsController',
 					controllerAs : 'vm',
+					templateUrl : '/static/templates/dashboards/dashboards-listing.html',
 					ncyBreadcrumb: {
 				    	label: 'Dashboards'
 				    }
@@ -456,11 +457,9 @@
 				})
 				.state('/', {
 					url : '/',
-					controller : 'CompanyController',
-					controllerAs : 'vm',
-					templateUrl : '/static/templates/company/dashboard.html',
-					ncyBreadcrumb: {
-				    	label: 'Home'
+					redirectTo: 'dashboards-listing',
+				    ncyBreadcrumb: {
+				    	label: 'Dashboards',
 				    }
 				});
 

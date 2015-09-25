@@ -10,34 +10,19 @@
 		</div>
 
 			<div class="portlet-title" ng-class="{'modal-body': channelInModal}">
-				
-				<div class="btn-group" dropdown>
-			      <button id="split-button" type="button" class="btn italic muted-text">Choose
-								Channel</button>
-			      <button type="button" class="btn" dropdown-toggle>
-			        <span class="caret"></span>
-			      </button>
-			      <ul class="dropdown-menu" role="menu" aria-labelledby="split-button">
-			        <li ng-repeat="room in rooms">{{ room.name }}</li>
-			      </ul>
-			    </div>
-				
-				
-				
 				<div class="caption">
 					<span
 						class="caption-subject bold uppercase font-blue-madison"
 						ng-hide="channelInModal"> {{vm.enteredRoom.room.name}} </span>
 						<span
 						ng-show="channelInModal">
-						<div class="dropdown"
-						name="selected_room" class="small"
+						<select
+						name="selected_room" 
 						ng-options="room.room.id as room.room.name for room in rooms"
 						ng-model="newMessage.room.id" required>
-						
 						<option value="">Choose
 								Channel</option>
-						</div>
+						</select>
 						</span>
 						<span class="x-small error"
 					ng-show="form.roomForm.selected_room.$invalid && form.roomForm.selected_room.$dirty">Select
@@ -55,7 +40,7 @@
 				</div>
 				
 				<div class="bold smaller-font">
-				Message:
+				Message
 				</div>
 
 				<div class="form-group">
@@ -64,7 +49,7 @@
 				</div>
 				
 				<div class="bold smaller-font">
-				Snapshot:
+				Snapshot
 				</div>
 				
 				<div class="form-group">
