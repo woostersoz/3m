@@ -1,0 +1,108 @@
+<form role="form" class="room" name="form.roomForm"
+			ng-submit="submitForm(slackMessage)" novalidate>
+
+<div class="col-md-12">
+
+	<div class="portlet light" ng-class="{'padding0': channelInModal}">
+
+		<div ng-show="channelInModal" class="modal-header font-blue-madison">
+			<h3><i class="fa fa-slack"></i> Post to Slack</h3>
+		</div>
+
+			<div class="portlet-title" ng-class="{'modal-body': channelInModal}">
+				<div class="caption">
+					<span
+						class="caption-subject bold uppercase font-blue-madison"
+						ng-hide="channelInModal"> {{vm.enteredRoom.room.name}} </span>
+						<span
+						ng-show="channelInModal">
+						<select
+						name="selected_slack_option" 
+						ng-model="slackMessage.option.type" required>
+						<option value="">Choose
+								</option>
+					    <option value="channel">Post to
+								Channel</option>
+						<option value="group">Post to 
+								Group</option>
+						<option value="im">Direct Message
+								</option>
+						</select>
+						</span>
+						<span class="x-small error"
+					ng-show="form.roomForm.selected_room.$invalid && form.roomForm.selected_room.$dirty">Select
+					option
+					    </span>
+					    <span
+						ng-show="slackMessage.option.type=='group'">
+						<select
+						name="slack_groups" 
+						ng-options="group.id as group.name for group in slack_groups"
+						ng-model="slackMessage.channel.id" ng-required="slackMessage.option.type=='group'">
+						<option value="">Choose Group
+								</option>
+						</select>
+						</span>
+						<span
+						ng-show="slackMessage.option.type=='channel'">
+						<select
+						name="slack_channels" 
+						ng-options="channel.id as channel.name for channel in slack_channels"
+						ng-model="slackMessage.channel.id" ng-required="slackMessage.option.type=='channel'">
+						<option value="">Choose Channel
+								</option>
+						</select>
+						</span>
+						<span
+						ng-show="slackMessage.option.type=='im'">
+						<select
+						name="slack_ims" 
+						ng-options="im.id as im.user_name for im in slack_ims"
+						ng-model="slackMessage.channel.id" ng-required="slackMessage.option.type=='im'">
+						<option value="">Direct Message to
+								</option>
+						</select>
+						</span>
+				</div>
+				
+			</div>
+
+            <div class="" ng-class="{'modal-body': channelInModal}">
+				<div ng-show="channelInModal" class="muted-text italic smaller-font" style="margin-top:-10px; margin-bottom:10px;">
+				    Post your
+					message (including snapshots of the related chart) to channels
+					directly from here
+				</div>
+				
+				<div class="bold smaller-font">
+				Message
+				</div>
+
+				<div class="form-group">
+					<textarea class="form-control" id="slackMessage__message"
+						ng-model="slackMessage.message" required cols="" rows="" />
+				</div>
+				
+				<div class="bold smaller-font">
+				Snapshot
+				</div>
+				
+				<div class="form-group">
+				    <input bs-switch ng-init="slackMessage.snapshot=0" switch-on-text="On" switch-off-text="Off" type="checkbox" id="slackMessage__snapshot" ng-model="slackMessage.snapshot" />
+				</div>
+
+			</div>
+
+			<div ng-class="{'modal-footer': channelInModal}">
+				<div class="pull-right">
+				   <a href="#" class="btn secondary-button" ng-click="cancel()">Cancel</a>
+&nbsp;
+					<button type="submit" href="#" class="btn action-button"
+						ng-disabled="form.roomForm.$invalid">Post</button>
+				</div>
+			</div>
+
+	</div>
+</div>
+
+</form>

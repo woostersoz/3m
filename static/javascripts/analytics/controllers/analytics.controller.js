@@ -53,6 +53,7 @@
 		$scope.staticUrl = staticUrl;
 		$scope.drawChart = drawChart;
 		$scope.postToChannel = postToChannel;
+		$scope.postToSlack = postToSlack;
 		$scope.barUrl = staticUrl('images/analytics-bar.png');
 		$scope.lineUrl = staticUrl('images/analytics-line.png');
 		$scope.rowUrl = staticUrl('images/analytics-row.png');
@@ -91,6 +92,7 @@
 			else {
 				toastr.error("Could not find charts for company");
 			}
+			//$scope.slackActive = $scope.$parent.slackActive;
 		}
 		
 		function ChartsErrorFn(data, status, headers, config) {
@@ -237,6 +239,7 @@
 		
 		function handleElementClick(e, fromPageChange) {
 			
+			$scope.startSpin();
 			$scope.filterBySource = false;
 			$scope.filterByRevenueSource = false;
 			$scope.filterByTweetInteractions = false;
@@ -663,6 +666,7 @@
 		function LeadsSuccessFn(data, status, headers, config) {
 			if (data.data.results) // they could contain  Mkto, SFDC or HSPT leads
 			{
+				$scope.stopSpin();
 				$scope.totalLeads = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
@@ -902,6 +906,7 @@
 				var account = Authentication.getAuthenticatedAccount();
 				if (newMessage.snapshot === true) // if snapshot needs to be created first, do that
 				{
+					$scope.latestSnapshotId = '';
 					snapshot();
 
 					$scope.$watch('latestSnapshotId', function(newId, oldId) {
@@ -939,6 +944,81 @@
 		function submitMessageErrorFn(data, status, headers, config) {
 
 		}
+		
+		function postToSlack() {
+			$scope.slack_channels = $scope.$parent.slack_channels;
+			$scope.slack_groups = $scope.$parent.slack_groups;
+			$scope.slack_ims = $scope.$parent.slack_ims;
+
+			var modalInstance = $modal
+			.open({
+				templateUrl : staticUrl('templates/messages/chart-slack-message.html'),
+				controller : modalSlackController,
+				scope : $scope,
+				resolve : {
+					slack_groups : function() {
+						return $scope.slack_groups;
+					},
+					slack_channels : function() {
+						return $scope.slack_channels;
+					},
+					slack_ims : function() {
+						return $scope.slack_ims;
+					},
+				}
+			//className: 'ngdialog-theme-default',
+			//data: {channelId: channelId, name:name, description:description}
+			});
+
+			modalInstance.result.then(function(slackMessage) {
+				$scope.slackOption = slackMessage.option.type;
+				$scope.slackChannel = slackMessage.channel.id;
+				var account = Authentication.getAuthenticatedAccount();
+				if (slackMessage.snapshot === true) // if snapshot needs to be created first, do that
+				{
+					$scope.latestSnapshotId = '';
+					snapshot();
+
+					$scope.$watch('latestSnapshotId', function(newId, oldId) {
+
+						if (account && newId.length > 0) {
+							Messages.submitSlackMessage(account.company, slackMessage.message, slackMessage.channel.id, newId).then(
+											submitSlackMessageSuccessFn,
+											submitSlackMessageErrorFn);
+						}
+					});
+				} else {
+					if (account) {
+						var newMessage = {}
+						newMessage.text = slackMessage.message;
+						newMessage.channel = slackMessage.channel.id;
+						newMessage.type = 'message';
+						newMessage.id = moment().unix();
+						$rootScope.slackSocket.send(newMessage);
+						//newMessage.ts = newMessage.id;
+						//newMessage.user = $scope.slackUser;
+						//newMessage.text = formatSlackMsg(newMessage.text, false);
+		            	//newMessage = Messages.formatSlackUserInfo(newMessage, $scope.slack_users);
+		            	//$scope.slack_messages.push(newMessage);
+					}
+				}
+			}, function() {
+
+			});
+		}
+		
+		function submitSlackMessageSuccessFn(data, status, headers, config) {
+			if (data.data["Error"]) {
+				toastr.error(data.data["Error"]);
+			} else {
+				toastr.success("Message posted to Slack!");
+			}
+
+		}
+
+		function submitSlackMessageErrorFn(data, status, headers, config) {
+
+		}
 
 		var modalController = function($scope, $modalInstance, rooms) {
 
@@ -948,6 +1028,23 @@
 			$scope.submitForm = function(newMessage) {
 				if ($scope.form.roomForm.$valid) {
 					$modalInstance.close(newMessage);
+				}
+			};
+			$scope.cancel = function() {
+				$modalInstance.dismiss('cancel');
+			};
+		}
+		
+		var modalSlackController = function($scope, $modalInstance, slack_groups, slack_channels, slack_ims) {
+
+			$scope.slack_groups = slack_groups;
+			$scope.slack_channels = slack_channels;
+			$scope.slack_ims = slack_ims;
+			$scope.postedRoom = '';
+			$scope.slackMessage = {};
+			$scope.submitForm = function(slackMessage) {
+				if ($scope.form.roomForm.$valid) {
+					$modalInstance.close(slackMessage);
 				}
 			};
 			$scope.cancel = function() {

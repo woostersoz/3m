@@ -4,6 +4,7 @@ from social import views
  
 urlpatterns = patterns('',
     url(r'^twitter/categories/$', views.TwitterCategories.as_view({'get': 'list', 'post': 'create'}), name='twitter_categories'), 
+    url(r'^twitter/category/size/$', views.get_tw_category_size, name='twitter_category_size'),
     url(r'^twitter/category/(?P<category_id>[a-z:\\.0-9]+)/$', views.TwitterCategory.as_view({'get': 'list', 'delete': 'delete', 'put': 'update', 'post': 'create'}), name='twitter_category'),
     url(r'^twitter/handles/$', views.get_tw_handles_buffer, name='twitter_handles'),
     url(r'^twitter/filter/$', views.filterTwInteractions, name='filter_twitter_interactions'),

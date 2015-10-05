@@ -20,12 +20,13 @@ import json
 from celery.worker.control import heartbeat
 
 
-class UserOauth(Document):
-
-    user_id = IntField()
-    updated_date = DateTimeField(default=datetime.datetime.utcnow())
-    sfdc_access_token = StringField(max_length=300)
-    mkto_access_token = StringField(max_length=300)
-
-    meta = {'collection': 'userOauth', 'indexes': ['user_id'], 'ordering':['-updated_date']}
+# class UserOauth(Document):
+# 
+#     user_id = IntField()
+#     updated_date = DateTimeField(default=datetime.datetime.utcnow())
+#     sfdc_access_token = StringField(max_length=300)
+#     mkto_access_token = StringField(max_length=300)
+#     slck_access_token = StringField(max_length=300)
+# 
+#     meta = {'collection': 'userOauth', 'indexes': ['user_id'], 'ordering':['-updated_date']}
         

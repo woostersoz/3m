@@ -1,41 +1,48 @@
 <!--  dashboard -->
 <div class="portlet light">
+  <div class="portlet-header short">
+        <div class="title col-md-12">Tweets Summary</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
   
-  <div class="portlet-title">
-    <div class="caption  col-md-6">
-      <i class="fa fa-twitter font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison"> Tweets - Summary</span>
-    </div>   
-    <div class="col-md-6">
-		
-	</div> 
+  <div class="portlet-title hidden">
+    &nbsp;
   </div>
 
+<div class="portlet-body">
   <div class="row list-separated">
-    <div class="col-md-2 col-sm-2 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Total Tweets
-       </div>
+    <div class="col-md-2 col-sm-2 col-xs-6 header-box header-box-grey">
        <div class="uppercase font-hg font-blue-madison">
           {{ totalCount }} 
        </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Total Tweets
+       </div>
+       
     </div>
     
-    <div class="col-md-5 col-sm-5 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Earliest Created Date
-       </div>
-       <div class="uppercase font-hg font-blue-madison">
+    <div class="col-md-5 col-sm-5 col-xs-6 header-box header-box-grey">
+       <div class="font-20 font-blue">
           {{ firstDateCreated | amCalendar }} 
        </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Earliest Created Date
+       </div>
+       
     </div>
     
-    <div class="col-md-5 col-sm-5 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Latest Date Created
-       </div>
-       <div class="uppercase font-hg font-blue-madison">
+    <div class="col-md-5 col-sm-5 col-xs-6 header-box header-box-grey">
+       <div class="font-20 font-blue">
           {{ lastDateCreated | amCalendar }}
        </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Latest Date Created
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box hidden">
     </div>
   
   </div>
@@ -43,7 +50,6 @@
 </div>  
 <!--  end of dashboard -->
 
-<div class="portlet light">
   
   <div class="portlet-title">
     <div class="caption  col-md-6">
@@ -51,7 +57,7 @@
     </div>   
     <div class="col-md-6">
 		<div class="btn-group pull-right" style="margin-top:3px"> <!-- ng-click="addRow()"   -->
-			<a href="" ng-click="addNewRow()" role="button" id="add_tweet" class="btn green-jungle">
+			<a href="" ng-click="addNewRow()" role="button" id="add_tweet" class="btn action-button" ng-hide="addRow">
 				<span class="glyphicon glyphicon-plus"></span>
 				Add New 
 			</a>
@@ -101,16 +107,16 @@
 								        </td>
 								        <td>
 								        <div>
-								            <a ng-disabled="tweets_form.$invalid" href="#" ng-click="addTweet(newtweet)" class="btn red-flamingo">
+								            <a ng-disabled="tweets_form.$invalid" href="#" ng-click="addTweet(newtweet)" class="btn secondary-button">
 											<span class="glyphicon glyphicon-ok"></span>  Save
 											</a>&nbsp;&nbsp;
-											<a href="#" ng-click="cancelAdd()" class="btn green-jungle">
+											<a href="#" ng-click="cancelAdd()" class="btn secondary-button">
 												<span class="glyphicon glyphicon-remove"></span> Cancel
 											</a>
 								        </div>
 								        </td>
 								    </tr>
-									<tr ng-repeat="tweet in vm.tweets">
+									<tr dir-paginate="tweet in vm.tweets | itemsPerPage:10" total-items="totalInteractions" current-page="pagination.current">
 									    <td class="center">
 										<div ng-hide="editingData[tweet.id]">{{ tweet.category.category_name }}</div>
 										<div ng-show="editingData[tweet.id]"><select name="tweet_category" class="small"
@@ -136,24 +142,24 @@
 										</td>
 										<td>
 										  <div class="form-group" ng-hide="tweets[tweet.id]">
-											<a ng-hide="editingData[tweet.id]" href="#" ng-click="deleteTweet(tweet)" class="btn btn-xs red-flamingo">
+											<a ng-hide="editingData[tweet.id]" href="#" ng-click="deleteTweet(tweet)" class="btn btn-xs secondary-button">
 											<i class="fa fa-trash-o"></i> Delete
 											</a>&nbsp;&nbsp;
-											<a ng-hide="editingData[tweet.id]" href="#" ng-click="editTweet(tweet)" class="btn  btn-xs blue-madison">
+											<a ng-hide="editingData[tweet.id]" href="#" ng-click="editTweet(tweet)" class="btn  btn-xs secondary-button">
 												<i class="fa fa-edit"></i> Edit
 											</a>
-											<a ng-disabled="tweets_form.$invalid" ng-show="editingData[tweet.id]" href="#" ng-click="updateTweet(tweet)" class="btn  btn-xs red-flamingo">
+											<a ng-disabled="tweets_form.$invalid" ng-show="editingData[tweet.id]" href="#" ng-click="updateTweet(tweet)" class="btn  btn-xs secondary-button">
 											<i class="fa fa-frown-o"></i>  Save
 											</a>&nbsp;&nbsp;
-											<a ng-show="editingData[tweet.id]" href="#" ng-click="cancelTweet(tweet)" class="btn  btn-xs green-jungle">
+											<a ng-show="editingData[tweet.id]" href="#" ng-click="cancelTweet(tweet)" class="btn  btn-xs secondary-button">
 												<i class="fa fa-smile-o"></i> Cancel
 											</a>
 										  </div>
 										  <div class="form-group" ng-show="tweets[tweet.id]">
-											    <a href="#" ng-click="confirmedDeleteTweet(tweet)" class="btn  btn-xs red-flamingo">
+											    <a href="#" ng-click="confirmedDeleteTweet(tweet)" class="btn  btn-xs secondary-button">
 													<i class="fa fa-frown-o"></i> Confirm
 												</a>&nbsp;&nbsp;
-												<a href="#" ng-click="cancelDeleteTweet(tweet)" class="btn  btn-xs green-jungle">
+												<a href="#" ng-click="cancelDeleteTweet(tweet)" class="btn  btn-xs secondary-button">
 													<i class="fa fa-smile-o"></i> Cancel
 												</a>
 										  </div>
@@ -166,7 +172,12 @@
 									</div>
 								</div> 
 							</table>
-							
+							<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+							   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!vm.tweets || !vm.tweets.length" >Showing {{startInteractionCounter}} to {{endInteractionCounter}} of {{totalInteractions}}</div>
+							   <div class="col-md-9" style="padding-left:0px; padding-right:0px"> 
+							       <dir-pagination-controls class="pull-right" ng-hide="!vm.tweets || !vm.tweets.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+						       </div>
+						    </div>
 						</form>
 					
 			</div>
@@ -174,5 +185,4 @@
 			
 			<!--  end of first col-md-6 -->
 			</div> <!--  clearfix end -->
-</div>
 </div>

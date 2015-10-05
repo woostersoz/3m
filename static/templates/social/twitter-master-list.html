@@ -1,57 +1,67 @@
 <!--  dashboard -->
 <div class="portlet light">
   
-  <div class="portlet-title">
-    <div class="caption  col-md-6">
-      <i class="fa fa-twitter font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Twitter Master Lists - Summary</span>
-    </div>   
-    <div class="col-md-6">
-		
-	</div> 
+  <div class="portlet-header short">
+        <div class="title col-md-12">Twitter Master Lists Summary</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
   </div>
 
+ <div class="portlet-body">
   <div class="row list-separated">
-    <div class="col-md-4 col-sm-4 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Total Master Lists
-       </div>
+    <div class="col-md-4 col-sm-4 col-xs-6 header-box header-box-grey">
        <div class="uppercase font-hg font-blue-madison">
           {{ totalCount }} 
        </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Total Master Lists
+       </div>
+       
     </div>
     
-    <div class="col-md-4 col-sm-4 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Total Published
-       </div>
+    <div class="col-md-4 col-sm-4 col-xs-6 header-box header-box-grey">
        <div class="uppercase font-hg font-blue-madison">
           {{ numPublished }} 
        </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Total Published
+       </div>
+       
     </div>
     
-    <div class="col-md-4 col-sm-4 col-xs-6">
-       <div class="font-grey-mint font-sm">
-          Number of Tweets in Lists
-       </div>
+    <div class="col-md-4 col-sm-4 col-xs-6 header-box header-box-grey">
        <div class="uppercase font-hg font-blue-madison">
           {{ totalTwCount }}
        </div>
+       <div class="font-grey-mint font-sm">
+          Number of Tweets in Lists
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box hidden">
     </div>
   
   </div>
   
 </div>  
 <!--  end of dashboard -->
-
-<div class="portlet light">
   
   <div class="portlet-title">
     <div class="caption  col-md-6">
       <i class="fa fa-twitter font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Twitter Master Lists - Details</span>
     </div>   
     <div class="col-md-6">
-		<div class="btn-group pull-right" style="margin-top:3px"> <!-- ng-click="addRow()"   -->
-			<a href="" ng-click="createTwMl()" role="button" id="add_tweet_ml" class="btn green-jungle">
+		<div class="pull-right" style="margin-top:3px"> <!-- ng-click="addRow()"   -->
+			<a href="" ng-click="createTwMlFromCategory()" role="button" id="add_tweet_ml" class="btn action-button" ng-hide="createTwML">
+				<span class="glyphicon glyphicon-plus"></span>
+				Add New from Category
+			</a>
+			<a href="" ng-click="createTwMl()" role="button" id="add_tweet_ml" class="btn action-button" ng-hide="createTwML">
 				<span class="glyphicon glyphicon-plus"></span>
 				Add New 
 			</a>
@@ -59,33 +69,48 @@
 	</div> 
   </div>
 
-<div class="portlet-body">
+<div class="portlet-body padding-zero" ng-show="createTwML">
 <div class="clearfix">
    <div class="col-md-12">
 
-                   <div class="portlet box grey-steel" ng-show="createTwML">
-					<div class="portlet-title">
-						<div class="caption col-md-4">
-							<i class="fa fa-group"></i>New Master List
-						</div>
-						<div class="col-md-8">
-							<div class="btn-group pull-right" style="margin-top:3px"> <!-- ng-click="addRow()"   -->
-								<a href="" ng-click="createTwMl()" role="button" id="add_category" class="btn blue-madison">
+					<div class="portlet-body" >
+					
+					    <div class="col-md-6 padding-zero" ng-if="select_by_category">
+					       <div class="col-md-4 padding-zero">
+					       <select name="tweet_category" 
+						                   ng-options="category.id as category.category_name for category in vm.tw_categories"
+						                   ng-model="selected.category.id" ng-change="getCategorySize()">
+						                   <option value="">Select Category</option>
+						   </select>
+						   </div>
+						   <div class="col-md-8" style="margin-top:0px !important" range-slider min="0" max="selected.category.size" model-max="selected.category.count" pin-handle="min" show-values="true"></div>
+					      
+					    </div>
+					    
+					    <div class="col-md-6 padding-zero" ng-if="!select_by_category">&nbsp;</div>
+					
+					  	<div class="col-md-6 padding-zero">
+							<div class="pull-right" style="margin-top:0px"> <!-- ng-click="addRow()"   -->
+								<a ng-if="!select_by_category" href="" ng-click="createTwMl()" role="button" id="add_category" class="btn secondary-button">
 									Redo </i>
 								</a>
-								<a href="" ng-click="saveTwMl()" role="button" id="save_ml" class="btn green-jungle">
+								<a ng-if="select_by_category" href="" ng-click="createTwMlFromCategory()" role="button" id="add_category" class="btn secondary-button">
+									Redo </i>
+								</a>
+								<a href="" ng-click="saveTwMl()" role="button" id="save_ml" class="btn secondary-button">
 									Save</i>
 								</a>
-								<a href="" ng-click="savePublishTwMl()" role="button" id="save_publish_ml" class="btn green-meadow">
+								<a href="" ng-click="savePublishTwMl()" role="button" id="save_publish_ml" class="btn secondary-button">
 									Save & Publish</i>
 								</a>
-								<a href="" ng-click="discardTwMl()" role="button" id="delete_ml" class="btn red-flamingo">
+								<a href="" ng-click="discardTwMl()" role="button" id="delete_ml" class="btn secondary-button">
 									Discard</i>
 								</a>
 							</div>
 						</div>
-					</div>
-					<div class="portlet-body">
+						
+						<div class="clearfix margin-zero">&nbsp;</div>
+						
 					   <form name="tw_ml_new">
 					       <div>
 					         <select name="tw_handle" class=""
@@ -118,24 +143,24 @@
 										</td>
 										<td>
 										  <div class="form-group" ng-hide="tw_categories[category.id]">
-											<a ng-hide="editingData[category.id]" href="#" ng-click="deleteMlTweet(tweet.tweet_id)" class="btn red-flamingo">
+											<a ng-hide="editingData[category.id]" href="#" ng-click="deleteMlTweet(tweet.tweet_id)" class="btn action-button">
 											<i class="fa fa-trash-o"></i> Delete
 											</a>&nbsp;&nbsp;
 											<!--  a ng-hide="editingData[category.id]" href="#" ng-click="editCategory(category)" class="btn blue-madison">
 												<i class="fa fa-edit"></i> Replace
 											</a ADD BACK REPLACE LATER-->
-											<a ng-show="editingData[category.id]" href="#" ng-click="updateCategory(category)" class="btn red-flamingo">
+											<a ng-show="editingData[category.id]" href="#" ng-click="updateCategory(category)" class="btn action-button">
 											<i class="fa fa-frown-o"></i>  Save
 											</a>&nbsp;&nbsp;
-											<a ng-show="editingData[category.id]" href="#" ng-click="cancelCategory(category)" class="btn green-jungle">
+											<a ng-show="editingData[category.id]" href="#" ng-click="cancelCategory(category)" class="btn action-button">
 												<i class="fa fa-smile-o"></i> Cancel
 											</a>
 										  </div>
 										  <div class="form-group" ng-show="tw_categories[category.id]">
-											    <a href="#" ng-click="confirmedDeleteCategory(category)" class="btn red-flamingo">
+											    <a href="#" ng-click="confirmedDeleteCategory(category)" class="btn action-button">
 													<i class="fa fa-frown-o"></i> Confirm
 												</a>&nbsp;&nbsp;
-												<a href="#" ng-click="cancelDeleteCategory(category)" class="btn green-jungle">
+												<a href="#" ng-click="cancelDeleteCategory(category)" class="btn action-button">
 													<i class="fa fa-smile-o"></i> Cancel
 												</a>
 										  </div>
@@ -148,16 +173,13 @@
 					
 					</div>
 </div>
-                    <div class="portlet box  grey-steel" ng-hide="createTwML">
-					<div class="portlet-title">
-						<div class="caption col-md-6">
-							<i class="fa fa-group"></i>Existing Master Lists
-						</div>
-					</div>
-					<div class="portlet-body">
+</div>               
+</div>
+
+<div class="portlet-body padding-zero" ng-hide="createTwML">
 					   <form novalidate name="tw_ml_form">
 					       <div role="alert"><span class="error" ng-show="tweets_form.textarea.$error.required || tweets_form.textarea.$error.maxlength">Oops, there's an error!</span></div>
-						   <table ng-hide="(!tw_ml || !tw_ml.length) && !addRow" class="table table-striped table-hover table-bordered dataTable"
+						   <table ng-hide="(!tw_ml || !tw_ml.length) && !addRow" class="table table-striped table-hover actionTable dataTable"
 					id="tweets_table" ng-cloak>
 								<thead>
 									<tr>
@@ -197,7 +219,7 @@
 										<div ng-hide="editingData[tweet.id]">{{ ml.published_date  | amCalendar}}</div>
 										</td>
 										<td class="center">
-										<a ng-hide="editingData[category.id] || ml.published" href="#" ng-click="publishMl(ml.id)" class="btn green-jungle">
+										<a ng-hide="editingData[category.id] || ml.published" href="#" ng-click="publishMl(ml.id)" class="btn secondary-button">
 										   Publish
 										</a>
 									</tr>
@@ -229,8 +251,5 @@
 			
 			<!--  end of first col-md-6 -->
 			</div> <!--  clearfix end -->
-</div>
-</div>
 
-</div>
 </div>

@@ -85,7 +85,7 @@
     }
     $scope.breadcrumbName = Common.capitalizeFirstLetter($scope.tabname);
     vm.source = source;  
-    if (source && source.length > 0 && $stateParams.code && $stateParams.state) // this will match the SFDC auth URL 
+    if (source && source.length > 0 && $stateParams.code && $stateParams.state) // this will match the SFDC and Slack auth URL 
     	getOauthToken(source, $stateParams.code, $stateParams.state, ""); 
     else if (source && source.length > 0 && $stateParams.code) // this will match Buffer, Google and Facebook
     	getOauthToken(source, $stateParams.code, "", ""); 
@@ -506,6 +506,8 @@
 			  // $location.url('/');
 			      toastr.error('Metadata could not be retrieved');
 			  }
+			  
+			  
 			  
   
   function isJson(str) {

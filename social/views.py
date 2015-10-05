@@ -43,10 +43,6 @@ from mmm.views import _str_from_date
 
 from bson import ObjectId
 
-@api_view(['GET'])
-#@renderer_classes((JSONRenderer,))    
-def random(request, id):
-    pass
 
 class TwitterCategories(viewsets.ModelViewSet):  
     
@@ -123,15 +119,18 @@ class Tweets(viewsets.ModelViewSet):
     serializer_class = TweetSerializer
     
     def list(self, request, id=None): 
+        page_number = int(request.GET.get('page_number'))
+        items_per_page = int(request.GET.get('per_page'))
+        offset = (page_number - 1) * items_per_page
         try:
             company = Company.objects.filter(company_id=id).first()
             
-            return JsonResponse(_get_tweets_for_company(company))
+            return JsonResponse(_get_tweets_for_company(company, offset, items_per_page))
         except Exception as e:
             return Response(str(e))
         
-def _get_tweets_for_company(company):
-    tweets = Tweet.objects(company=company.id)
+def _get_tweets_for_company(company, offset, items_per_page):
+    tweets = Tweet.objects(company=company.id).skip(offset).limit(items_per_page)
     serializedList = TweetSerializer(tweets, many=True)
     totalCount = Tweet.objects(company=company.id).count()
     firstDate = Tweet.objects(company=company.id).order_by('updated_date').first()
@@ -156,6 +155,9 @@ class SingleTweet(viewsets.ModelViewSet):
             return Response(str(e))
         
     def update(self, request, id=None, tweet_id=None): 
+        page_number = int(request.GET.get('page_number'))
+        items_per_page = int(request.GET.get('per_page'))
+        offset = (page_number - 1) * items_per_page
         try:
             company = Company.objects.filter(company_id=id).first()
             tweet = Tweet.objects(Q(company=company.id) & Q(id=tweet_id)).first()
@@ -169,13 +171,16 @@ class SingleTweet(viewsets.ModelViewSet):
                 tweet.text2 = data.get('text2', None)
                 tweet.text3 = data.get('text3', None)
                 tweet.save()
-                return JsonResponse(_get_tweets_for_company(company))
+                return JsonResponse(_get_tweets_for_company(company, offset, items_per_page))
             else:
                 return HttpResponse("Tweet could not be updated", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(str(e))
         
     def create(self, request, id=None, tweet_id=None):
+        page_number = int(request.GET.get('page_number'))
+        items_per_page = int(request.GET.get('per_page'))
+        offset = (page_number - 1) * items_per_page
         try:
             company = Company.objects.filter(company_id=id).first()
             data = json.loads(request.body)
@@ -189,7 +194,7 @@ class SingleTweet(viewsets.ModelViewSet):
             tweet.text2 = data.get('text2', None)
             tweet.text3 = data.get('text3', None)
             tweet.save()
-            return JsonResponse(_get_tweets_for_company(company))
+            return JsonResponse(_get_tweets_for_company(company, offset, items_per_page))
         except Exception as e:
             return Response(str(e))
 
@@ -270,8 +275,25 @@ class SingleTweetMasterList(viewsets.ModelViewSet):
             return tweets_by_category 
             
         try:
+            select_by_category = False
+            selected_category = request.GET.get('category', None)
+            selected_count = request.GET.get('count', None) #how many tweets from selected category
+            if selected_category is not None: #the request is to select tweets of a specific category
+                select_by_category = True
+             
             company = Company.objects.filter(company_id=id).first()
             categories = CompanyTweetCategory.objects(company=company.id)
+            if select_by_category: 
+                if selected_category == 'Undefined': #If category is "Undefined", it's the first call so pick a random category
+                    random_index = randint(0, len(categories) - 1) #pick a random category
+                    print 'rand us ' + str(random_index)
+                    categories = CompanyTweetCategory.objects(company=company.id).limit(-1).skip(random_index)
+                    print 'categ' + str(categories)
+                else:
+                    categories = CompanyTweetCategory.objects(Q(company=company.id) & Q(id=ObjectId(selected_category)))
+                for category in list(categories):
+                    print 'category is ' + str(category)
+                    category.weight = 100
             tweets_by_category = {}
             total_weight = 0
             master_list_tweets = {}
@@ -289,7 +311,10 @@ class SingleTweetMasterList(viewsets.ModelViewSet):
             possible_tweets = 0 #how many tweets can we get in the first pass thru?
             #first pass based on inputs provided 
             for category in tweets_by_category.keys(): #loop through each category and select the tweets
-                tweets_by_category[category]['max_number'] = Tweet.objects(Q(company=company.id) & Q(category=category)).count()
+                if selected_count == 'Undefined' or selected_count is None:
+                    tweets_by_category[category]['max_number'] = Tweet.objects(Q(company=company.id) & Q(category=category)).count()
+                else:
+                    tweets_by_category[category]['max_number'] = int(selected_count)
                 print 'got tweets ' + str(tweets_by_category[category]['max_number'])
                 tweets_by_category[category]['first_number'] = math.trunc( tweets_by_category[category]['weight'] * tweets_by_category[category]['max_number'] )
                 possible_tweets += tweets_by_category[category]['first_number'] 
@@ -299,7 +324,7 @@ class SingleTweetMasterList(viewsets.ModelViewSet):
             #first pass is completed - see if we have enough tweets else pick randomly
             print 'total tw ' + str(possible_tweets)
             sorted_tweets_by_category = sorted(tweets_by_category, key=lambda category: tweets_by_category[category]['weight'],  reverse=True)
-            if possible_tweets >= master_list_tweets_number: # we have hit our target, so pick the tweets and off we go
+            if possible_tweets >= master_list_tweets_number or select_by_category: # we have hit our target, so pick the tweets and off we go
                 tweets_by_category = _get_tweets(tweets_by_category, sorted_tweets_by_category)
             else: #we have not yet hit the number so backfill
                 for category in sorted_tweets_by_category:  
@@ -391,6 +416,22 @@ def get_tw_handles_buffer(request, id):
             return JsonResponse({'error' : 'No integration found with Buffer'})
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
+    
+
+@api_view(['GET'])
+#@renderer_classes((JSONRenderer,))    
+def get_tw_category_size(request, id):
+    category_id = request.GET.get('category_id', None)
+    if category_id is None:
+        return JsonResponse({'Error': 'No category provided'})
+    company_id = request.user.company_id
+    company = Company.objects.filter(company_id=company_id).first()
+    category = ObjectId(category_id)
+    print 'categ is '+ str(category_id) + ' and company is ' + str(company_id)
+    tweetCount = Tweet.objects(Q(company=company.id) & Q(category=category)).count()
+    print 'tw count is ' + str(tweetCount)
+    return JsonResponse({'category_count': tweetCount})
+
     
 @api_view(['GET'])
 #@renderer_classes((JSONRenderer,))    

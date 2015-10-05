@@ -425,11 +425,18 @@
 				    }
 				})
 				.state('enterChannel', {
-					url : '/channel/:enteredRoom&:roomName&:roomDescription',
-					//params: {enteredRoom:null},
+					url : '/channel/:enteredRoom',
+					params: {roomName:null, roomDescription:null},
 					controller : 'MessagesController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/messages/room-messages.html'
+				})
+				.state('enterSlack', {
+					url : '/slack/:type/:id',
+					params: {name:null, purpose:null},
+					controller : 'MessagesController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/messages/slack-messages.html'
 				})
 				.state('notifications', {
 					url : '/notifications',

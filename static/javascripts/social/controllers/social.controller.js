@@ -35,6 +35,7 @@
     $scope.newCategory = {};
     $scope.tw_categories = [];
     $scope.newTweet = {};
+    $scope.selected = {}; // for creation of ML by specific category
     $scope.tweets = [];
     $scope.newTwMl = {};
     $scope.newTwMl.tweets = [];
@@ -46,6 +47,8 @@
     
     $scope.totalMl = 0;
     $scope.mlPerPage = 10;
+    $scope.totalInteractions = 0;
+    $scope.interactionsPerPage = 10;
     $scope.currentPage = 1;
     
     $scope.showingMl = [];
@@ -62,6 +65,30 @@
     }
     
     $scope.createTwMl = createTwMasterList;
+    $scope.createTwMlFromCategory = createTwMasterListFromCategory;
+    $scope.getCategorySize = getCategorySize;
+    
+    function getCategorySize() {
+    	var account = Authentication.getAuthenticatedAccount();
+    	Social.getCategorySize(account.company, $scope.selected.category.id).then(CategorySizeSuccess, CategorySizeError);
+    }
+    
+    function CategorySizeSuccess(data, status, headers, config) { 
+    	
+    	if (data.data.category_count) 
+    	{
+    	   $scope.selected.category.size = data.data.category_count;
+    	   $scope.selected.category.count = data.data.category_count; // initialize .count to the same value as .size
+    	}
+    	else
+    		toastr.error('Could not get category size');
+    
+    }
+    
+    function CategorySizeError(data, status, headers, config) { 
+    	toastr.error('Could not get category size');
+        
+    }
     
     $scope.discardTwMl = function() {
     	$scope.createTwML = false;
@@ -92,7 +119,7 @@
     $scope.addTweet = function(tweet) {
     	$scope.addRow = false;
     	var account = Authentication.getAuthenticatedAccount();
-    	Social.addTweet(tweet, account.company).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
+    	Social.addTweet(tweet, account.company, $scope.currentPage, $scope.interactionsPerPage).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
     	
     }
     
@@ -105,7 +132,7 @@
     $scope.updateTweet = function(tweet) {
     	$scope.editingData[tweet.id] = false; 
     	var account = Authentication.getAuthenticatedAccount();
-    	Social.updateTweet(tweet, account.company).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
+    	Social.updateTweet(tweet, account.company, $scope.currentPage, $scope.interactionsPerPage).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
     };
     
     $scope.cancelTweet = function(tweet) {
@@ -246,7 +273,7 @@
    	var account = Authentication.getAuthenticatedAccount();
 	    if (account) 
 	    {
-	    	Social.getTweets(account.company).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
+	    	Social.getTweets(account.company, $scope.currentPage, $scope.interactionsPerPage).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
 	    	Social.getTwitterCategories(account.company).then(TwitterAdminSuccessFn,TwitterAdminErrorFn);
 	    }
 	    else {
@@ -264,6 +291,12 @@
 		$scope.totalCount = data.data.totalCount;
 		$scope.lastDateCreated = data.data.lastDateCreated;
 		$scope.firstDateCreated = data.data.firstDateCreated;
+		$scope.totalInteractions = data.data.totalCount;
+		$scope.thisSetCount = data.data.results.length;
+		// initialize the start and end counts shown near pagination control
+		$scope.startInteractionCounter = ($scope.currentPage - 1) * $scope.interactionsPerPage + 1;
+	    $scope.endInteractionCounter = ($scope.thisSetCount < $scope.interactionsPerPage) ? $scope.startInteractionCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.interactionsPerPage;
+		
 		for (var i=0, length = vm.tweets; i < length; i++) {
         	$scope.editingData[vm.tweets[i].id] = false;
         }
@@ -305,7 +338,7 @@
    	{
    		toastr.success("Tweet deleted");
    		var authenticatedAccount = Authentication.getAuthenticatedAccount();
-   		Social.getTweets(authenticatedAccount.company).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
+   		Social.getTweets(authenticatedAccount.company, $scope.currentPage, $scope.interactionsPerPage).then(TweetsAdminSuccessFn,TweetsAdminErrorFn);
    		Social.getTwitterCategories(authenticatedAccount.company).then(TwitterAdminSuccessFn,TwitterAdminErrorFn);
    	}
     }
@@ -359,9 +392,34 @@
 
   function createTwMasterList()
   {
+	$scope.select_by_category = false;
   	var account = Authentication.getAuthenticatedAccount();
 	    if (account) 
 	    	Social.createTwMasterList(account.company).then(createTwMasterListSuccessFn,createTwMasterListErrorFn);
+	    else {
+	    	toastr.error('You need to login first');
+	    	$location.path('/login'); 
+	    }
+  }
+  
+  function createTwMasterListFromCategory()
+  {
+	twitterAdmin();
+	var category = "";
+	var count = 'Undefined';
+	if ($scope.selected.category == undefined)
+		category = 'Undefined';
+	else if ($scope.selected.category.id == "")
+		category = 'Undefined';
+	else
+	{
+		category = $scope.selected.category.id;
+		count = $scope.selected.category.count;
+	}
+	$scope.select_by_category = true;
+  	var account = Authentication.getAuthenticatedAccount();
+	    if (account) 
+	    	Social.createTwMasterListFromCategory(account.company, category, count).then(createTwMasterListSuccessFn,createTwMasterListErrorFn);
 	    else {
 	    	toastr.error('You need to login first');
 	    	$location.path('/login'); 
@@ -375,6 +433,15 @@
 		  //$scope.tw_ml = data.data;
           $scope.newTwMl.tweets = data.data;
           $scope.createTwML = true;
+          if ($scope.select_by_category && $scope.newTwMl.tweets.length > 0) // if called from select by category, set the dropdown value to selected category
+          {	
+        	  if (!$scope.selected.category)
+        		 $scope.selected.category = {};
+        	  $scope.selected.category.id = $scope.newTwMl.tweets[0].category_id;
+        	  $scope.selected.category.count = $scope.newTwMl.tweets.length;
+        	  if (!$scope.selected.category.size)
+        	     $scope.selected.category.size = $scope.newTwMl.tweets.length;
+          }
           Social.getTwHandles(account.company).then(createTwHandlesSuccessFn,createTwHandlesErrorFn);
 	  }
 	  else
@@ -498,6 +565,10 @@ function savePublishTwMasterListSuccessFn(data, status, headers, config) {
      Social.publishTwMasterList(account.company, twMlID).then(publishTwMasterListSuccessFn, publishTwMasterListErrorFn);
   }
   
+  $scope.pageChanged = function(newPage) {
+		$scope.currentPage = newPage;
+		tweets();
+  }
   
   	  
   }

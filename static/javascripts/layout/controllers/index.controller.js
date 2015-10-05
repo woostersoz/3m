@@ -9,12 +9,12 @@
     .module('mmm.layout.controllers')
     .controller('IndexController', IndexController);
 
-  IndexController.$inject = ['$scope', 'Authentication', '$location', '$timeout', '$state', 'Messages', '$modal', '$templateCache', '$rootScope'];
+  IndexController.$inject = ['$scope', 'Authentication', '$location', '$timeout', '$state', 'Messages', '$modal', '$templateCache', '$rootScope', '$websocket', 'Integrations'];
 
   /**
   * @namespace IndexController
   */
-  function IndexController($scope, Authentication, $location, $timeout, $state, Messages, $modal, $templateCache, $rootScope) {
+  function IndexController($scope, Authentication, $location, $timeout, $state, Messages, $modal, $templateCache, $rootScope, $websocket, Integrations) {
 	
 	if (typeof window.callPhantom === 'function') {
 		$timeout(function() { $rootScope.htmlReady(); }, 1000);
@@ -37,6 +37,9 @@
     $scope.socket = '';
     $scope.socket2 = '';
     $scope.account = '';
+    $scope.slackActive = false;
+    $scope.slackSocket = '';
+    $scope.authorize = authorize;
      
     activate();
     if (Authentication.getAuthenticatedAccount()) 
@@ -184,7 +187,7 @@
     	    //Messages.getRooms(account.company).then(RoomsSuccessFn, RoomsErrorFn);
 	    	Messages.getUserRooms(account.company).then(RoomsSuccessFn, RoomsErrorFn);
 	        Messages.getUserRoomsNotJoined(account.company).then(RoomsNotJoinedSuccessFn, RoomsNotJoinedErrorFn);
-	    
+	        Messages.getSlackMembership(account.company).then(SlackSuccessFn, SlackErrorFn);
     }
     
     function RoomsSuccessFn(data, status, headers, config) { 
@@ -197,6 +200,45 @@
     function RoomsErrorFn(data, status, headers, config) { 
        toastr.error("Could not retrieve channels");
     }
+    
+    function SlackSuccessFn(data, status, headers, config) { 
+    	 if (data.data.slck_auth_needed)
+    		 $scope.slack_auth_needed = data.data.slck_auth_needed;
+    	 
+    	 if (data.data.slck_user_auth_needed)
+    		 $scope.slack_user_auth_needed = data.data.slck_user_auth_needed;
+    	 
+	   	 if (data.data.slack_channels)
+	   	 { 
+	         $scope.slack_channels = data.data.slack_channels['channels'];	
+	         $scope.slackActive = true;
+	   	 }
+	   	 if (data.data.slack_groups)
+	   	 { 
+	         $scope.slack_groups = data.data.slack_groups['groups'];		
+	         $scope.slackActive = true;
+	   	 }
+	   	 if (data.data.users)
+	   	 { 
+	         $scope.slack_users = data.data.users;		 
+	   	 }
+	   	 if (data.data.slack_ims)
+	   	 { 
+	         $scope.slack_ims = data.data.slack_ims['ims'];		
+	         for (var i=0; i < $scope.slack_ims.length; i++) { 
+	        	 $scope.slack_ims[i] = Messages.formatSlackUserInfo($scope.slack_ims[i], $scope.slack_users);
+	         }
+	         $scope.slackActive = true;
+	   	 }
+	   	if (data.data.rtm && data.data.rtm.ok) // listen to the RTM API and add messages
+		{
+			$rootScope.slackSocket =  $websocket(data.data.rtm.url); // this is only to open up a socket for chart based simple messages
+		}
+   }
+  
+   function SlackErrorFn(data, status, headers, config) { 
+      toastr.error("Could not retrieve Slack channels");
+   }
     
     function RoomsNotJoinedSuccessFn(data, status, headers, config) { 
 	   	 if (data.data)
@@ -302,7 +344,42 @@
     }
     
     
-  }
+ // below functions copied from IntegrationsController
+	  function authorize(companyInfo) {   
+		    if (Authentication.getAuthenticatedAccount()) 
+		    	Integrations.authorize(Authentication.getAuthenticatedAccount().company, companyInfo).then(AuthorizeSuccessFn, AuthorizeErrorFn);
+		    else {
+		    	toastr.error('You need to login first');
+		    	$location.path('/login'); 
+		    }
+	    }
+	    
+	    function AuthorizeSuccessFn(data, status, headers, config) { 
+	/*    	if (typeof eval('data.data.' + vm.source + '_access_token') != 'undefined')
+	    	{
+	    		vm.accessTokens[vm.source] = eval('data.data.' + vm.source + '_access_token');
+	    		toastr.success(vm.accessTokens[vm.source]);
+	    	}*/
+	    	if (typeof data.data.auth_url != 'undefined')
+	    	{   
+	            window.location = data.data.auth_url;
+	    	}
+	    	else if (typeof data.data.error != 'undefined')
+	    		toastr.error(data.data.error);
+	    	else
+	    	{
+	    		toastr.success(data.data);
+	    	}
+	      }
+	    
+	    function AuthorizeErrorFn(data, status, headers, config) {
+	        // $location.url('/');
+	        toastr.error('Authorization could not be completed');
+	      }
+    
+    
+    
+  } // end of IndexController
   
   var modalController = function ($scope, $modalInstance, rooms, room) {
 	  

@@ -34,6 +34,7 @@ from oauth2client.client import AccessTokenRefreshError
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import OAuth2Credentials
 from oauth2client.file import Storage
+from bson import ObjectId
 #Facebook
 from facebookads import FacebookSession
 from facebookads import FacebookAdsApi
@@ -54,8 +55,11 @@ import urlparse, urllib
 #SugarCRM
 import sugarcrm
 
-from integrations.models import UserOauth
-from company.models import CompanyIntegration
+#Slack
+
+from slackclient import SlackClient
+
+from company.models import CompanyIntegration,  UserOauth
 from social.serializers import FbInsightsSerializer
 
 import sys, inspect, json
@@ -72,18 +76,28 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             #if 0 < len(account):
                 
             company_info = { 
-            "code" : request.GET.get('code'),
-            "host" : request.GET.get('host'),
-            "client_id" : request.GET.get('client_id'),
-            "client_secret" : request.GET.get('client_secret'),
-            "redirect_uri" : request.GET.get('redirect_uri'),
+            "code" : request.GET.get('code', None),
+            "host" : request.GET.get('host', None),
+            "client_id" : request.GET.get('client_id', None),
+            "client_secret" : request.GET.get('client_secret', None),
+            "redirect_uri" : request.GET.get('redirect_uri', None),
             "company_id" : request.user.get_company(),
             "user_id" : request.user.id,
             "request": request
              }
          
             method_map = { "mkto" : self.setup_mkto, "sfdc": self.setup_sfdc, "hspt": self.setup_hspt, "bufr": self.setup_bufr, "goog": self.setup_goog, "fbok": self.setup_fbok, "twtr": self.setup_twtr,
-                           "sugr": self.setup_sugr}
+                           "sugr": self.setup_sugr, "slck": self.setup_slck}
+            
+            #if this method is called directly from some other screen than Integrations all values except code may be empty so retrieve from DB
+            if company_info['code'] is not None and company_info['host'] is None:
+                existingIntegration = CompanyIntegration.objects(company_id = company_info['company_id'] ).first()
+                if existingIntegration is not None:
+                    company_info['host'] = existingIntegration.integrations[company_info['code']]["host"]
+                    company_info['client_id'] = existingIntegration.integrations[company_info['code']]["client_id"]
+                    company_info['client_secret'] = existingIntegration.integrations[company_info['code']]["client_secret"]
+                    company_info['redirect_uri'] = existingIntegration.integrations[company_info['code']]["redirect_uri"]
+            
             result = method_map[company_info['code']](**company_info)
             #print "resultxx is " + str(result)
             return Response(result)
@@ -192,20 +206,33 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             return {'auth_url': auth_url}
         except Exception as e:
             return Response(str(e))
+        
+    def setup_slck(self, **kwargs):
+        try:
+            slck = Slack(kwargs['host'], kwargs['client_id'], kwargs['client_secret'], kwargs['redirect_uri'], None)
+            auth_url = slck.get_auth_url()
+            return {'auth_url': auth_url}
+        except Exception as e:
+            return Response(str(e))
     
     def saveUserOauth(self, access_token, code, user_id):
             #self.request.session[code + '_access_token'] = access_token
-            tokenField = code + "_access_token"
-            
-            existingOauth = UserOauth.objects(user_id = user_id).first()
+        print 'saving user oauth ' + str(user_id)
+        tokenField = code + "_access_token"
+        try:
+            existingOauth = UserOauth.objects(user_id = ObjectId(user_id)).first()
             if existingOauth is not None:
                 existingOauth[tokenField] = access_token
                 existingOauth.save()
                 return True
             
-            userOauth = UserOauth(user_id=user_id)
-            UserOauth[tokenField] = access_token
+            userOauth = UserOauth(user_id=ObjectId(user_id))
+            userOauth[tokenField] = access_token
             userOauth.save()
+            return True
+        except Exception as e:
+            print 'exception is ' + str(e)
+            return False
      
     def saveAccessToken(self, access_token, code, company_id, refresh_token, instance_url, token_expiry, token_uri):
         try:
@@ -440,6 +467,29 @@ def get_twtr_token(request):
     except Exception as e:
             return JsonResponse({'error': str(e)})
         
+def get_slck_token(request):
+    try:
+        company_id = request.GET.get('company')  
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        slckIntegration = existingIntegration.integrations['slck']
+    
+        slck = Slack(slckIntegration['host'], slckIntegration['client_id'], slckIntegration['client_secret'], slckIntegration['redirect_uri'], None)
+        #print request.GET.get('code')
+        response = slck.get_token(request.GET.get('code'))
+        if response is not None:
+            access_token = response['access_token']
+            #request.session['sfdc_access_token'] = access_token
+            authorizeViewSet = AuthorizeViewSet()
+            #authorizeViewSet.saveAccessToken(access_token, 'slck', company_id, None, None, None, None)
+            authorizeViewSet.saveUserOauth(access_token, 'slck', request.user.id)
+            request.session['slck_access_token'] = access_token
+            access_token_json = {'slck_access_token': 'Success: Slack instance validated with token' + access_token}
+            #save FB ad accounts
+        else:
+            access_token_json = {'slck_access_token' : 'Error: Could not retrieve'}
+        return JsonResponse(access_token_json)  
+    except Exception as e:
+            return JsonResponse({'error': str(e)})
 # get metadataof objects 
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))
@@ -1882,3 +1932,58 @@ class Twitter:
         except Exception as e:
             print 'exception is ' + str(e)
             raise Exception("Could not retrieve access token from Twitter: " + str(e))
+        
+class Slack:
+     
+    def __init__(self, host, client_id, client_secret, redirect_uri, access_token, **kwargs):
+        self.host = host
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+        self.access_token = access_token
+        
+    def get_auth_url(self):
+        try:
+            return self.host + '?' + 'client_id=' + self.client_id + '&redirect_uri=' + self.redirect_uri + '&scope=identify,read,post,client&state=claritix_user_oauth'
+        except Exception as e:
+            raise Exception("Could not retrieve auth url from Slack: " + str(e))
+        
+    def get_token(self, code):
+        data = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'redirect_uri': self.redirect_uri,
+            'code': code,
+            #'scope': 'manage_pages,ads_read'
+        }
+        url = 'https://slack.com/api/oauth.access'
+        s = requests.Session()
+        response = s.get(url, params=data)
+        response_json = response.json()
+        
+        if 'access_token' in response_json:
+            self.access_token = response_json['access_token']
+        return response_json
+    
+    def api_call(self, method, **kwargs):
+        token = self.access_token
+        sc = SlackClient(token)
+        try:
+            if kwargs is not None:
+                result = sc.api_call(method, **kwargs)
+            else:
+                result = sc.api_call(method)
+            return result
+        except Exception as e:
+            print 'exception is ' + str(e)
+            raise Exception("Could not retrieve data from Slack API call: " + str(e))
+        
+    def rtm_connect(self):
+        token = self.access_token
+        url = 'https://slack.com/api/rtm.start'
+        s = requests.Session()
+        data = {
+            'token': token
+            }
+        response = s.get(url, params=data)
+        return response.json()

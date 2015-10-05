@@ -31,6 +31,7 @@
 			<!-- END HEADER SEARCH BOX -->
 			<!-- BEGIN TOP NAVIGATION MENU -->
 			<div class="top-menu">
+			<!--  md-progress-circular md-mode="indeterminate"></md-progress-circular -->
 			    <ul class="nav navbar-nav pull-right">
 			        {% if user.is_authenticated %}
                     <li class="dropdown dropdown-extended dropdown-notification dropdown-dark" id="header_rooms_bar">
@@ -42,7 +43,7 @@
 				             <h3  class="bold font-blue-madison" >Channels I can join</h3>
 				             <a href="#" ng-click=addChannel()>Create new</a>
 				          </li>
-				          <li>   
+				          <li ng-class="{'zero-height': $parent.rooms.length==0}">   
 				              <ul class="dropdown-menu-list scroller" style="height: 50px;" data-handle-color="#637283">
 							    <li ng-show="$parent.rooms.length > 0" ng-repeat="room in $parent.rooms" title="Join channel">
 							        <a ng-click="showChannelPreview(room)">
@@ -51,15 +52,15 @@
 							        {% endverbatim %}
 							        </a>
 							    </li>
-							    <li ng-hide="$parent.rooms.length > 0" >
+							    <!-- li ng-hide="$parent.rooms.length > 0" >
 							         <a href="#">No new channels </a>
-							    </li>
+							    </li -->
 							</ul>
 					     </li>
 					     <li class="external">
 				             <h3 class="title bold font-blue-madison" >Channels I belong to</h3>
 				         </li>
-				         <li>
+				         <li ng-class="{'zero-height': $parent.subscribedRooms.length==0}"> 
 				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
 							    <li ng-repeat="room in $parent.subscribedRooms">
 							        <a ui-sref="enterChannel({enteredRoom: room.room.id, roomName: room.room.name, roomDescription: room.room.description})">
@@ -70,9 +71,66 @@
 							    </li>
 							</ul>
 					     </li>
-                        
                         </ul>
                     </li>
+                    <li class="separator hide">
+					</li>
+                    <li class="dropdown dropdown-extended dropdown-notification dropdown-dark" id="header_slack">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
+                           <i class="fa fa-slack"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                        <li class="external" ng-show="$parent.slack_channels.length > 0">
+				             <h3 class="title bold font-blue-madison" >My Slack channels</h3>
+				             <a href="#" ng-click="authorize({'code': 'slck'})">Change Team</a>
+				         </li>
+				         <li ng-show="$parent.slack_channels.length > 0">
+				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
+							    <li ng-repeat="channel in $parent.slack_channels">
+							        <a ng-show="channel.is_member" ui-sref="enterSlack({type: 'channel', id: channel.id, name: channel.name, purpose: channel.purpose.value})">
+							        {% verbatim %}
+							        <i class="icon-pin"></i> &nbsp; {{channel.name}}
+							        {% endverbatim %}
+							        </a>
+							    </li>
+							</ul>
+					     </li>
+					     <li class="external" ng-show="$parent.slack_ims.length > 0">
+				             <h3 class="title bold font-blue-madison" >My Slack Direct Messages</h3>
+				         </li>
+				         <li ng-show="$parent.slack_ims.length > 0">
+				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
+							    <li ng-repeat="im in $parent.slack_ims">
+							        <a ng-show="!im.is_user_deleted" ui-sref="enterSlack({type: 'im', id: im.id, name: im.user_name, purpose: 'Direct Messages with ' + im.user_name})">
+							        {% verbatim %}
+							        <i class="icon-pin"></i> &nbsp; {{im.user_name}}
+							        {% endverbatim %}
+							        </a>
+							    </li>
+							</ul>
+					     </li>
+                        <li class="external" ng-show="$parent.slack_groups.length > 0">
+				             <h3 class="title bold font-blue-madison" >My Slack groups</h3>
+				         </li>
+				         <li ng-show="$parent.slack_groups.length > 0">
+				              <ul class="dropdown-menu-list scroller" style="height: 150px;" data-handle-color="#637283">
+							    <li ng-repeat="group in $parent.slack_groups">
+							        <a ui-sref="enterSlack({type: 'group', id: group.id, name: group.name, purpose: group.purpose.value})">
+							        {% verbatim %}
+							        <i class="icon-pin"></i> &nbsp; {{group.name}}
+							        {% endverbatim %}
+							        </a>
+							    </li>
+							</ul>
+					     </li>
+					     <li class="external" ng-show="$parent.slack_auth_needed">
+				             <h3 class="title bold font-blue-madison" ><a ui-sref="integrations">Set up your Slack integration</a></h3>
+				         </li>
+                         <li class="external" ng-show="$parent.slack_user_auth_needed">
+				             <h3 class="title bold font-blue-madison" ><a ng-click="authorize({'code': 'slck'})">Authorize your Slack account</a></h3>
+				         </li>
+				     </ul>
+					</li>
 					<li class="separator hide">
 					</li>
                     <li class="dropdown dropdown-extended dropdown-notification dropdown-dark" id="header_notification_bar">
@@ -114,7 +172,9 @@
 						<span class="username username-hide-on-mobile">
 						{{ user.first_name }}  <i class="fa fa-angle-down"></i></span>
 						<!-- DOC: Do not remove below empty space(&nbsp;) as its purposely used -->
-						
+						<md-tooltip>
+						You are in the {{ user.company.name }} account
+						</md-tooltip>
 						</a>
 						<ul class="dropdown-menu">
 						    <li class="external">

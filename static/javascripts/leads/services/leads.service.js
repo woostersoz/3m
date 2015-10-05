@@ -102,7 +102,7 @@
     	var leads = [];
 		for (var i=0; i < results.length; i++)
 	    {   
-			if (results[i].leads)
+			if (results[i].leads) // if lead
 			{
 				currRecord = results[i].leads;
 				if (results[i]['form'])
@@ -232,7 +232,7 @@
 				currRecord['id'] = currRecord['sfdc_id'];
 				
 			}
-			else  // contact record
+			if (results[i].contacts)  // contact record
 			{
 				currRecord =  results[i].contacts
 				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a lead record

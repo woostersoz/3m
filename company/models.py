@@ -82,4 +82,13 @@ class TempDataDelta(Document): #middleware table to store source data from delta
     
     meta = {'collection': 'tempDataDelta', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type'], 'ordering':['-updated_date']}
 
-        
+ 
+class UserOauth(Document):
+
+    user_id = ObjectIdField()
+    updated_date = DateTimeField(default=datetime.datetime.utcnow())
+    sfdc_access_token = StringField(max_length=300)
+    mkto_access_token = StringField(max_length=300)
+    slck_access_token = StringField(max_length=300)
+
+    meta = {'collection': 'userOauth', 'indexes': ['user_id'], 'ordering':['-updated_date']}       

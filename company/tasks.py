@@ -161,23 +161,23 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {
-#                     "mkto" : [retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns],  #
-#                     "hspt" : [retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], # , ],
-#                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcHistory],
-#                       #"sugr" : [retrieveSugrLeads],                    
-#                     "bufr" : [retrieveBufrTwInteractions], 
-#                     "goog" : [retrieveGoogWebsiteTraffic], \
-#                     "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
+                    "mkto" : [retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns],  #
+                    "hspt" : [retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic], # , ],
+                    "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcHistory],
+                      #"sugr" : [retrieveSugrLeads],                    
+                    "bufr" : [retrieveBufrTwInteractions], 
+                    "goog" : [retrieveGoogWebsiteTraffic], \
+                    "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {
-#                     "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster], # 
-#                     "hspt" : [saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], # , ], 
-#                     "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcHistoryToMaster],  # 
-#                     # "sugr" : [saveSugrLeadsToMaster], 
-#                      "bufr" : [saveBufrTwInteractionsToMaster], 
-#                     "goog": [saveGoogleWebsiteTrafficToMaster], 
-#                     "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
+                    "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster], # 
+                    "hspt" : [saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster], # , ], 
+                    "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcHistoryToMaster],  # 
+                    # "sugr" : [saveSugrLeadsToMaster], 
+                     "bufr" : [saveBufrTwInteractionsToMaster], 
+                    "goog": [saveGoogleWebsiteTrafficToMaster], 
+                    "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
                     }
 #         #
 # #         #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, 
@@ -186,9 +186,9 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         for source in existingIntegration.integrations.keys():
             #change metadata depending on source system
             if source == 'sfdc':
-                metadata_objects = [] # ['lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
+                metadata_objects = ['lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
             elif source == 'mkto':
-                metadata_objects = [] #['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
+                metadata_objects = ['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
             elif source == 'hspt':
                 metadata_objects = ['lead'] #objects for which metadata should be collected
             else:
@@ -246,15 +246,15 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         # call chart calculate tasks
         charts = [\
                        {'chart_name': 'sources_bar', 'system_type': 'MA', 'chart_title':'Timeline', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                      #{'chart_name': 'pipeline_duration', 'system_type': 'MA', 'chart_title':'Pipeline Duration', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                      #{'chart_name': 'contacts_distr', 'system_type': 'MA', 'chart_title':'Contacts Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
-                      #{'chart_name': 'source_pie', 'system_type': 'MA', 'chart_title':'Source Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                       {'chart_name': 'revenue_source_pie', 'system_type': 'MA', 'chart_title':'Revenue by Source', 'mode': run_type, 'start_date': sinceDateTime}, \
-# #                      #{'chart_name': 'multichannel_leads', 'system_type': 'MA', 'chart_title':'Multichannel Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                       {'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                       {'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                       {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                       #{'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     #{'chart_name': 'pipeline_duration', 'system_type': 'MA', 'chart_title':'Pipeline Duration', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     #{'chart_name': 'contacts_distr', 'system_type': 'MA', 'chart_title':'Contacts Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'source_pie', 'system_type': 'MA', 'chart_title':'Source Distribution', 'mode': run_type, 'start_date': sinceDateTime}, \
+                      {'chart_name': 'revenue_source_pie', 'system_type': 'MA', 'chart_title':'Revenue by Source', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                      #{'chart_name': 'multichannel_leads', 'system_type': 'MA', 'chart_title':'Multichannel Leads', 'mode': run_type, 'start_date': sinceDateTime}, \
+                      {'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
+                      {'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
+                      {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
+                      #{'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
                       {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
                        {'chart_name': 'form_fills', 'system_type': 'MA', 'chart_title':'Form Fills', 'mode': run_type, 'start_date': sinceDateTime}, \
                

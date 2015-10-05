@@ -3,23 +3,9 @@
 
   angular
     .module('mmm.filters', [])
-    .filter('backtestStatus', function() {
-    	return function(input) {
-    		var status = {
-    	    		'0': function() { 
-    	    			return '\u2423';
-    	    		},
-    	    		'1': function() {
-    	    			return '\u2713';
-    	    		},
-    	    		'2': function() {
-    	    			return '\u2718';
-    	    		},
-    		 };
-    		 if (typeof status[input] !== 'function') {
-    			return '?';
-    		 }		
-	         return status[input]();
+    .filter('unsafe', function($sce) {
+    	return function(val) {
+	         return $sce.trustAsHtml(val);
     	}
     })
     .filter('dataHandler', function() {

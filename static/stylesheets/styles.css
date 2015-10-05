@@ -432,12 +432,12 @@ g.nv-series-7 path.nv-line {
 
 /* CSS animations for angular */
 
-.animate-show-hide, .ng-enter {
+.animate-show-hide, .animate-show-hide.ng-enter, .ng-enter {
 	-webkit-transition: all linear 0.5s;
 	transition: all linear 0.5s;
 }
 
-.animate-show-hide.ng-hide, .ng-leave {
+.animate-show-hide.ng-hide, .animate-show-hide.ng-leave, .ng-leave {
 	opacity:0;
 }
 
@@ -1562,6 +1562,7 @@ ul.analytics-charts > li {
 .page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external {
   background: #9bd9f0;
   border-radius: 0px !important;
+  border-bottom: 1px #eee dotted;
 }
 
 .page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu > li.external:first-child {
@@ -1601,6 +1602,11 @@ ul.analytics-charts > li {
   font-weight: 100;
 }
 
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu .dropdown-menu-list > li > a .time {
+	background: #fff;
+	color: #888;
+}
+
 .muted-text {
 	color: #888;
 }
@@ -1636,4 +1642,72 @@ ul.analytics-charts > li {
 
 .smaller-font {
 	font-size:85% !important;
+}
+
+.zero-height {
+	height: 0px !important;
+}
+
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-notification.dropdown-dark .dropdown-menu .dropdown-menu-list > li > a:hover .time {
+    background: #fff;
+    color: #888;
+}
+
+
+
+/* Slack formatting */
+
+.slack-timeline:before {
+	margin-left:30px !important;
+}
+
+.inline_attachment {
+  border-radius: .25rem;
+  margin-left: 0;
+  position: relative;
+}
+
+.inline_attachment .inline_attachment_wrapper {
+  padding: .2rem .75rem .75rem 0;
+  margin-top: .25rem;
+}
+
+.inline_attachment .attachment_bar, .special_formatting_quote .quote_bar {
+  display: table-cell;
+  width: 4px;
+  border-radius: 8px;
+}
+
+.inline_attachment .attachment_bar .shim, .quote_bar .shim {
+  width: 4px;
+}
+
+div.dynamic_content_max_width {
+  max-width: 1036px;
+}
+
+.inline_attachment .content, .special_formatting_quote .content {
+  display: table-cell;
+  padding: 0 0 0 9pt;
+  width: 100%;
+  max-width: 520px;
+}
+
+.inline_attachment .attachment_author_icon, .inline_attachment .attachment_service_icon {
+  float: left;
+  margin-top: 2px;
+  width: 1pc;
+  height: 1pc;
+  margin-right: .4rem;
+}
+
+.inline_attachment span.attachment_author_name {
+  font-weight: 900;
+  color: #555459;
+  margin-right: .25rem;
+}
+
+.inline_attachment .attachment_title {
+  font-weight: 700;
+  font-size: 1pc;
 }

@@ -1,0 +1,63 @@
+<div class="portlet light">
+
+ <div class="portlet-header short">
+        <div class="title col-md-12">Slack</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title">
+    <div class="caption">
+      <i class="fa fa-slack font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">{{slackType}}: {{roomName}} </span>
+      <p class="margin-top-10 italic small text-muted">{{roomDescription}}</p>
+    </div>    
+  </div>
+
+<div class="portlet-body">
+
+<div scroll-glue class="timeline slack-timeline">
+  <div class="timeline-item" ng-repeat="message in slack_messages">
+    <div ng-hide="message.hidden">
+      <div class="timeline-badge">
+         <img class="timeline-badge-userpic" style="border-radius:5px !important; border:0px !important; width:60px !important" ng-src="{{message.user_image_url}}"/>
+      </div>
+      <div class="timeline-body">
+         <div class="timeline-body-arrow">
+         </div>
+         <div class="timeline-body-head">
+            <div class="timeline-body-head-caption">
+               <a href="#" class="timeline-body-title font-blue-madison">{{message.user_name}}</a>
+               <span class="timeline-body-time font-grey-cascade">{{message.ts * 1000 | amCalendar}}</span>
+            </div>
+            <div class="timeline-body-head-actions"></div>
+         </div>
+         <div class="timeline-body-content">
+            <span class="font-grey-gallery larger" style="white-space:pre-wrap;" ng-bind-html="message.text | emoji | unsafe"></span>
+         </div>
+      </div>
+  
+  </div>
+ </div>
+</div>
+
+<form role="form" class="room" name="form.roomForm" ng-submit="submitSlackMessage(room)" novalidate>
+
+<p>
+      <div class="form-group">
+        <textarea class="form-control" id="room__message" ng-model="room.message" required />
+        <span id="user-typing" class="x-small muted-text"></span>
+      </div>
+      
+      
+</p>
+
+<div class="pull-right" id="bottom">
+<button type="submit" href="#" class="btn action-button" ng-disabled="form.roomForm.$invalid">Send Message</button>
+</div>
+
+<div class="clearfix">&nbsp;</div>
+</form>
+
+</div>
+
+</div>

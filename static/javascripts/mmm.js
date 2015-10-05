@@ -42,7 +42,13 @@
     'angular.filter',
     'nemLogging',
     'leaflet-directive',
-    'ncy-angular-breadcrumb'
+    'ncy-angular-breadcrumb',
+    'ui-rangeSlider',
+    'ngMaterial',
+    'ngWebSocket',
+    'dbaq.emoji',
+    'ngSanitize',
+    'luegg.directives'
   ]);
 
   angular
