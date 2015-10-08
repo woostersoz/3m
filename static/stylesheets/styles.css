@@ -1,6 +1,7 @@
 body{
 /*         position:relative; */
     font-family:Lato !important;
+    font-weight:700;
 }
 
 a {
@@ -1602,7 +1603,7 @@ ul.analytics-charts > li {
   font-weight: 100;
 }
 
-.page-header.navbar .top-menu .navbar-nav > li.dropdown-dark .dropdown-menu .dropdown-menu-list > li > a .time {
+.page-header.navbar .top-menu .navbar-nav > li.dropdown-notification.dropdown-dark .dropdown-menu .dropdown-menu-list > li > a .time {
 	background: #fff;
 	color: #888;
 }
