@@ -132,23 +132,26 @@ def getDashboards(request, company_id):
         code = None
         dashboards_temp = []
         dashboards = []
-        if existingIntegration is not None:
-            sources = set()
-            defined_system_types = set()
-            for source in existingIntegration.integrations.keys():
-                sources.add(source)
-            for source in sources:
-                #print 'source is ' + str(source)
-                defined_system = SuperIntegration.objects(code = source).first()
-                defined_system_types.add(defined_system.system_type)
-            for defined_system_type in defined_system_types:
-                #print 'def system is ' + str(defined_system.system_type)
-                if defined_system_type is not None:
-                    dashboards_temp = SuperDashboards.objects(Q(system_type = defined_system_type) & Q(status__ne='Inactive')).all()
-                    for dashboard_temp in list(dashboards_temp):
-                        serializer = SuperDashboardsSerializer(dashboard_temp, many=False) 
-                        dashboards.append(serializer.data)
-        
+#         if existingIntegration is not None:
+#             sources = set()
+#             defined_system_types = set()
+#             for source in existingIntegration.integrations.keys():
+#                 sources.add(source)
+#             for source in sources:
+#                 #print 'source is ' + str(source)
+#                 defined_system = SuperIntegration.objects(code = source).first()
+#                 defined_system_types.add(defined_system.system_type)
+#             for defined_system_type in defined_system_types:
+#                 #print 'def system is ' + str(defined_system.system_type)
+#                 if defined_system_type is not None:
+#                     dashboards_temp = SuperDashboards.objects(Q(system_type = defined_system_type) & Q(status__ne='Inactive')).all()
+#                     for dashboard_temp in list(dashboards_temp):
+#                         serializer = SuperDashboardsSerializer(dashboard_temp, many=False) 
+#                         dashboards.append(serializer.data)
+        dashboards_temp = SuperDashboards.objects().all()
+        for dashboard_temp in list(dashboards_temp):
+            serializer = SuperDashboardsSerializer(dashboard_temp, many=False) 
+            dashboards.append(serializer.data)
         return JsonResponse({"results": dashboards}, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})

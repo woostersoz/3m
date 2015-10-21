@@ -1044,6 +1044,7 @@ ul.analytics-charts > li {
 	display: inline-block;
 	padding-left:0px;
 	vertical-align:top;
+	margin-bottom:30px;
 }
 
 .chart-icon {
@@ -1064,7 +1065,7 @@ ul.analytics-charts > li {
 	display: inline-block;
 	vertical-align:top;
 	margin-left:0px;
-	color: #555459;
+	/* color: #555459; */
 	text-decoration: none;
 	font-size:80%;
 }

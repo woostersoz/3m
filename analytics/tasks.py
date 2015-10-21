@@ -4117,7 +4117,7 @@ def google_analytics(user_id, company_id, chart_name, mode, start_date):
         chart_name_qry = 'chart_name'
         date_qry = 'date'
         source_created_date_qry = 'source_created_date'
-        source_source_query = 'source_source'
+        source_system_query = 'source_system'
             
         
         s = local_start_date - timedelta(days=1)
@@ -4128,7 +4128,7 @@ def google_analytics(user_id, company_id, chart_name, mode, start_date):
             #array_key = s.strftime('%Y-%m-%d')
             
             # look for interactions on this date 
-            querydict = {company_field_qry: company_id, source_created_date_qry: start_key, source_source_query: 'goog'} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
+            querydict = {company_field_qry: company_id, source_created_date_qry: start_key, source_system_query: 'goog'} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
             traffic = Traffic.objects(**querydict).all()
             
             traffic_list = list(traffic)

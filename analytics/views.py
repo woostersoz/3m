@@ -202,23 +202,26 @@ def getCharts(request, company_id):
         code = None
         charts_temp = []
         charts = []
-        if existingIntegration is not None:
-            sources = set()
-            defined_system_types = set()
-            for source in existingIntegration.integrations.keys():
-                sources.add(source)
-            for source in sources:
-                #print 'source is ' + str(source)
-                defined_system = SuperIntegration.objects(code = source).first()
-                defined_system_types.add(defined_system.system_type)
-            for defined_system_type in defined_system_types:
-                #print 'def system is ' + str(defined_system.system_type)
-                if defined_system_type is not None:
-                    charts_temp = SuperAnalytics.objects(Q(system_type = defined_system_type) & Q(status__ne='Inactive')).all()
-                    for chart_temp in list(charts_temp):
-                        serializer = SuperAnalyticsSerializer(chart_temp, many=False) 
-                        charts.append(serializer.data)
-        
+#         if existingIntegration is not None:
+#             sources = set()
+#             defined_system_types = set()
+#             for source in existingIntegration.integrations.keys():
+#                 sources.add(source)
+#             for source in sources:
+#                 #print 'source is ' + str(source)
+#                 defined_system = SuperIntegration.objects(code = source).first()
+#                 defined_system_types.add(defined_system.system_type)
+#             for defined_system_type in defined_system_types:
+#                 #print 'def system is ' + str(defined_system.system_type)
+#                 if defined_system_type is not None:
+#                     charts_temp = SuperAnalytics.objects(Q(system_type = defined_system_type) & Q(status__ne='Inactive')).all()
+#                     for chart_temp in list(charts_temp):
+#                         serializer = SuperAnalyticsSerializer(chart_temp, many=False) 
+#                         charts.append(serializer.data)
+        charts_temp = SuperAnalytics.objects().all()
+        for chart_temp in list(charts_temp):
+            serializer = SuperAnalyticsSerializer(chart_temp, many=False) 
+            charts.append(serializer.data)
         return JsonResponse({"results": charts}, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})

@@ -167,17 +167,17 @@
 				    	parent: 'profile'
 				    }
 				})
-				.state('leads', {
-					url : '/leads',
+				.state('contacts', {
+					url : '/contacts',
 					controller : 'LeadsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/leads/leads.html',
 					ncyBreadcrumb: {
-				    	label: 'Leads'
+				    	label: 'Contacts'
 				    }
 				})
-				.state('leads-code', {
-					url : '/leads/:code',
+				.state('contacts-code', {
+					url : '/contacts/:code',
 					controller : 'LeadsController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/layout/index.html'

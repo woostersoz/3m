@@ -144,7 +144,7 @@
     
     function LeadsErrorFn(data, status, headers, config) {
         // $location.url('/');
-        toastr.error('Leads could not be retrieved');
+        toastr.error('Contacts could not be retrieved');
       }
     
 

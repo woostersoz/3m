@@ -18,11 +18,13 @@
     <ul class="analytics-charts">
 	    <li ng-repeat="chart in value" class="col-md-3 col-xs-6 col-sm-3  header-box">
 	      <div class="col-sm-3">
-	         <a ui-sref="showchart({url: chart.url })"><span style="font-size:24px; font-weight:700; " class="{{chart.src}}"></span></a>
+	         <a ng-if="chart.status=='Active'" ui-sref="showchart({url: chart.url })"><span style="font-size:24px; font-weight:700; " class="{{chart.src}}"></span></a>
+	         <span ng-if="chart.status!='Active'" style="font-size:24px; font-weight:700;" class="{{chart.src}} muted-text"></span>
 	      </div>
 	      <div class="col-sm-9 left" style="text-align:left;">
-	         <a ui-sref="showchart({url: chart.url })"><div class="chart-title"><strong>{{chart.title}}</strong></div></a>
-	         <div class="chart-descr">{{chart.descr}}</div>
+	         <a ng-if="chart.status=='Active'" ui-sref="showchart({url: chart.url })"><div class="chart-title"><strong>{{chart.title}}</strong></div></a>
+	         <div ng-if="chart.status!='Active'" class="chart-title muted-text">{{chart.title}}</div>
+	         <div class="chart-descr muted-text">{{chart.descr}}</div>
 	      </div>
 	    </li>
     </ul>
