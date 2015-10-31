@@ -21,8 +21,8 @@ from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 
 from integrations.views import Marketo, Salesforce
-from campaigns.serializers import CampaignSerializer, MktoCampaignSerializer
-from campaigns.models import Campaign, MktoCampaign
+from campaigns.serializers import CampaignSerializer
+from campaigns.models import Campaign
 from campaigns.tasks import retrieveMktoCampaigns, retrieveSfdcCampaigns, retrieveHsptCampaigns
 
 # get leads 

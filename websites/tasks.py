@@ -41,7 +41,8 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
         print 'utc start epoch is ' + str(utc_day_start_epoch)
         utc_day_end_epoch = calendar.timegm(datetime.now().timetuple()) * 1000
         utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
-            
+        print 'utc end epoch is ' + str(utc_day_end_epoch)
+        
         if run_type == 'initial':
             print 'initial run for website traffic'
             trafficList = hspt.get_traffic(utc_day_start_epoch, utc_day_end_epoch)
@@ -58,9 +59,10 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
             utc_day_end = utc_day_start + timedelta(seconds=86399)
             utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000 #use calendar.timegm and not mktime because of UTC
             utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
-            print 'utc epoch is ' + str(utc_day_start_epoch)
+            print 'utc epoch start is ' + str(utc_day_start_epoch)
             utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
             utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
+            print 'utc epoch end is ' + str(utc_day_end_epoch)
             #return
             for record in trafficList[traffic]: # this gives each 'breakdown' entry for the day
                 channel = record['breakdown']
@@ -68,7 +70,8 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
                     detailedTraffic = hspt.get_detailed_traffic(channel, utc_day_start_epoch, utc_day_start_epoch)
                     record['breakdowns'] = detailedTraffic.get('breakdowns', None)
                     for entry in record['breakdowns']: # get the campaign based breakdown
-                        if entry['breakdown'] == 'Facebook':
+                        entry['breakdown'] = entry['breakdown'].encode('utf-8')
+                        if entry['breakdown'] == 'Facebook'.encode('utf-8'):
                             detailedTrafficByCampaign = hspt.get_detailed_traffic_by_campaign(channel, entry['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
                             entry['campaigns'] = detailedTrafficByCampaign.get('breakdowns', None)
                             for campaign in entry['campaigns']:

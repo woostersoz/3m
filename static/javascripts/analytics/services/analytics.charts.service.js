@@ -529,6 +529,18 @@
 	
 		};
 		
+		scope_options.google_pages = scope_options.google_analytics;
+		scope_options.google_pages['chart']['yAxis']['axisLabel'] = 'Pages'; 
+		scope_options.google_pages['chart']['showLegend'] = false;
+		
+		scope_options.google_sources = scope_options.google_analytics;
+		scope_options.google_sources['chart']['yAxis']['axisLabel'] = 'Sources'; 
+		scope_options.google_sources['chart']['showLegend'] = true;
+		
+		scope_options.google_os = scope_options.google_analytics;
+		scope_options.google_os['chart']['yAxis']['axisLabel'] = 'Sources'; 
+		scope_options.google_os['chart']['showLegend'] = true;
+		
 		scope_options.facebook_organic_engagement = {
 				chart : {
 					type : 'multiBarChart',

@@ -221,18 +221,42 @@ def saveSfdcCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
 #             campaign.campaigns["sfdc"] = oldCampaign
 #             campaign.save()
     except Exception as e:
-            send_notification(dict(
-             type='error',
-             success=False,
-             message=str(e)
-            ))    
+        send_notification(dict(
+         type='error',
+         success=False,
+         message=str(e)
+        ))    
 
 #save the data in the temp table
 def saveHsptCampaigns(user_id=None, company_id=None, campaignList=None, job_id=None, run_type=None): 
     if run_type == 'initial':
-        for campaign in campaignList['results']:
+        for campaign in campaignList['campaigns']:
             saveTempData(company_id=company_id, record_type="campaign", source_system="hspt", source_record=campaign, job_id=job_id)
     else:
-        for campaign in campaignList['results']:
+        for campaign in campaignList['campaigns']:
             saveTempDataDelta(company_id=company_id, record_type="campaign", source_system="hspt", source_record=campaign, job_id=job_id)
+            
+def saveHsptCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    if run_type == 'initial':
+        campaigns = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    else:
+        campaigns = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    
+    campaignListTemp = list(campaigns)
+    campaignList = [i['source_record'] for i in campaignListTemp]
+    
+    try: 
+        for newCampaign in campaignList: 
+            #company_id = request.user.company_id
+            derived_id = 'hspt_' + str(newCampaign['id']) 
+            Campaign.objects(Q(derived_id = derived_id) & Q(company_id=company_id)).modify(upsert=True, new=True, set__campaigns__hspt = newCampaign, set_on_insert__derived_id = derived_id, set_on_insert__company_id = company_id, set_on_insert__updated_date=datetime.utcnow)
+    except Exception as e:
+        print 'exception ' + str(e)
+        send_notification(dict(
+         type='error',
+         success=False,
+         message=str(e)
+        ))    
+
+
        

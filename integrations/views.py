@@ -424,6 +424,7 @@ def get_fbok_token(request):
             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
             fbokIntegration = existingIntegration.integrations['fbok']
             fbokIntegration['accounts'] = []
+            fbokIntegration['pages'] = []
             
             try:
                 api = fbok.create_api(company_id)
@@ -433,9 +434,21 @@ def get_fbok_token(request):
                     entries_list = json.loads(json.dumps(my_account, default=lambda o: o.__dict__))
                     print 'my ad account: ' + str(entries_list)  
                     account_object = {'account_id' : entries_list['_data']['account_id'], 'id': entries_list['_data']['id']}
-                    fbokIntegration['accounts'].append(account_object)
+                    fbokIntegration['accounts'].append(account_object)  
             except:
-                    raise Exception('Could not retrieve Facebook account  data')
+                    raise Exception('Could not retrieve Facebook account data')
+            try:
+                fbok = FacebookPage(fbokIntegration['access_token'])
+                if fbok is not None:                     
+                    print 'calling pages'
+                    pages = fbok.get_pages()['data']
+                    print 'found FB pages: ' + str(pages)
+                    for page in pages:
+                        page_object = {'id': page['id']}
+                        fbokIntegration['pages'].append(page_object)
+            except:
+                    raise Exception('Could not retrieve Facebook page data')
+                
             existingIntegration.save() 
         else:
             access_token_json = {'fbok_access_token' : 'Error: Could not retrieve'}
@@ -1231,7 +1244,7 @@ class Hubspot:
             
             #print 'names are ' + names
             if names:
-                names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'first_conversion_event_name', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp', 'hs_analytics_last_timestamp', 'state', 'country', 'state_rev', 'city',
+                names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'first_conversion_event_name', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp', 'hs_analytics_last_timestamp', 'state', 'country', 'state_rev', 'city', 'hs_email_first_click_date', 'hs_email_first_open_date', 'hs_email_first_send_date', 'hs_email_last_click_date', 'hs_email_last_open_date', 'hs_email_last_send_date', 'hs_email_last_email_name', 'hs_analytics_num_visits', 'hs_analytics_num_page_views', 'hs_email_delivered'   
                 
                 #names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp',  
                 contactList = []
@@ -1274,7 +1287,7 @@ class Hubspot:
             
             #print names
             if names:
-                names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'first_conversion_event_name', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp', 'hs_analytics_last_timestamp',  'state', 'country', 'state_rev', 'city',
+                names = 'firstname', 'lastname', 'company', 'twitterhandle', 'days_to_close', 'first_conversion_date', 'first_conversion_event_name', 'hs_analytics_source', 'hs_analytics_first_url', 'hs_analytics_source_data_1', 'hs_analytics_source_data_2', 'hs_email_first_click_date', 'hs_analytics_first_visit_timestamp', 'hs_analytics_last_visit_timestamp', 'hs_analytics_last_url', 'hs_analytics_first_referrer', 'hs_analytics_last_referrer', 'lifecyclestage', 'hs_lifecysclestage_lead_date', 'hs_email_open', 'hs_email_click', 'recent_conversion_event_name', 'recent_conversion_date', 'num_conversion_events', 'num_unique_conversion_events', 'hs_lifecyclestage_lead_date', 'hs_lifecyclestage_marketingqualifiedlead_date', 'hs_lifecyclestage_opportunity_date', 'hs_lifecyclestage_customer_date', 'hs_lifecyclestage_subscriber_date', 'hs_lifecyclestage_salesqualifiedlead_date', 'hs_lifecyclestage_evangelist_date', 'hs_lifecyclestage_other_date', 'salesforceleadid','salesforcecontactid', 'salesforceaccountid', 'salesforceopportunitystage', 'leadsource', 'total_revenue', 'first_deal_created_date', 'num_associated_deals', 'recent_deal_amount', 'recent_deal_close_date', 'hs_analytics_first_timestamp', 'hs_analytics_last_timestamp',  'state', 'country', 'state_rev', 'city', 'hs_email_first_click_date', 'hs_email_first_open_date', 'hs_email_first_send_date', 'hs_email_last_click_date', 'hs_email_last_open_date', 'hs_email_last_send_date', 'hs_email_last_email_name', 'hs_analytics_num_visits', 'hs_analytics_num_page_views', 'hs_email_delivered'
                 contactList = []
                 with PortalConnection(authentication_key, "3m") as connection:
                     return get_all_contacts_by_last_update(connection, property_names=names, cutoff_datetime=sinceDateTime)
@@ -1314,12 +1327,14 @@ class Hubspot:
             params['access_token'] = self.access_token
             params['start'] = fromTimestamp
             params['end'] = toTimestamp
-            #print 'at is ' + self.access_token
+            print 'start is ' + str(fromTimestamp) + ' and end is ' + str(toTimestamp)
 #             hspt = NurturingClient(access_token = self.access_token)
 #             return hspt.get_campaigns(params = params)
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
-                return hspt.get_social_breakdown(params = params)
+                results = hspt.get_social_breakdown(params = params)
+                print 'results from Hspt are: ' + str(results)
+                return results
             else:
                 return None
             
@@ -1342,12 +1357,14 @@ class Hubspot:
 #             return hspt.get_campaigns(params = params)
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
-                return hspt.get_social_breakdown(params = params)
+                results = hspt.get_social_breakdown(params = params)
+                print 'results from Hspt social are: ' + str(results)
+                return results
             else:
                 return None
             
         except Exception as e:
-            raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
+            raise Exception("Could not retrieve detailed drilldown sources analytics from Hubspot: " + str(e))
     
     def get_contacts_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
         try:
@@ -1875,11 +1892,11 @@ class FacebookPage:
 #         response_json = response.json()
 #         return response_json
 
-          graph = GraphAPI(page_token)
-          posts = graph.get(page_id + '/posts')
-          print '# posts ' + str(len(posts))
-          #print 'posts retrieved are ' + str(posts)
-          return posts
+        graph = GraphAPI(page_token)
+        posts = graph.get(page_id + '/posts')
+        print '# posts ' + str(len(posts))
+        #print 'posts retrieved are ' + str(posts)
+        return posts
     
     def get_post_insights(self, post_id, page_token):
         data = {

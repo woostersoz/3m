@@ -527,6 +527,8 @@ def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name):
         chart_name_qry = 'chart_name'
         date_qry = 'date__in'
         chart_name = 'social_roi'
+        fb_chart_name = 'fb_performance'
+        fb_date_qry = 'date'
         
         #all return variables
         social= {}
@@ -547,30 +549,62 @@ def hspt_social_roi(user_id, company_id, start_date, end_date, dashboard_name):
         
         for day in days:
             data = day['results']
-            social_data = data.get('Social', None)
+            #social_data = data.get('Social', None)
             website_data = data.get('Website', None)
-            fb_data = social_data.get('Facebook', None)
+            #fb_data = social_data.get('Facebook', None)
+            
+            fb_querydict = {company_id_qry: company_id, chart_name_qry: fb_chart_name, fb_date_qry: day['date']}
+            fb_data_qset = AnalyticsData.objects(**fb_querydict).first()
+            if fb_data_qset is None:
+                continue
+            fb_data_results = fb_data_qset.to_mongo().to_dict()
+            fb_data = fb_data_results['results']
+            print 'fb data ' + str(fb_data)
+            #fb_data = list(fb_data_results)[0]
             
             if fb_data is not None:
                 fb_organic_data = fb_data.get('Organic', None)
+                print 'fb org data ' + str(fb_organic_data)
                 if fb_organic_data is not None:
-                    for record in fb_organic_data:
-                        for key, value in record.items():
-                            social['Facebook']['Organic']['Likes'] += value.get('like', 0)
-                            social['Facebook']['Organic']['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
-                            social['Facebook']['Organic']['Impressions'] += value.get('page_impressions', 0)
-                            social['Facebook']['Organic']['Comments'] += value.get('comment', 0)
-                            social['Facebook']['Organic']['Shares'] += value.get('link', 0)
+                    for page_id in fb_organic_data.keys():
+                        for key, value in fb_organic_data[page_id].iteritems():
+#                             social['Facebook']['Organic']['Likes'] += value.get('like', 0)
+#                             social['Facebook']['Organic']['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
+#                             social['Facebook']['Organic']['Impressions'] += value.get('page_impressions', 0)
+#                             social['Facebook']['Organic']['Comments'] += value.get('comment', 0)
+#                             social['Facebook']['Organic']['Shares'] += value.get('link', 0)
+                            if key == 'like':
+                                social['Facebook']['Organic']['Likes'] += value
+                            if key == 'link clicks' or key == 'other clicks':
+                                social['Facebook']['Organic']['Clicks'] += value
+                            if key == 'page_impressions':
+                                social['Facebook']['Organic']['Impressions'] += value
+                            if key == 'comment':
+                                social['Facebook']['Organic']['Comments'] += value
+                            if key == 'link':
+                                social['Facebook']['Organic']['Shares'] += value
                 fb_paid_data = fb_data.get('Paid', None)
                 if fb_paid_data is not None:
-                    for record in fb_paid_data:
-                        for key, value in record.items():
-                            social['Facebook']['Paid']['Likes'] += value.get('like', 0) + value.get('post_like', 0)
-                            social['Facebook']['Paid']['Clicks'] += value.get('website_clicks', 0) 
-                            social['Facebook']['Paid']['Impressions'] += int(value.get('impressions', 0))
-                            social['Facebook']['Paid']['Comments'] += value.get('comment', 0)
-                            social['Facebook']['Paid']['Shares'] += value.get('link', 0)
-                            roi['Facebook']['Paid']['Spend'] += float(value.get('spend', 0))
+                    for account_id in fb_paid_data:
+                        for key, value in fb_paid_data[account_id].iteritems():
+#                             social['Facebook']['Paid']['Likes'] += value.get('like', 0) + value.get('post_like', 0)
+#                             social['Facebook']['Paid']['Clicks'] += value.get('website_clicks', 0) 
+#                             social['Facebook']['Paid']['Impressions'] += int(value.get('impressions', 0))
+#                             social['Facebook']['Paid']['Comments'] += value.get('comment', 0)
+#                             social['Facebook']['Paid']['Shares'] += value.get('link', 0)
+#                             roi['Facebook']['Paid']['Spend'] += float(value.get('spend', 0))
+                            if key == 'like' or key == 'post_like' :
+                                social['Facebook']['Paid']['Likes'] += value
+                            if key == 'website_clicks':
+                                social['Facebook']['Paid']['Clicks'] += value
+                            if key == 'impressions':
+                                social['Facebook']['Paid']['Impressions'] += int(value)
+                            if key == 'comment':
+                                social['Facebook']['Paid']['Comments'] += value
+                            if key == 'link':
+                                social['Facebook']['Paid']['Shares'] += value
+                            if key == 'spend':
+                                roi['Facebook']['Paid']['Spend'] += float(value)
             
             if website_data is not None:
                 hspt = website_data.get('Hubspot', None)

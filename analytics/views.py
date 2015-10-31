@@ -38,7 +38,7 @@ from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSeri
 
 from authentication.models import Company, CustomUser
 
-from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics
+from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics, calculateFbokAnalytics
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -125,12 +125,16 @@ def calculateAnalytics(request, company_id): #,
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:   
         code = None
-        if existingIntegration is not None:
+        if existingIntegration is not None and system_type != 'SO':
             for source in existingIntegration.integrations.keys():
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
         
+        if system_type == 'SO':
+            code_map = { "tw_performance" : "bufr", "fb_performance": "fbok"}    
+            code = code_map[chart_name]
+            
         print 'found code' + str(code)
                   
         if code is  None:
@@ -143,6 +147,8 @@ def calculateAnalytics(request, company_id): #,
             result = calculateHsptAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
         elif code == 'bufr': 
             result = calculateBufrAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+        elif code == 'fbok': 
+            result = calculateFbokAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
         elif code == 'goog': 
             result = calculateGoogAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
         else:
@@ -166,13 +172,15 @@ def retrieveAnalytics(request, company_id):
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:   
         code = None
-        if existingIntegration is not None:
+        if existingIntegration is not None and system_type != 'SO':
             for source in existingIntegration.integrations.keys():
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
             #print 'found code' + str(code)
-                  
+        if system_type == 'SO':
+            code_map = { "tw_performance" : "bufr", "facebook_organic_engagement": "fbok", "facebook_paid_engagement": "fbok"}    
+            code = code_map[chart_name]
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
@@ -298,7 +306,7 @@ def retrieveBufrAnalytics(user_id=None, company_id=None, chart_name=None, start_
     return result
 
 def retrieveGoogAnalytics(user_id=None, company_id=None, chart_name=None, start_date=None, end_date=None, filters=None):
-    method_map = { "google_analytics" : google_analytics_bar_chart}
+    method_map = { "google_analytics" : google_analytics_bar_chart, "google_pages" : google_pages_bar_chart, "google_sources" : google_sources_bar_chart, "google_os" : google_os_bar_chart}
     result = method_map[chart_name](user_id, company_id, start_date, end_date, chart_name, filters)
     return result
 
@@ -1210,7 +1218,6 @@ def tw_performance_bar_chart(user_id, company_id, start_date, end_date, chart_na
 
 
 #Facebook charts    
-# For chart - 'Website Traffic"
 def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
     #print 'orig start' + str(start_date)
     try:
@@ -1282,7 +1289,7 @@ def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, cha
         data = {}
         
         #other variables
-        chart_namex = 'social_roi'
+        chart_namex = 'fb_performance' #'social_roi'
         
         existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
         fbokIntegration = existingIntegration.integrations['fbok']
@@ -1315,7 +1322,7 @@ def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, cha
                     if filterAccount == fbok_account['id']:
                         fbok_account_id = filterAccount
                 else:
-                    fbok_account_id = fbok_account['id'] #take the first FB Page ID available
+                    fbok_account_id = fbok_account['id'] #take the first FB Account ID available
                     break
             
             if fbok_account_id is None:
@@ -1326,34 +1333,57 @@ def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, cha
             data[array_key] = {'Likes': 0, 'Clicks': 0, 'Comments': 0, 'Shares': 0}
             
             for day in days_list[keyx]:
+                #print 'day is ' + str(day)
                 querydict = {chart_name_qry: chart_namex, company_field_qry: company_id, date_query: day} 
                 existingData = AnalyticsData.objects(**querydict).only('results').first()
                 if existingData is None:
                     continue
                 try:
                     if chart_name == 'facebook_organic_engagement':
-                        dataRecords = existingData['results']['Social']['Facebook']['Organic'] 
+                        dataRecord = existingData['results']['Organic'].get(fbok_page_id, None)
+                        print 'data rec is ' + str(dataRecord)
                         x = fbok_page_id
                     elif chart_name == 'facebook_paid_engagement':
-                        dataRecords = existingData['results']['Social']['Facebook']['Paid'] #should be an array
+                        dataRecord = existingData['results']['Paid'].get(fbok_account_id, None)
                         x = fbok_account_id
-                    for dataRecord in dataRecords:
-                        for idx in dataRecord.keys():
-                            if idx != x:
-                                continue
-                            for key, value in dataRecord.items():
-                                if chart_name == 'facebook_organic_engagement':
-                                    data[array_key]['Likes'] += value.get('like', 0)
-                                    data[array_key]['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
-                                    #data[array_key]['Impressions'] += value.get('page_impressions', 0)
-                                    data[array_key]['Comments'] += value.get('comment', 0)
-                                    data[array_key]['Shares'] += value.get('link', 0)
-                                elif chart_name == 'facebook_paid_engagement':
-                                    data[array_key]['Likes'] += value.get('like', 0) + value.get('post_like', 0)
-                                    data[array_key]['Clicks'] += value.get('website_clicks', 0) 
-                                    #data[array_key]['Impressions'] += int(value.get('impressions', 0))
-                                    data[array_key]['Comments'] += value.get('comment', 0)
-                                    data[array_key]['Shares'] += value.get('link', 0)
+                    #print 'x is ' + str(x) 
+#                     for dataRecord in dataRecords:
+#                         print 'data keys are ' + str(dataRecord.keys())
+#                         for idx in dataRecord.keys():
+#                             if str(idx) != str(x):
+#                                 print 'x and idx not equal'
+#                                 continue
+#                             print 'idx is ' + str(idx)
+                    for key, value in dataRecord.iteritems():
+                        #print 'key is ' + str(key)
+                        if chart_name == 'facebook_organic_engagement':
+                            if key == 'like':
+                                data[array_key]['Likes'] += value
+                            #data[array_key]['Likes'] += value.get('like', 0)
+                            if key == 'link clicks' or key == 'other clicks':
+                                data[array_key]['Clicks'] += value
+                            #data[array_key]['Clicks'] += value.get('link clicks', 0) + value.get('other clicks', 0)
+                            #data[array_key]['Impressions'] += value.get('page_impressions', 0)
+                            if key == 'comment':
+                                data[array_key]['Comments'] += value
+                            #data[array_key]['Comments'] += value.get('comment', 0)
+                            if key == 'link':
+                                data[array_key]['Shares'] += value
+                            #data[array_key]['Shares'] += value.get('link', 0)
+                        elif chart_name == 'facebook_paid_engagement':
+                            if key == 'like' or key == 'post_like' :
+                                data[array_key]['Likes'] += value
+                            #data[array_key]['Likes'] += value.get('like', 0) + value.get('post_like', 0)
+                            if key == 'website_clicks':
+                                data[array_key]['Clicks'] += value
+                            #data[array_key]['Clicks'] += value.get('website_clicks', 0) 
+                            #data[array_key]['Impressions'] += int(value.get('impressions', 0))
+                            if key == 'comment':
+                                data[array_key]['Comments'] += value
+                            #data[array_key]['Comments'] += value.get('comment', 0)
+                            if key == 'link':
+                                data[array_key]['Shares'] += value
+                            #data[array_key]['Shares'] += value.get('link', 0)
                 except Exception as e:
                     continue
                 
@@ -1370,7 +1400,7 @@ def facebook_engagement_bar_chart(user_id, company_id, start_date, end_date, cha
         return JsonResponse({'Error' : str(e)})   
 
 #Google charts    
-# For chart - 'Website Traffic"
+# Visitor Analytics
 def google_analytics_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
     #print 'orig start' + str(start_date)
     try:
@@ -1456,6 +1486,295 @@ def google_analytics_bar_chart(user_id, company_id, start_date, end_date, chart_
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})        
 
+# Page performance
+def google_pages_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
+    #print 'orig start' + str(start_date)
+    try:
+     
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        e = local_end_date
+        s = local_start_date - timedelta(days=1)
+         
+        all_values = {}
+        all_dates = []
+        delta = timedelta(days=1)
+        result = []
+         
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+        data = {}
+        userTypes = {'New': 0, 'Returning': 0} #
+        all_pages = {} #holds all pages found within the selected duration for the selected profile
+        profiles = {}
+        filterProfile = json.loads(filters).get('google_profile', None)
+        #change chart name here since there's only set of records in AnalyticsData for 'google_analytics'
+        chart_name = 'google_analytics'
+        
+        
+        #print 'filters are ' + str()
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        googIntegration = existingIntegration.integrations['goog']
+        goog_accounts = googIntegration['accounts']
+        for goog_account in goog_accounts:
+            if filterProfile is not None: 
+                if filterProfile == goog_account['profile_id']:
+                    profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                    #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                    #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            else:
+                profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            
+        #print 'profiles are ' + str(profiles)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            data = {}
+            array_key = s.strftime('%Y-%m-%d')
+            print 'date key is ' + array_key
+            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
+            
+            existingData = AnalyticsData.objects(**querydict).only('results').first()
+            for profile_id in profiles.keys():
+                if existingData is None: #  no results found for day so move to next day
+                    data[profile_id] = {}
+                else:
+                    if profile_id in existingData['results']:
+                        data[profile_id] = existingData['results'][profile_id]
+                    else:
+                        data[profile_id] = {}
+                 
+                #print 'data is ' + str(data[profile_id])  
+                if 'Pages' in data[profile_id]:
+                    print 'pages are there'
+                    for page in data[profile_id]['Pages'].keys():
+                        newPage = decodeKey(page)
+                        print 'page is ' + str(newPage)
+                        newKey = profiles[profile_id] +  ': ' + newPage
+                        if newPage not in all_pages:
+                            all_pages[newKey] = 0
+                        if  newKey not in all_values: #and key != 'offline'
+                            all_values[newKey]= {} 
+                        if profile_id in data:
+                            all_values[newKey][array_key] = data[profile_id]['Pages'][page]
+                        else:    
+                            all_values[newKey][array_key] = 0
+                
+        #print 'all vals is ' + str(all_values)
+        #if data == {}:
+        #    return []
+        for profile_id in profiles.keys():  
+            for newKey in all_pages.keys():
+                #newKey = profiles[profile_id] +  ': ' + page
+                obj_array = []
+                for key in all_values[newKey].keys():
+                    obj = {'x' : key, 'y': all_values[newKey][key]}
+                    obj_array.append(obj)  
+                result.append({'key' : newKey, 'values': obj_array })                   
+        #print str(result)
+        return result
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})  
+    
+# Source performance
+def google_sources_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
+    #print 'orig start' + str(start_date)
+    try:
+     
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        e = local_end_date
+        s = local_start_date - timedelta(days=1)
+         
+        all_values = {}
+        all_dates = []
+        delta = timedelta(days=1)
+        result = []
+         
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+        data = {}
+        userTypes = {'New': 0, 'Returning': 0} #
+        all_sources = {} #holds all pages found within the selected duration for the selected profile
+        profiles = {}
+        filterProfile = json.loads(filters).get('google_profile', None)
+        #change chart name here since there's only set of records in AnalyticsData for 'google_analytics'
+        chart_name = 'google_analytics'
+        
+        
+        #print 'filters are ' + str()
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        googIntegration = existingIntegration.integrations['goog']
+        goog_accounts = googIntegration['accounts']
+        for goog_account in goog_accounts:
+            if filterProfile is not None: 
+                if filterProfile == goog_account['profile_id']:
+                    profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                    #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                    #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            else:
+                profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            
+        #print 'profiles are ' + str(profiles)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            data = {}
+            array_key = s.strftime('%Y-%m-%d')
+            print 'date key is ' + array_key
+            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
+            
+            existingData = AnalyticsData.objects(**querydict).only('results').first()
+            for profile_id in profiles.keys():
+                if existingData is None: #  no results found for day so move to next day
+                    data[profile_id] = {}
+                else:
+                    if profile_id in existingData['results']:
+                        data[profile_id] = existingData['results'][profile_id]
+                    else:
+                        data[profile_id] = {}
+                 
+                #print 'data is ' + str(data[profile_id])  
+                if 'Sources' in data[profile_id]:
+                    print 'sources are there'
+                    for source in data[profile_id]['Sources'].keys():
+                        newSource = decodeKey(source)
+                        print 'source is ' + str(newSource)
+                        newKey = profiles[profile_id] +  ': ' + newSource
+                        if newSource not in all_sources:
+                            all_sources[newKey] = 0
+                        if  newKey not in all_values: #and key != 'offline'
+                            all_values[newKey]= {} 
+                        if profile_id in data:
+                            all_values[newKey][array_key] = data[profile_id]['Sources'][source]
+                        else:    
+                            all_values[newKey][array_key] = 0
+                
+        #print 'all vals is ' + str(all_values)
+        #if data == {}:
+        #    return []
+        for profile_id in profiles.keys():  
+            for newKey in all_sources.keys():
+                #newKey = profiles[profile_id] +  ': ' + page
+                obj_array = []
+                for key in all_values[newKey].keys():
+                    obj = {'x' : key, 'y': all_values[newKey][key]}
+                    obj_array.append(obj)  
+                result.append({'key' : newKey, 'values': obj_array })                   
+        #print str(result)
+        return result
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})  
+    
+# Source performance
+def google_os_bar_chart(user_id, company_id, start_date, end_date, chart_name, filters): 
+    #print 'orig start' + str(start_date)
+    try:
+     
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        e = local_end_date
+        s = local_start_date - timedelta(days=1)
+         
+        all_values = {}
+        all_dates = []
+        delta = timedelta(days=1)
+        result = []
+         
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+        data = {}
+        userTypes = {'New': 0, 'Returning': 0} #
+        all_sources = {} #holds all pages found within the selected duration for the selected profile
+        profiles = {}
+        filterProfile = json.loads(filters).get('google_profile', None)
+        #change chart name here since there's only set of records in AnalyticsData for 'google_analytics'
+        chart_name = 'google_analytics'
+        
+        
+        #print 'filters are ' + str()
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        googIntegration = existingIntegration.integrations['goog']
+        goog_accounts = googIntegration['accounts']
+        for goog_account in goog_accounts:
+            if filterProfile is not None: 
+                if filterProfile == goog_account['profile_id']:
+                    profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                    #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                    #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            else:
+                profiles[goog_account['profile_id']] = goog_account['account_name'] + '-' + goog_account['profile_name']
+                #userTypes[profiles[goog_account['profile_id']] + ': New'] = 0;
+                #userTypes[profiles[goog_account['profile_id']] + ': Returning'] = 0;
+            
+        #print 'profiles are ' + str(profiles)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            data = {}
+            array_key = s.strftime('%Y-%m-%d')
+            print 'date key is ' + array_key
+            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
+            
+            existingData = AnalyticsData.objects(**querydict).only('results').first()
+            for profile_id in profiles.keys():
+                if existingData is None: #  no results found for day so move to next day
+                    data[profile_id] = {}
+                else:
+                    if profile_id in existingData['results']:
+                        data[profile_id] = existingData['results'][profile_id]
+                    else:
+                        data[profile_id] = {}
+                 
+                #print 'data is ' + str(data[profile_id])  
+                if 'OS' in data[profile_id]:
+                    print 'OS are there'
+                    for os in data[profile_id]['OS'].keys():
+                        print 'os is ' + str(os)
+                        newKey = profiles[profile_id] +  ': ' + os
+                        if os not in all_sources:
+                            all_sources[newKey] = 0
+                        if  newKey not in all_values: #and key != 'offline'
+                            all_values[newKey]= {} 
+                        if profile_id in data:
+                            all_values[newKey][array_key] = data[profile_id]['OS'][os]
+                        else:    
+                            all_values[newKey][array_key] = 0
+                
+        #print 'all vals is ' + str(all_values)
+        #if data == {}:
+        #    return []
+        for profile_id in profiles.keys():  
+            for newKey in all_sources.keys():
+                #newKey = profiles[profile_id] +  ': ' + page
+                obj_array = []
+                for key in all_values[newKey].keys():
+                    obj = {'x' : key, 'y': all_values[newKey][key]}
+                    obj_array.append(obj)  
+                result.append({'key' : newKey, 'values': obj_array })                   
+        #print str(result)
+        return result
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})  
 #end of analytics
     
 class SingleBinderTemplate(viewsets.ModelViewSet):  

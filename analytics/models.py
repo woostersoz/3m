@@ -29,7 +29,7 @@ class AnalyticsData(Document): # stores data calculated for various charts
     results = DictField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     
-    meta = {'collection': 'analyticsData', 'indexes': ['id', 'company_id', 'chart_name', 'date', {'fields' : ('company_id', 'chart_name', 'date', 'date_range'), 'unique': True}], 'ordering':['-updated_date']}
+    meta = {'collection': 'analyticsData', 'indexes': ['id', 'company_id', 'chart_name', 'date', {'fields' : ('company_id', 'chart_name', 'date'), 'unique': True, 'name': 'co_chart_date'}], 'ordering':['-updated_date']}
     
 class AnalyticsIds(Document): # stores IDs of objects when needed for quick retrieval in charts
 
@@ -41,7 +41,7 @@ class AnalyticsIds(Document): # stores IDs of objects when needed for quick retr
     results = DictField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     
-    meta = {'collection': 'analyticsIds', 'indexes': ['id', 'company_id', 'chart_name', 'date', {'fields' : ('company_id', 'chart_name', 'date'), 'unique': True, 'name': 'co_chart_date'}, {'fields' : ('company_id', 'chart_name', 'date', 'date_range'), 'unique': True}], 'ordering':['-updated_date']}
+    meta = {'collection': 'analyticsIds', 'indexes': ['id', 'company_id', 'chart_name', 'date', {'fields' : ('company_id', 'chart_name', 'date'), 'unique': True, 'name': 'co_chart_date'}], 'ordering':['-updated_date']}
 
 class PageTemplate(Document):
     TYPE = ('chart', 'text')

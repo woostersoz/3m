@@ -264,7 +264,7 @@ def retrieveFbokPageStats(user_id=None, company_id=None, job_id=None, run_type=N
         #print 'timestamp ' + str(sinceDateTime)
         if (datetime.now() - sinceDateTime).days > 89:
             print 'FB does not allow for more than 89 days of data'
-            sinceDateTime = datetime.now - timedelta(days=89)
+            sinceDateTime = datetime.now() - timedelta(days=89)
         sinceTimestamp = calendar.timegm(sinceDateTime.timetuple())
         sinceTimestamp = str('{0:f}'.format(sinceTimestamp).rstrip('0').rstrip('.'))
         untilTimestamp = time.mktime(datetime.now().timetuple())

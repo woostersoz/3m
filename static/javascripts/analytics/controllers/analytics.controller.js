@@ -73,7 +73,7 @@
 		}
 		
 		function ChartsSuccessFn(data, status, headers, config) {
-			if (data.data.results.length > 0) // they could contain  Mkto, SFDC or HSPT leads
+			if (data.data.results.length > 0)  
 			{ 
 				$scope.charts = data.data.results;
 				/*for (var i=0; i < $scope.charts.length; i++)
@@ -700,6 +700,7 @@
 		function LeadsWithDurationSuccessFn(data, status, headers, config) {
 			if (data.data.results) // they could contain  Mkto, SFDC or HSPT leads
 			{
+				$scope.stopSpin();
 				$scope.totalLeads = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
@@ -726,12 +727,14 @@
 		
 		function LeadsErrorFn(data, status, headers, config) {
 			// $location.url('/');
+			$scope.stopSpin();
 			toastr.error('Contacts could not be retrieved');
 		}
 		
 		function SocialSuccessFn(data, status, headers, config) {
 			if (data.data.results) 
 			{
+				$scope.stopSpin();
 				$scope.totalSocialInteractions = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
@@ -761,12 +764,14 @@
 		
 		function SocialErrorFn(data, status, headers, config) {
 			// $location.url('/');
+			$scope.stopSpin();
 			toastr.error('Social interactions could not be retrieved');
 		}
 		
 		function WebsitesSuccessFn(data, status, headers, config) {
 			if (data.data.results) 
 			{
+				$scope.stopSpin();
 				$scope.totalWebsiteVisitors = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
@@ -793,6 +798,7 @@
 		
 		function WebsitesErrorFn(data, status, headers, config) {
 			// $location.url('/');
+			$scope.stopSpin();
 			toastr.error('Website visitors could not be retrieved');
 		}
 

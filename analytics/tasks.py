@@ -130,6 +130,29 @@ def calculateBufrAnalytics(user_id=None, company_id=None, chart_name=None, chart
             ))    
         
 @app.task
+def calculateFbokAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
+    method_map = { "fb_performance" : fb_performance}
+    method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
+    try:
+        message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
+        notification = Notification()
+        #notification.company_id = company_id
+        notification.owner = user_id
+        notification.module = 'Analytics'
+        notification.type = 'Background task' 
+        notification.method = os.path.basename(__file__)
+        notification.message = message
+        notification.success = True
+        notification.read = False
+        notification.save()
+    except Exception as e:
+        send_notification(dict(
+             type='error',
+             success=False,
+             message=str(e)
+            ))    
+        
+@app.task
 def calculateGoogAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
     method_map = { "google_analytics" : google_analytics}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
@@ -3296,10 +3319,6 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
         #sources = collection.find({'company_id':int(company_id)}).distinct('source_source').hint({'company_id': 1, 'source_source': 1})
         sources = ['OFFLINE', 'DIRECT_TRAFFIC', 'REFERRALS', 'ORGANIC_SEARCH', 'OTHER_CAMPAIGNS', 'SOCIAL_MEDIA', 'PAID_SEARCH', 'EMAIL_MARKETING', 'None']
     
-        # get the FB pages for this company
-        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
-        fbokIntegration = existingIntegration.integrations['fbok']
-        fbok_pages = fbokIntegration['pages']
         
         s = local_start_date - timedelta(days=1)
         while s < (e - delta):
@@ -3321,69 +3340,6 @@ def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):
             #results['Social']['LinkedIn'] = {}
             #results['Social']['Twitter'] = {}
             results['Website'] = {}
-            
-            #get FB Paid data
-            results['Social']['Facebook']['Paid'] = []
-            sub_object = {} 
-            querydict = {company_id_qry : company_id, source_created_date_qry: date}
-            fbPaidList = FbAdInsight.objects(**querydict)
-            print 'starting paid'
-            for entry in fbPaidList:
-                if entry['source_account_id'] not in sub_object:
-                    sub_object[entry['source_account_id']] = {}
-                truncated_entry = {}
-                for metric in fb_paid_metrics: #read all prefedined metrics and copy
-                    metric = metric.replace('.', '~')
-                    if metric in entry['data']:
-                        truncated_entry[metric] = entry['data'][metric]
-                if 'actions' in entry['data']:
-                    for list_entry in entry['data']['actions']: #special treatment for actions array
-                        list_entry['action_type'] = list_entry['action_type'].replace('.', '~')
-                        if list_entry['action_type'] not in truncated_entry:
-                            truncated_entry[list_entry['action_type']] = 0
-                        truncated_entry[list_entry['action_type']] = list_entry['value']
-                            
-                sub_object[entry['source_account_id']] = truncated_entry     
-                results['Social']['Facebook']['Paid'].append(sub_object)    
-            print 'finished paid'    
-            
-            #get FB Organic data
-            results['Social']['Facebook']['Organic'] = []  
-            #filter_date = s + timedelta(days=1)
-            #filter_date_str = _str_from_date(filter_date)
-            filter_date_str = date + 'T07:00:00+0000' #hack - needs to be changed
-            print 'filter date is ' + filter_date_str
-            sub_object = {} 
-            for fbok_page in fbok_pages:
-                if fbok_page['id'] not in sub_object:
-                    sub_object[fbok_page['id']] = {}  
-                truncated_entry = {}
-                
-                        
-                for metric in fb_organic_metrics:
-                    
-                    querydict = {company_id_qry : company_id, source_metric_name_qry: metric, end_time_qry: filter_date_str, source_page_id_qry: fbok_page['id']}
-                    fbOrganicList = FbPageInsight.objects(**querydict).first()
-                    if fbOrganicList is None: # if no data found for metric, move to the next one
-                        continue
-                    for value in fbOrganicList['data']['values']:
-                        if value['end_time'] == filter_date_str: 
-                            valuex = value['value']
-                            if isinstance(valuex, (int, long)): #if it is a single value
-                                print 'valuex ' + str(valuex)
-                                if metric not in truncated_entry:
-                                    truncated_entry[metric] = 0   
-                                truncated_entry[metric] += valuex
-                            else: # if it is a list of values
-                                for type_entry_key, type_entry_value in valuex.iteritems():
-                                    type_entry_key = type_entry_key.replace('.', '~')
-                                    if type_entry_key not in truncated_entry:
-                                        truncated_entry[type_entry_key] = 0  
-                                    truncated_entry[type_entry_key] += type_entry_value
-                                    
-                sub_object[fbok_page['id']] = truncated_entry     
-                results['Social']['Facebook']['Organic'].append(sub_object)             
-            print 'finished organic'
             
             #get HS Sources data 
             results['Website']['Hubspot'] = {}
@@ -4151,8 +4107,15 @@ def google_analytics(user_id, company_id, chart_name, mode, start_date):
                 for goog_account in goog_accounts:
                     profile_id = goog_account['profile_id']
                     analyticsData.results[profile_id] = {}
+                    #New vs Returning
                     for visitor_type in visitor_types: #only initialize if no earlier record for this day
                         analyticsData.results[profile_id][visitor_type] = 0 
+                    #Pages
+                    analyticsData.results[profile_id]['Pages'] = {}
+                    #Sources
+                    analyticsData.results[profile_id]['Sources'] = {}
+                    #Operating System
+                    analyticsData.results[profile_id]['OS'] = {}
             analyticsData.system_type = 'AD'
             analyticsData.company_id = company_id  
             analyticsData.chart_name = chart_name
@@ -4181,12 +4144,31 @@ def google_analytics(user_id, company_id, chart_name, mode, start_date):
             for traffic in traffic_list:
                 data = traffic['data']
                 profile_id = traffic['source_profile_id']
+                #New vs Returning Visitors
                 if data['ga:userType'] == 'Returning Visitor':
                     analyticsData.results[profile_id]['Returning'] += int(data['ga:users'])
                     analyticsIds.results[profile_id]['Returning'].append(traffic.id)
                 elif data['ga:userType'] == 'New Visitor':
                     analyticsData.results[profile_id]['New'] += int(data['ga:users'])
                     analyticsIds.results[profile_id]['New'].append(traffic.id)
+                #Page ranking
+                data['ga:pageTitle'] = encodeKey(data['ga:pageTitle']) #call encodeKey because the page title may have special characters like '.' that Mongo cannot store as key
+                if data['ga:pageTitle'] not in analyticsData.results[profile_id]['Pages']:
+                    analyticsData.results[profile_id]['Pages'][data['ga:pageTitle']] = int(data['ga:users'])
+                else:
+                    analyticsData.results[profile_id]['Pages'][data['ga:pageTitle']] += int(data['ga:users'])
+                #Sources
+                data['ga:source'] = encodeKey(data['ga:source']) #call encodeKey because the source url may have special characters like '.' that Mongo cannot store as key
+                if data['ga:source'] not in analyticsData.results[profile_id]['Sources']:
+                    analyticsData.results[profile_id]['Sources'][data['ga:source']] = int(data['ga:users'])
+                else:
+                    analyticsData.results[profile_id]['Sources'][data['ga:source']] += int(data['ga:users'])
+                #Operating System
+                if data['ga:operatingSystem'] not in analyticsData.results[profile_id]['OS']:
+                    analyticsData.results[profile_id]['OS'][data['ga:operatingSystem']] = int(data['ga:users'])
+                else:
+                    analyticsData.results[profile_id]['OS'][data['ga:operatingSystem']] += int(data['ga:users'])
+                
             
             AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
             AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)    
@@ -4195,3 +4177,167 @@ def google_analytics(user_id, company_id, chart_name, mode, start_date):
     except Exception as e:
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)}) 
+
+# FB Analytics       
+# chart - "FB Performance"   
+def fb_performance(user_id, company_id, chart_name, mode, start_date): 
+    
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        print 'local start is ' + str(local_start_date)
+        print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
+    
+        delta = timedelta(days=1)
+        e = local_end_date
+        
+        results = {}
+         #all query parameters
+        source_created_date_qry = 'source_created_date'
+        company_id_qry = 'company_id'
+        source_metric_name_qry = 'source_metric_name'
+        period_qry = 'data__period'
+        end_time_qry = 'data__values__end_time'
+        source_page_id_qry = 'source_page_id'
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date'
+        source_system_qry= 'source_system'
+        
+        #all other predefined data
+        fb_paid_metrics = {'impressions', 'unique_impressions', 'reach', 'clicks', 'website_clicks', 'frequency', 'spend', 'cpc'} #actions array should also be included 
+        fb_organic_metrics = {'page_impressions', 'page_impressions_unique', 'page_impressions_organic', 'page_impressions_organic_unique', 'page_consumptions_by_consumption_type', 'page_positive_feedback_by_type'}  
+        
+        
+        # get the FB pages for this company
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first() #need to do this again since access token has been saved in between
+        fbokIntegration = existingIntegration.integrations['fbok']
+        fbok_pages = fbokIntegration['pages']
+        
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            print 'utc day start is ' + str(utc_day_start)
+            print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            print 'utc day starte is ' + str(utc_day_start_epoch)
+            print 'utc day ende is ' + str(utc_day_end_epoch)
+            results = {}
+        
+            #get FB Paid data
+            results['Paid'] = {}
+            sub_object = {} 
+            querydict = {company_id_qry : company_id, source_created_date_qry: date}
+            fbPaidList = FbAdInsight.objects(**querydict)
+            print 'starting paid'
+            for entry in fbPaidList:
+                if entry['source_account_id'] not in results['Paid']:
+                    results['Paid'][entry['source_account_id']] = {}
+                truncated_entry = {}
+                for metric in fb_paid_metrics: #read all prefedined metrics and copy
+                    metric = metric.replace('.', '~')
+                    if metric in entry['data']:
+                        truncated_entry[metric] = entry['data'][metric]
+                if 'actions' in entry['data']:
+                    for list_entry in entry['data']['actions']: #special treatment for actions array
+                        list_entry['action_type'] = list_entry['action_type'].replace('.', '~')
+                        if list_entry['action_type'] not in truncated_entry:
+                            truncated_entry[list_entry['action_type']] = 0
+                        truncated_entry[list_entry['action_type']] = list_entry['value']
+                            
+                results['Paid'][entry['source_account_id']] = truncated_entry     
+                #results['Paid'].append(sub_object)    
+            print 'finished paid'    
+            
+            #get FB Organic data
+            results['Organic'] = {}  
+            #filter_date = s + timedelta(days=1)
+            #filter_date_str = _str_from_date(filter_date)
+            filter_date_str = date + 'T07:00:00+0000' #hack - needs to be changed
+            print 'filter date is ' + filter_date_str
+            sub_object = {} 
+            print 'fbok pages is ' + str(fbok_pages)
+            for fbok_page in fbok_pages:
+                if fbok_page['id'] not in results['Organic']:
+                    results['Organic'][fbok_page['id']] = {}  
+                truncated_entry = {}
+                
+                        
+                for metric in fb_organic_metrics:
+                    
+                    querydict = {company_id_qry : company_id, source_metric_name_qry: metric, end_time_qry: filter_date_str, source_page_id_qry: fbok_page['id']}
+                    fbOrganicList = FbPageInsight.objects(**querydict).first()
+                    if fbOrganicList is None: # if no data found for metric, move to the next one
+                        continue
+                    for value in fbOrganicList['data']['values']:
+                        if value['end_time'] == filter_date_str: 
+                            valuex = value['value']
+                            if isinstance(valuex, (int, long)): #if it is a single value
+                                print 'valuex ' + str(valuex)
+                                if metric not in truncated_entry:
+                                    truncated_entry[metric] = 0   
+                                truncated_entry[metric] += valuex
+                            else: # if it is a list of values
+                                for type_entry_key, type_entry_value in valuex.iteritems():
+                                    type_entry_key = type_entry_key.replace('.', '~')
+                                    if type_entry_key not in truncated_entry:
+                                        truncated_entry[type_entry_key] = 0  
+                                    truncated_entry[type_entry_key] += type_entry_value
+                                    
+                #sub_object[fbok_page['id']] = truncated_entry     
+                results['Organic'][fbok_page['id']] = truncated_entry    
+            print 'finished organic  with object ' + str(results['Organic'])
+            
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'SO'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                 
+            analyticsIds = AnalyticsIds.objects(**queryDict).first()
+            if analyticsIds is None:
+                analyticsIds = AnalyticsIds()
+                analyticsIds.system_type = 'SO'
+                analyticsIds.company_id = company_id  
+                analyticsIds.chart_name = chart_name
+                analyticsIds.date = date
+                analyticsIds.results = {}
+                analyticsIds.save()
+                
+            #print 'results are ' + str(results)
+            analyticsData.results = results
+            results = {}
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+                #AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
+            print 'saved'
+        #print 'start time was ' + time1 + ' and end time is ' + str(time.time())
+    except Exception as e:
+        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
+        return JsonResponse({'Error' : str(e)})
+            
