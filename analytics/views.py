@@ -28,6 +28,7 @@ from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 
 from leads.models import Lead
+from campaigns.models import Campaign
 from integrations.views import Marketo, Salesforce, FacebookPage #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
@@ -103,6 +104,20 @@ def retrieveFilters(request, company_id): #,
             results.append({'id': 3, 'name': 3})
             result = {'results': results, 'defaultValue': 1, 'defaultMetric': 'comparison_period'}
             return JsonResponse(result, safe=False)
+        
+        elif filter_name == 'campaign_guids':
+            results = []
+            print 'time 1 ' + str(datetime.now().time())
+            campaigns = Campaign.objects(company_id=company_id).only('guid').only('name')
+            print 'time 2 ' + str(datetime.now().time())
+            #campaignsList = list(campaigns)
+            print 'time 3 ' + str(datetime.now().time())
+            for campaign in campaigns:
+                results.append({'id': campaign['guid'], 'name': campaign['name']})
+            result = {'results': results}
+            print 'time 4 ' + str(datetime.now().time())
+            return JsonResponse(result, safe=False)
+            
         
         return JsonResponse(None, safe=False)
     except Exception as e:
@@ -295,7 +310,7 @@ def retrieveSfdcAnalytics(user_id=None, company_id=None, chart_name=None, start_
 
 #@app.task
 def retrieveHsptAnalytics(user_id=None, company_id=None, chart_name=None, start_date=None, end_date=None, filters=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "website_traffic": hspt_website_traffic_bar}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "website_traffic": hspt_website_traffic_bar, "campaign_email_performance": hspt_campaign_email_performance}
     result = method_map[chart_name](user_id, company_id, start_date, end_date, chart_name, filters)
     return result
 
@@ -1068,7 +1083,88 @@ def hspt_website_traffic_bar(user_id, company_id, start_date, end_date, chart_na
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})        
 
-
+def hspt_campaign_email_performance(user_id, company_id, start_date, end_date, chart_name, filters): 
+    try:
+        results = []
+        
+        eventTypes = OrderedDict([('SENT', False), ('DELIVERED', True), ('OPEN', False), ('CLICK', False), ('UNSUBSCRIBED', True), ('SPAMREPORT', True), ('BOUNCE', True)]) 
+        for eventType, disabled in eventTypes.items():
+            obj = {}
+            obj['key'] = eventType
+            obj['values'] = []
+            obj['disabled'] = disabled
+            results.append(obj)
+        print 'results are ' + str(results)    
+        filterCampaign = json.loads(filters).get('campaign_guid', None)
+        if filterCampaign is None: #no campaign filter so return empty dataset
+            return results
+        
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        print 'start is ' + str(start_date)
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        e = local_end_date
+        s = local_start_date - timedelta(days=1)
+         
+        all_values = {}
+        all_dates = []
+        delta = timedelta(days=1)
+        result = []
+         
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+        source_system = 'hspt'
+        
+        data_by_email = []
+        
+        
+        while s < (e - delta):
+            s += delta #increment the day counter
+            array_key = s.strftime('%Y-%m-%d')
+            print 'date key is ' + array_key
+            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: array_key} 
+            
+            existingData = AnalyticsData.objects(**querydict).only('results').first()
+            if existingData is None: #  no results found for day so move to next day
+                continue
+            data = existingData['results']
+        
+            #campaign = Campaign.objects(Q(guid = filterCampaign) & Q(company_id=company_id) & Q(source_system=source_system)).first()
+            for campaign, campaign_values in data.iteritems():
+                if campaign is None: #should never happen
+                    return []
+                
+                if campaign_values['campaign_guid'] != filterCampaign:
+                    continue
+                
+                if 'emails' in campaign_values:
+                    for email in campaign_values['emails']:
+                        if 'events' not in email:
+                            continue
+                        for key, value in email['events'].iteritems():
+                            for result in results:
+                                if result['key'] != key:
+                                    continue
+                                else:
+                                    email_found = False
+                                    for entry in result['values']: #each item in the results array for this key
+                                        if entry['email_id'] == email['id']: # this label already exists so add to value
+                                            entry['value'] += value
+                                            email_found = True
+                                            break
+                                    if email_found == False:
+                                        result['values'].append({'label': email['name'] + '-' + str(email['id']), 'value': value, 'email_id': email['id']})
+                        
+        return results
+        
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
+    
+    
 def hspt_contacts_sources_pie_deprecated(user_id, company_id, start_date, end_date, chart_name, filters):
     
     try:

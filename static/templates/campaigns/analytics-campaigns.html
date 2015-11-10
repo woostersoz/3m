@@ -1,0 +1,75 @@
+<div class="row" ng-show="showCampaigns" id="campaigndrilldown">
+	<div class="col-md-12">
+		<!-- BEGIN TABLE PORTLET-->
+		<div class="portlet light"  style="">
+			<div class="portlet-title">
+				<div class="caption class="col-sm-8">
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Drilldown</span><span class="font-blue-madison font-md"> {{filterTitle}}</span>
+				</div>
+				<div class="btn-group col-sm-4 pull-right chart-tools">
+				    
+					<a href="#" class="btn btn-sm pull-right"
+						ng-click="downloadLeadsCsv()" title="Download as CSV">
+						<span class="glyphicon glyphicon-download"></span>
+						Download CSV
+						
+					</a>
+			    </div>
+			</div>
+			<div class="portlet-body" style="margin-left:-20px; margin-right:-20px" >
+				<div class="table-toolbar" ng-hide="!vm.campaigns || !vm.campaigns.length" >
+					<div class="row">
+						<div class="col-md-12">
+							<div class="btn-group pull-right">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									Tools <i class="fa fa-angle-down"></i>
+								</button>
+								<ul class="dropdown-menu pull-right">
+									<li><a href="#"> Print </a></li>
+									<li><a href="#"> Save as PDF </a></li>
+									<li><a href="#"> Export to Excel </a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table ng-hide="!vm.campaigns || !vm.campaigns.length"  class="table table-striped table-hover  dataTable"
+					id="campaigns_table" ng-cloak>
+					<thead ng-show="showCampaigns"> <!-- ng-hide="showLeadsDuration && showLeads" && !showLeadsDuration -->
+						<tr>
+							<th>Email</th>
+							<th>Date</th>
+						</tr>
+					</thead>
+					
+
+					<tbody>
+						<tr dir-paginate="campaign in vm.campaigns | itemsPerPage:10" total-items="totalCampaigns" current-page="pagination.current">
+							<td>
+							<a ng-if="lead.sourceSystem=='HSPT' || source_system=='hspt'" target="_blank" href="http://app.hubspot.com/contacts/{{portal_id}}/contact/{{ campaign.recipient }}">{{ campaign.recipient }}</a>
+							</td>
+							<td>
+							{{ campaign.created | amCalendar }}
+							</td>
+						</tr>
+					</tbody>
+					
+					<div ng-hide="vm.campaigns && vm.campaigns.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no details available.</em>
+						</div>
+					</div>
+
+				</table>
+				</div>
+				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+				   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!vm.campaigns || !vm.campaigns.length" >Showing {{startLeadCounter}} to {{endLeadCounter}} of {{totalCampaigns}}</div>
+				   <div class="col-md-9" style="padding-left:0px; padding-right:0px">  
+				       <dir-pagination-controls class="pull-right" ng-hide="!vm.campaigns || !vm.campaigns.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			       </div>
+			    </div>
+		</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+	</div>
+</div>
+<!-- END PAGE CONTENT -->

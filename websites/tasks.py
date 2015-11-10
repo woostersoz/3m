@@ -26,6 +26,7 @@ from mongoengine.queryset.visitor import Q
 from mmm.views import _str_from_date
 from mmm.views import saveTempData, saveTempDataDelta, _date_from_str
 from websites.models import Traffic
+from campaigns.tasks import createHsptCampaignFromTraffic, associateEmailWithCampaign
 
 from django.utils.timezone import get_current_timezone
 
@@ -66,23 +67,39 @@ def retrieveHsptWebsiteTraffic(user_id=None, company_id=None, job_id=None, run_t
             #return
             for record in trafficList[traffic]: # this gives each 'breakdown' entry for the day
                 channel = record['breakdown']
-                if channel == 'social': # for now, only consider social
+                if channel == 'social' or channel == 'email': # for now, only consider social and email
                     detailedTraffic = hspt.get_detailed_traffic(channel, utc_day_start_epoch, utc_day_start_epoch)
                     record['breakdowns'] = detailedTraffic.get('breakdowns', None)
+                    #print 'breakdowns is ' + str(record['breakdowns'])
                     for entry in record['breakdowns']: # get the campaign based breakdown
                         entry['breakdown'] = entry['breakdown'].encode('utf-8')
                         if entry['breakdown'] == 'Facebook'.encode('utf-8'):
                             detailedTrafficByCampaign = hspt.get_detailed_traffic_by_campaign(channel, entry['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
                             entry['campaigns'] = detailedTrafficByCampaign.get('breakdowns', None)
+                            #print 'campaigns are ' + str(entry['campaigns'])
                             for campaign in entry['campaigns']:
-                                contacts = hspt.get_contacts_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                contacts = hspt.get_contacts_breakdown(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
                                 campaign['contacts'] = contacts
-                                customers = hspt.get_customers_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                customers = hspt.get_customers_breakdown(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
                                 campaign['customers'] = customers
-                                leads = hspt.get_leads_breakdown_for_social(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                leads = hspt.get_leads_breakdown(channel, entry['breakdown'], campaign['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
                                 campaign['leads'] = leads
+                        elif channel == 'email':
+                            createHsptCampaignFromTraffic(entry['breakdown'], 'email', company_id)
+                            detailedTrafficByEmail = hspt.get_detailed_traffic_by_campaign(channel, entry['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                            entry['emails'] = detailedTrafficByEmail.get('breakdowns', None)
+                            #print 'emails are ' + str(entry['emails'])
+                            for email in entry['emails']:
+                                contacts = hspt.get_contacts_breakdown(channel, entry['breakdown'], email['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                email['contacts'] = contacts
+                                customers = hspt.get_customers_breakdown(channel, entry['breakdown'], email['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                email['customers'] = customers
+                                leads = hspt.get_leads_breakdown(channel, entry['breakdown'], email['breakdown'], utc_day_start_epoch, utc_day_start_epoch)
+                                email['leads'] = leads
+                                associateEmailWithCampaign(entry['breakdown'], 'email', company_id, email['breakdown'], job_id, run_type)
+                            
         saveHsptWebsiteTraffic(user_id=user_id, company_id=company_id, trafficList=trafficList, job_id=job_id, run_type=run_type)
-        
+#         
         try:
             message = 'Website traffic retrieved from Hubspot'
             notification = Notification()

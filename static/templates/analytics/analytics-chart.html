@@ -46,7 +46,12 @@
 			<select name="comparison_periods" class="input-small form-control" style="clear:none; margin-right:5px"
 					ng-options="item.id as item.name for item in filterValues['comparison_periods']"
 					ng-model="selectedFilterValues['comparison_period']" ng-show="filters['comparison_periods']" ng-required="filters['comparison_periods']">
-					<option value="">Comparison Periods</option>
+					<option value="">Select Comparison Period</option>
+			</select>
+			<select name="campaign_guids" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.id as item.name for item in filterValues['campaign_guids']"
+					ng-model="selectedFilterValues['campaign_guid']" ng-show="filters['campaign_guids']" ng-required="filters['campaign_guids']">
+					<option value="">Select Campaign</option>
 			</select>
 		</div>
 		<div class="col-sm-5 pull-right chart-tools">
@@ -97,5 +102,6 @@
 <div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
 <div style="margin-left:-20px; margin-right:-20px" ng-show="showTweets" class="animate-show-hide"><ng-include src="'/static/templates/social/analytics-social.html'"></ng-include></div>
 <div style="margin-left:-20px; margin-right:-20px" ng-show="showWebsiteVisitors" class="animate-show-hide"><ng-include src="'/static/templates/websites/analytics-websites.html'"></ng-include></div>
-	    
+<div style="margin-left:-20px; margin-right:-20px" ng-show="showCampaigns" class="animate-show-hide"><ng-include src="'/static/templates/campaigns/analytics-campaigns.html'"></ng-include></div>
+	    	    
 </div>

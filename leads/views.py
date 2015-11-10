@@ -35,7 +35,7 @@ from leads.tasks import retrieveMktoLeads, retrieveSfdcLeads, retrieveHsptLeads
 from superadmin.models import SuperIntegration
 from company.models import CompanyIntegration
 from analytics.models import AnalyticsData, AnalyticsIds
-from mmm.views import exportToCsv
+from mmm.views import exportToCsv, _get_code
 
 # get leads 
 
@@ -91,23 +91,6 @@ class LeadsViewSet(drfme_generics.ListCreateAPIView): #deprecated
 #         except Exception as e:
 #             return Response(str(e))
 
-def _get_code(company_id, system_type):
-    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-    try:   
-        code = None
-        if existingIntegration is not None:
-            for source in existingIntegration.integrations.keys():
-                defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
-                if defined_system_type is not None:
-                    code = source
-            #print 'found code' + str(code)
-                  
-        if code is  None:
-            raise ValueError("No integrations defined")  
-        else:
-            return code
-    except Exception as e:
-        return JsonResponse({'Error' : str(e)})
               
 @api_view(['GET'])
 #@renderer_classes((JSONRenderer,))    
@@ -284,7 +267,7 @@ def filterLeadsBySource(request, id):
         elif code == 'mkto':
             result = filterLeadsBySourceMkto(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, export_type=export_type)
         elif code == 'sfdc': 
-            pass
+            result = filterLeadsBySourceSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, export_type=export_type)
             #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
         elif code == 'hspt': 
             result = filterLeadsBySourceHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, series_type=series_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, source=source_source, export_type=export_type)

@@ -37,6 +37,7 @@ from mmm.models import ExportFile
 from mmm.serializers import ExportFilesSerializer
 from authentication.models import CustomUser
 from leads.models import Lead
+from company.models import CompanyIntegration
 
 
 class IndexView(TemplateView):
@@ -97,6 +98,24 @@ def saveTempDataInBulk(company_id=None, record_type=None, source_system=None, so
         tempData.save()   
     except Exception as e:
         print 'exception while saving: ' + str(e)
+        
+def _get_code(company_id, system_type):
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    try:   
+        code = None
+        if existingIntegration is not None:
+            for source in existingIntegration.integrations.keys():
+                defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
+                if defined_system_type is not None:
+                    code = source
+            #print 'found code' + str(code)
+                  
+        if code is  None:
+            raise ValueError("No integrations defined")  
+        else:
+            return code
+    except Exception as e:
+        return JsonResponse({'Error' : str(e)})
 # name parsing for matching algorithm
 #@api_view(['GET'])
 def parseName(name=None):

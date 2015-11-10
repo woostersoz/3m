@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from mongoengine.queryset.visitor import Q
 
 from leads.models import Lead
+from campaigns.models import Campaign, EmailEvent
 from company.models import CompanyIntegration
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from collab.signals import send_notification
@@ -85,7 +86,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills,"campaign_email_performance": hspt_campaign_email_performance}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -3903,6 +3904,159 @@ def hspt_form_fills(user_id, company_id, chart_name, mode, start_date):
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)}) 
                 
+def hspt_campaign_email_performance(user_id, company_id, chart_name, mode, start_date):
+#HSPT aggregate campaign results by email
+    print 'starting campaign email performance'
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        #print 'local start is ' + str(local_start_date)
+        #print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
+    
+        delta = timedelta(days=1)
+        e = local_end_date
+        delta = timedelta(days=1)
+        e = local_end_date
+        #print 'local end date is ' + str(local_end_date)
+        
+        #all query parameters
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        company_id_qry = 'company_id'
+        date_qry = 'date'
+        
+        #all other predefined data
+        source_system = 'hspt'
+        
+        campaigns = Campaign.objects(Q(company_id=company_id) & Q(source_system=source_system))
+        campaignsList = list(campaigns)
+        #print 'campaigns are ' + str(campaignsList)
+        #collection = Lead._get_collection()
+        
+        ###loop through each day of the period 
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            #print 'utc day start is ' + str(utc_day_start)
+            #print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            print 'utc day starte is ' + str(utc_day_start_epoch)
+            print 'utc day ende is ' + str(utc_day_end_epoch)
+            
+            daily_record = {}
+            
+            #calculate numbers by campaign
+            for campaign in campaignsList:
+                print '1 campaign is ' + str(campaign['guid'])#.encode('utf-8'))
+                campaign_record = {}
+                campaign_record['campaign_name'] = campaign['name'].encode('utf-8')
+                campaign_record['campaign_guid'] = campaign['guid']
+                campaign_record['emails'] = []
+                #print '2'
+                if 'emails' not in campaign:
+                    #print '2a'
+                    daily_record[campaign['name']] = campaign_record
+                    #print '2b'
+                    continue
+                emails = campaign['emails']
+                for email in emails:
+                    print 'email is ' + str(email['id'])#.encode('utf-8')
+                    email_record = {}
+                    email_record['name'] = email['name'].encode('utf-8')
+                    email_record['id'] = email['id']
+                    email_record['events'] = {'BOUNCE':0, 'SPAMREPORT': 0, 'DELIVERED': 0, 'CLICK': 0, 'SENT': 0, 'DEFERRED': 0, 'DROPPED': 0, 'OPEN': 0}
+                    existingEvents = None
+                    existingEvents = EmailEvent.objects(Q(company_id=company_id) & Q(campaign_guid=campaign['guid']) & Q(email_id=email['id']) & Q(created__gte=int(utc_day_start_epoch)) & Q(created__lte=int(utc_day_end_epoch))).item_frequencies('event_type')
+                    
+#                     guid_field_qry = 'campaign_guid'
+#                     company_field_qry = 'company_id'
+#                     email_id_field_qry = 'email_id'
+#                     created_field_gte_qry = 'created__gte'
+#                     created_field_lte_qry = 'created__lte'
+#                     querydict = {company_field_qry: company_id, guid_field_qry: campaign['guid'], email_id_field_qry:email['id'], created_field_gte_qry: int(utc_day_start_epoch), created_field_lte_qry: int(utc_day_end_epoch) }
+#                     events_list = EmailEvent.objects(**querydict).aggregate({'$group': {'_id': '$event_type', 'count': {'$sum': 1}}})#,   
+#         
+                    print 'existing events distr2 is ' + str(list(existingEvents))
+                    #continue
+                    #if 'events' not in email:
+                    if existingEvents is None:
+                        #print '2c'
+                        campaign_record['emails'].append(email_record)
+                        #print '2d'
+                        continue
+#                     eventTypes = email['events']
+#                     for eventType, eventsList in eventTypes.iteritems(): # we are now examining each event Type in detail
+#                         count = 0
+#                         for event in eventsList: #value is an array with the individual events for a given event type e.g. 'Sent'
+#                             if event['created'] >= utc_day_start_epoch and event['created'] <= utc_day_end_epoch:
+#                                 count = count + 1
+                    for eventType, count in existingEvents.iteritems():
+                        email_record['events'][eventType] = count
+                    #now add this email to the campaign record
+                    #if campaign['guid'] == '3be989cd-81e9-4944-8689-fa5ed3e3e2aa':
+                    #    print 'email record is ' + str(email_record)
+                    campaign_record['emails'].append(email_record)
+                    #print '2f'
+                #add this campaign to the daily record
+                #print '3a'
+                daily_record[campaign['name']] = campaign_record
+                #print '3b'
+            #print '4'
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'MA'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                
+#             analyticsIds = AnalyticsIds.objects(**queryDict).first()
+#             if analyticsIds is None:
+#                 analyticsIds = AnalyticsIds()
+#                 analyticsIds.system_type = 'MA'
+#                 analyticsIds.company_id = company_id  
+#                 analyticsIds.chart_name = chart_name
+#                 analyticsIds.date = date
+#                 analyticsIds.results = {}
+#                 analyticsIds.save()
+  
+            #print 'results are ' + str(results)
+            analyticsData.results = daily_record
+#            analyticsIds.results = result_ids
+            
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+#                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data: ' + str(e)
+                continue
+            print 'saved'
+                            
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+    
+    
 def _process_form_list(listx):
     
     results_data = copy.deepcopy(listx)

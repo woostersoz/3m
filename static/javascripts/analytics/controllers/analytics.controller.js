@@ -10,18 +10,18 @@
 			'AnalyticsController', AnalyticsController);
 
 	AnalyticsController.$inject = [ '$scope', 'Analytics', 'Authentication',
-	                                'Leads', 'Snapshots', '$location', 'DTOptionsBuilder',
+	                                'Leads', 'Campaigns', 'Snapshots', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
-	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'AnalyticsCharts', 'Social', 'Websites', '$q'];
+	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'AnalyticsCharts', 'Social', 'Websites', '$q', 'Common'];
 
 	/**
 	 * @namespace AnalyticsController
 	 */
-	function AnalyticsController($scope, Analytics, Authentication, Leads,
+	function AnalyticsController($scope, Analytics, Authentication, Leads, Campaigns,
 			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
-			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, AnalyticsCharts, Social, Websites, $q, $interval) {
+			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, AnalyticsCharts, Social, Websites, $q, Common, $interval) {
 
 		var vm = this;
 		vm.analytics = [];
@@ -36,6 +36,7 @@
 		$scope.deleteNote = deleteNote;
 		//$scope.handleDeletedNote = Sticky.handleDeletedNote;
 		$scope.showLeads = false;
+		$scope.showCampaigns = false;
 		$scope.showLeadsDuration = false;
 		$scope.showTweets = false;
 		$scope.showWebsiteVisitors = false;
@@ -540,6 +541,40 @@
 			    	
 				}
 			} // if fb engagement
+			else if ($scope.chartName == "campaign_email_performance")
+			{
+			
+				if (account) {
+					var startDate = 0;
+					var endDate = 0;
+					$scope.filterTitle = '(filtered for event '
+					    + e.data.key
+						+ ' on email ' + e.data.label + ')';
+					$scope.filterByCampaignEmail = true;
+					$scope.filterByRevenueSource = false;
+					$scope.filterBySource = false;
+					startDate = $scope.startDate.unix();
+					endDate = $scope.endDate.unix();
+
+					$scope.csv.functionToCall = Campaigns.getEventsByCampaignEmailEventType;
+					$scope.csv.param[0] = account.company;
+					$scope.csv.param[2] = startDate;
+					$scope.csv.param[3] = endDate;
+					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
+					$scope.csv.param[7] = $scope.selectedFilterValues['campaign_guid'];
+					
+					Campaigns.getEventsByCampaignEmailEventType(account.company,
+							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, $scope.selectedFilterValues['campaign_guid'], e.data.email_id)
+							.then(CampaignsSuccessFn, CampaignsErrorFn);
+					
+			    	
+				}
+			} // if campaign_email_performance
 			
 		} 
 	
@@ -629,6 +664,7 @@
 				toastr.error(data.data["Error"]);
 			} else {
 				$scope.showLeads = false;
+				$scope.showCampaigns = false;
 				$scope.showTweets = false;
 				$scope.showLeadsDuration = false;
 				$scope.showWebsiteVisitors = false;
@@ -638,7 +674,11 @@
 				//if ($scope.chartName == "sources_bar" || $scope.chartName == "website_traffic" || $scope.chartName == "tw_performance" || $scope.chartName == "google_analytics") {
 				if ($scope.chartType == 'multibar') {
 				    $scope.data = data.data.map(function(d) {
-						d.values = d.values.sort(AnalyticsCharts.natcmp);
+				    	if (d.values.length > 0) {
+				    		if (d.values[0]['x'])
+				    			d.values = d.values.sort(AnalyticsCharts.natcmp);
+				    	}
+						
 						return d;
 					});
 				}
@@ -728,7 +768,47 @@
 		function LeadsErrorFn(data, status, headers, config) {
 			// $location.url('/');
 			$scope.stopSpin();
-			toastr.error('Contacts could not be retrieved');
+			toastr.error('Contact details could not be retrieved');
+		}
+		
+		function CampaignsSuccessFn(data, status, headers, config) {
+			if (data.data.results) 
+			{
+				$scope.stopSpin();
+				$scope.totalCampaigns = data.data.count;
+				$scope.thisSetCount = data.data.results.length;
+				// initialize the start and end counts shown near pagination control
+				$scope.startLeadCounter = ($scope.currentPage - 1) * $scope.leadsPerPage + 1;
+			    $scope.endLeadCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startLeadCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.leadsPerPage;
+				
+				vm.campaigns = data.data.results;
+				$scope.showCampaigns = true;
+				$scope.showLeads = false;
+				$scope.showLeadsDuration = false;
+				$scope.showTweets = false;
+				$scope.showWebsiteVisitors = false;
+				
+				if (data.data.portal_id) { // drilldown into HSPT
+					$scope.portal_id = data.data.portal_id;
+					$scope.source_system = 'hspt';
+				}
+				
+				$timeout(function() {
+					$location.hash('campaigndrilldown');
+					$anchorScroll();
+				}, 0);
+
+				//$scope.$apply();
+			} else {
+				vm.campaigns = [];
+				//$scope.showLeads = false;
+			}
+		}
+		
+		function CampaignsErrorFn(data, status, headers, config) {
+			// $location.url('/');
+			$scope.stopSpin();
+			toastr.error('Campaign details could not be retrieved');
 		}
 		
 		function SocialSuccessFn(data, status, headers, config) {
@@ -1154,6 +1234,7 @@
         		var resultsPosition = 0;
         		for (var i=0; i < chartFilters.length; i++) {
     				$scope.filterValues[chartFilters[i]] = results[resultsPosition].data.results;
+    				$scope.filterValues[chartFilters[i]].sort(Common.sortByProperty("name"));
     				if (results[resultsPosition].data.defaultValue)
     				   $scope.selectedFilterValues[results[resultsPosition].data.defaultMetric] = results[resultsPosition].data.defaultValue;
     				resultsPosition++;

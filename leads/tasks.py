@@ -863,3 +863,15 @@ def tempDataCleanup(user_id=None, company_id=None, job_id=None, run_type=None):
 def _grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return izip_longest(*args, fillvalue=fillvalue)
+
+def saveHsptCampaignEmailEventsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    ''' Update lead records with interactions based on email campaign events '''
+    if run_type == 'initial':
+        campaigns = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    else:
+        campaigns = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='hspt') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    
+    #leadList = list(leads)
+    #leadList = [i['source_record'] for i in leadList]
+    
+    

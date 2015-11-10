@@ -74,6 +74,10 @@ div.child_row_slider {
     
 }
 
+select.form-control  {
+	font-size: 0.7rem !important;
+}
+
 .control-label, .form-control {
 	padding-left: 6px;
 }

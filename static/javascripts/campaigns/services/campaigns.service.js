@@ -21,7 +21,8 @@
       //create: create,
       get: get,
       getAll: getAll,
-      cleanCampaignsBeforeDisplay: cleanCampaignsBeforeDisplay
+      cleanCampaignsBeforeDisplay: cleanCampaignsBeforeDisplay,
+      getEventsByCampaignEmailEventType: getEventsByCampaignEmailEventType
       
     };
 
@@ -89,6 +90,10 @@
 	    	
 	    }
 		return campaigns;
+    }
+    
+    function getEventsByCampaignEmailEventType(company, eventType, startDate, endDate, queryType, pageNumber, perPage, systemType, chartName, selectedCampaignGuid, emailId) { // called from Analytics
+    	return $http.get('/api/v1/company/' + company + '/campaigns/filter/events/?event_type=' + eventType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType + '&page_number=' + pageNumber + '&per_page=' + perPage + '&system_type=' + systemType + '&chart_name=' + chartName + '&campaign_guid=' + selectedCampaignGuid + '&email_id=' + emailId);
     }
     
   }

@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import serializers as drfme_serial, DocumentSerializer
 
-from campaigns.models import Campaign
+from campaigns.models import Campaign, EmailEvent
 
 class CampaignSerializer(DocumentSerializer):       
     company_id = drfme_serial.IntegerField()
@@ -19,4 +19,16 @@ class CampaignSerializer(DocumentSerializer):
                 setattr(instance, k, v)
             return instance
         return Campaign(**attrs)
+    
+class EmailEventSerializer(DocumentSerializer):       
+    
+    class Meta:
+        model = EmailEvent
+
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            for k, v in attrs.iteritems():
+                setattr(instance, k, v)
+            return instance
+        return EmailEvent(**attrs)
     

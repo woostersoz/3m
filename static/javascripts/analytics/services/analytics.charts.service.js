@@ -595,7 +595,7 @@
 		
 		scope_options.facebook_paid_engagement = {
 				chart : {
-					type : 'multiBarChart',
+					type : 'multiBarHorizontalChart',
 					height : 450,
 					margin : {
 						top : 20,
@@ -645,6 +645,70 @@
 	
 		};
 		
+		scope_options.horizontal_multibar = {
+	            chart: {
+	                type: 'multiBarHorizontalChart',
+	                height: 450, //function(d) {return ((d.values.length * 20) + 'px')},
+	                margin : {
+	                    top: 20,
+	                    right: 20,
+	                    bottom: 60,
+	                    left: 100
+	                },
+	                x: function(d){return d.label;},
+	                y: function(d){return d.value;},
+	                showValues: false,
+	                showLegend: true,
+	                showControls: true,
+	                valueFormat: function(d){
+	                    return d3.format(',f')(d);
+	                },
+	                transitionDuration: 500,
+	                xAxis: {
+	                    axisLabel: ''
+	                    
+						
+	                },
+	                yAxis : {
+						
+	                	tickFormat : function(d) {
+							return d3.format(',f')(d);
+						}
+	                
+					},
+	                tooltip :  { //function(key, x, y, e, graph)
+/*						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+						+ key
+						+ '</h4>'
+						+ '<p>'
+						+ y
+						+ ' on '
+						+ x
+						+ '</p></div>';*/
+	                	contentGenerator : function(input) { //key, x, y, e, graph
+							return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+							+ input.data.key
+							+ '</h4>'
+							+ '<p>'
+							+ input.data.value
+							+ ' on '
+							+ input.data.label
+							+ '</p></div>';
+	                	}
+					},
+					multibar : {
+					
+					},
+					legend : {
+	
+					}
+	            },
+	        };
+		
+		scope_options.campaign_email_performance = scope_options.horizontal_multibar;
+		scope_options.campaign_email_performance['chart']['margin']['left'] = 200;
+		scope_options.campaign_email_performance['chart']['height'] = 1200;
+		//scope_options.campaign_email_performance['chart']['yAxis']['orient'] = 'top';
 		
 		scope_options.scope = scope;
 	

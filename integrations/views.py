@@ -14,8 +14,8 @@ from pythonmarketo.client import MarketoClient
 from salesforce_oauth2 import SalesforceOAuth2
 from simple_salesforce import api
 from hapi.base import BaseClient
-from hapi.nurturing import NurturingClient
-from hapi.analytics import AnalyticsClient
+from hapi.nurturing import NurturingClient, NurturingClientPrivate, CampaignClientPrivate
+from hapi.analytics import AnalyticsClient, ContentClient
 from hapi.deals import DealsClient
 from hapi.utils import get_auth_url, refresh_access_token
 from hubspot.connection import OAuthKey, PortalConnection
@@ -1333,7 +1333,11 @@ class Hubspot:
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
                 results = hspt.get_social_breakdown(params = params)
-                print 'results from Hspt are: ' + str(results)
+                print 'social results from Hspt are: ' + str(results)
+                return results
+            elif channel == 'email':
+                results = hspt.get_email_breakdown(params = params)
+                print 'email results from Hspt are: ' + str(results)
                 return results
             else:
                 return None
@@ -1360,13 +1364,17 @@ class Hubspot:
                 results = hspt.get_social_breakdown(params = params)
                 print 'results from Hspt social are: ' + str(results)
                 return results
+            elif channel == 'email':
+                results = hspt.get_email_breakdown(params = params)
+                print 'email results from Hspt are: ' + str(results)
+                return results
             else:
                 return None
             
         except Exception as e:
             raise Exception("Could not retrieve detailed drilldown sources analytics from Hubspot: " + str(e))
     
-    def get_contacts_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+    def get_contacts_breakdown(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
         try:
             if channel is None or fromTimestamp is None or toTimestamp is None:
                 return
@@ -1384,13 +1392,15 @@ class Hubspot:
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
                 return hspt.get_contacts_breakdown_for_social(params = params)
+            elif channel == 'email':
+                return hspt.get_contacts_breakdown_for_email(params = params)
             else:
                 return None
             
         except Exception as e:
             raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
     
-    def get_customers_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+    def get_customers_breakdown(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
         try:
             if channel is None or fromTimestamp is None or toTimestamp is None:
                 return
@@ -1408,13 +1418,15 @@ class Hubspot:
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
                 return hspt.get_customers_breakdown_for_social(params = params)
+            elif channel == 'email':
+                return hspt.get_customers_breakdown_for_email(params = params)
             else:
                 return None
             
         except Exception as e:
             raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
     
-    def get_leads_breakdown_for_social(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
+    def get_leads_breakdown(self, channel=None, subChannel=None, campaign=None, fromTimestamp=None, toTimestamp=None):
         try:
             if channel is None or fromTimestamp is None or toTimestamp is None:
                 return
@@ -1432,6 +1444,8 @@ class Hubspot:
             hspt = AnalyticsClient(access_token = self.access_token)
             if channel == 'social':
                 return hspt.get_leads_breakdown_for_social(params = params)
+            elif channel == 'email':
+                return hspt.get_leads_breakdown_for_email(params = params)
             else:
                 return None
             
@@ -1439,17 +1453,134 @@ class Hubspot:
             raise Exception("Could not retrieve drilldown sources analytics from Hubspot: " + str(e))
     
     
-    def get_campaigns(self):
+    def get_all_campaigns(self):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['limit'] = 9999
+            print 'at is ' + self.access_token
+            hspt = NurturingClient(access_token = self.access_token)
+            return hspt.get_all_campaigns(params = params)
+            
+        except Exception as e:
+            print "Could not retrieve campaigns from Hubspot: " + str(e)
+            raise Exception("Could not retrieve campaigns from Hubspot: " + str(e))
+        
+    def get_recent_campaigns(self):
         try:
             self.get_creds()
             params = {}
             params['access_token'] = self.access_token
             print 'at is ' + self.access_token
             hspt = NurturingClient(access_token = self.access_token)
-            return hspt.get_all_campaigns(params = params)
+            return hspt.get_recent_campaigns(params = params)
             
         except Exception as e:
+            print "Could not retrieve campaigns from Hubspot: " + str(e)
             raise Exception("Could not retrieve campaigns from Hubspot: " + str(e))
+        
+    def get_campaign_details(self, campaignId=None, appId=None):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['campaignId'] = campaignId
+            print 'getting details for ' + str(campaignId)
+            params['appId'] = appId
+            hspt = NurturingClient(access_token = self.access_token)
+            return hspt.get_campaign_details(params = params)
+            
+        except Exception as e:
+            print "Could not retrieve campaign details from Hubspot: " + str(e)
+            raise Exception("Could not retrieve campaign details from Hubspot: " + str(e))
+        
+    def get_campaign_events(self, campaignId=None, appId=None, fromTimestamp=None, toTimestamp=None):
+        try:
+            self.get_creds()
+            hspt = NurturingClient(access_token = self.access_token)
+            results = {}
+            params = {}
+            params['access_token'] = self.access_token
+            params['campaignId'] = campaignId
+            params['appId'] = appId
+            params['limit'] = 99999 
+            params['startTimestamp'] = fromTimestamp  
+            params['endTimestamp'] = toTimestamp    
+            
+            eventTypes = 'SENT', 'DELIVERED', 'OPEN', 'CLICK', 'UNSUBSCRIBED', 'SPAMREPORT', 'BOUNCE', 'DEFERRED', 'MTA_DROPPED', 'DROPPED', 
+            for eventType in eventTypes:
+                params['eventType'] = eventType
+                print 'getting events for ' + str(campaignId) + ' with appId ' + str(appId) + ' with type ' + eventType
+                results[eventType] = hspt.get_campaign_events(params = params).get('results', None)
+ 
+            return results
+            
+        except Exception as e:
+            print "Could not retrieve campaign events from Hubspot: " + str(e)
+            raise Exception("Could not retrieve campaign events from Hubspot: " + str(e))
+        
+    def get_campaign_stats(self, campaignId=None):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['eventTypesWithQualifiers'] = 'DROPPED'
+            params['autoAggregrateGroups'] = False
+            params['statsRequestType'] = 'Simple'
+            params['emailCampaignIds'] = campaignId
+            print 'getting stats for ' + str(campaignId)
+            hspt = NurturingClientPrivate(access_token = self.access_token)
+            return hspt.get_all_campaigns_stats(params = params)
+            
+        except Exception as e:
+            print "Could not retrieve campaign stats from Hubspot: " + str(e)
+            raise Exception("Could not retrieve campaign stats from Hubspot: " + str(e))
+        
+    def get_email_by_campaign(self, emailId=None):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['emailId'] = emailId
+            print 'getting email details for ' + str(emailId)
+            hspt = ContentClient(access_token = self.access_token)
+            return hspt.get_email_by_campaign(params = params)
+            
+        except Exception as e:
+            print "Could not retrieve campaign events from Hubspot: " + str(e)
+            raise Exception("Could not retrieve campaign events from Hubspot: " + str(e))
+        
+    def get_email_by_content_id(self, contentId=None):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['contentId'] = contentId
+            print 'getting email details for ' + str(contentId)
+            hspt = ContentClient(access_token = self.access_token)
+            return hspt.get_email_by_content_id(params = params)
+            
+        except Exception as e:
+            print "Could not retrieve email by content id from Hubspot: " + str(e)
+            raise Exception("Could not retrieve email by content id from Hubspot: " + str(e))
+        
+    def get_campaign_contacts(self, campaignId=None):
+        try:
+            self.get_creds()
+            params = {}
+            params['access_token'] = self.access_token
+            params['portalId'] = self.client_secret
+            params['includedEventTypes'] = 'SENT', 'DELIVERED', 'OPEN', 'CLICK', 'UNSUBSCRIBED', 'SPAMREPORT', 'BOUNCE', 'DEFERRED', 'MTA_DROPPED', 'DROPPED', 
+            params['metadata'] = True
+            params['linkSubstring'] = ''
+            params['emailCampaignIds'] = campaignId
+            print 'at is ' + self.access_token
+            hspt = NurturingClientPrivate(access_token = self.access_token)
+            return hspt.get_campaign_contacts(params = params)
+            
+        except Exception as e:
+            raise Exception("Could not retrieve campaign contacts from Hubspot: " + str(e))
     
     def get_deals(self, count=500):
         try:
