@@ -18,5 +18,4 @@ urlpatterns = patterns('',
     url(r'^(?P<type>[a-z:\\.0-9]+)/room/create/$', "create", name="create"),
     url(r'^(?P<type>[a-z:\\.0-9]+)/room/(?P<slug>.*)$', "room", name="room"),
     url(r'^(?P<type>[a-z:\\.0-9]+)/(?P<subtype>[a-z:\\.0-9]+)/$', views.MessagesViewSet.as_view(), name='list_messages_by_type'),
-    #url(r'^$', views.CampaignsViewSet.as_view(), name='campaigns_by_source'),
  )

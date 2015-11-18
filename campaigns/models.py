@@ -37,4 +37,4 @@ class EmailEvent(Document):
     details = DictField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'emailEvent', 'indexes': ['id', 'company_id', 'campaign_guid', {'fields' : ('company_id', 'campaign_guid'), 'unique': False, 'name': 'co_guid'}, {'fields' : ('company_id', 'campaign_guid', 'email_id', 'created'), 'unique': False, 'name': 'created'}, {'fields' : ('company_id', 'campaign_guid', 'email_id', 'event_id'), 'unique': True, 'name': 'all'}], 'ordering':['-updated_date']}
+    meta = {'collection': 'emailEvent', 'indexes': ['id', 'company_id', 'campaign_guid', {'fields' : ('company_id', 'campaign_guid'), 'unique': False, 'name': 'co_guid'}, {'fields' : ('company_id', 'campaign_guid', 'email_id', 'created'), 'unique': False, 'name': 'created'}, {'fields' : ('company_id', 'campaign_guid', 'email_id', 'event_id'), 'unique': True, 'name': 'all'}, {'fields' : ('company_id', 'event_type', 'created', 'details.url'), 'unique': False, 'name': 'drilldown'}], 'ordering':['-updated_date']}

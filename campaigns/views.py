@@ -1,4 +1,4 @@
-import datetime, json
+import datetime, json, urllib
 from datetime import timedelta, date, datetime
 
 from django.shortcuts import get_object_or_404, render
@@ -170,6 +170,52 @@ def filterCampaignEmailEventsByType(request, id):
         return JsonResponse({'Error' : str(e)})
     
 
+@api_view(['GET'])
+#@renderer_classes((JSONRenderer,))    
+def filterEventsByEmailCTA(request, id):
+    user_id = request.user.id
+    company_id = request.user.company_id
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    event_type = request.GET.get('event_type')
+    query_type = request.GET.get('query_type')
+    page_number = int(request.GET.get('page_number'))
+    items_per_page = int(request.GET.get('per_page'))
+    system_type = request.GET.get('system_type')
+    chart_name = request.GET.get('chart_name')
+    export_type = request.GET.get('export_type')
+    url = request.GET.get('url')
+    offset = (page_number - 1) * items_per_page
+    print ' in filter 22'
+    user_id = request.user.id
+    company_id = request.user.company_id
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    try:   
+        code = None
+        if existingIntegration is not None:
+            for source in existingIntegration.integrations.keys():
+                defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
+                if defined_system_type is not None:
+                    code = source
+                    client_secret = existingIntegration['integrations'][code]['client_secret']
+            print 'found code' + str(code)
+                  
+        if code is  None:
+            raise ValueError("No integrations defined")  
+        elif code == 'mkto':
+            pass
+        elif code == 'sfdc': 
+            pass
+            #result = filterLeadsSfdc(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, lead_type=lead_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code)
+        elif code == 'hspt': 
+            result = filterEventsByEmailCTAHspt(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, event_type=event_type, query_type=query_type, page_number=page_number, items_per_page=items_per_page, system_type=system_type, offset=offset, code=code, export_type=export_type, url=url)
+            result['portal_id'] = client_secret
+        else:
+            result =  'Nothing to report'
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        return JsonResponse({'Error' : str(e)})
+
 #filter campaign email events for Campaign Email Performance chart  
 def filterCampaignEmailEventsByTypeHspt(user_id, company_id, start_date, end_date, event_type, email_id, query_type, page_number, items_per_page, system_type, offset, code, campaign_guid, export_type):
     original_start_date = int(start_date) * 1000
@@ -202,6 +248,39 @@ def filterCampaignEmailEventsByTypeHspt(user_id, company_id, start_date, end_dat
         #events_list = Campaign.objects(**querydict).aggregate({'$unwind': results_qry}, {'$project': {'_id':0, 'event_id': id_qry, 'date': event_date_qry, 'recipient': recipient_qry}}) #{'$match' : {event_date_qry2: {'$gte': original_start_date, '$lte': original_end_date }}},
         #events_list = Campaign.objects(**querydict).aggregate({'$unwind': emails_qry}, {'$match': {emails_field_qry: int(email_id)}}, {'$unwind': event_qry}, {'$project': {'_id':0, 'event_id': id_qry, 'date': event_date_qry, 'recipient': recipient_qry}}, {'$match' : {'date': {'$gte': original_start_date, '$lte': original_end_date }}})#,   
         events_list = EmailEvent.objects(Q(company_id=company_id) & Q(campaign_guid=campaign_guid) & Q(email_id=int(email_id)) & Q(event_type=event_type) & Q(created__gte=int(original_start_date)) & Q(created__lte=int(original_end_date)))            
+        events_list = list(events_list)      
+        #print 'final results ' + str(events_list)
+        total = len(events_list)
+        final_events_list = events_list[offset:int(items_per_page + offset)]
+        #leads = Lead.objects(**querydict).skip(offset).limit(items_per_page)
+        serializer = EmailEventSerializer(final_events_list, many=True)   
+        
+        results = {'count' : total, 'results': serializer.data}
+        return results
+    except Exception as e:
+        return JsonResponse({'Error' : str(e)})
+    
+#filter 'CLICK' events for Email CTAl Performance chart  
+def filterEventsByEmailCTAHspt(user_id, company_id, start_date, end_date, event_type, query_type, page_number, items_per_page, system_type, offset, code, export_type, url):
+    original_start_date = int(start_date) * 1000
+    original_end_date = int(end_date) * 1000
+    #print 'start ' + str(original_start_date) 
+    #print 'end ' + str(original_end_date) 
+#     if start_date is not None:
+#         local_start_date_naive = datetime.fromtimestamp(float(start_date))
+#         local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
+#     if end_date is not None:
+#         local_end_date_naive = datetime.fromtimestamp(float(end_date))
+#         local_end_date = get_current_timezone().localize(local_end_date_naive, is_dst=None)
+#     utc_current_date = datetime.utcnow()
+    #print 'filter start us ' + str(local_start_date) + ' and edn is ' + str(local_end_date)
+    code = _get_code(company_id, system_type)
+     
+    try:
+        #print 'url 1 is ' + str(url)
+        #url = urllib.unquote(url).decode('utf8')
+        #print 'url is ' + str(url)
+        events_list = EmailEvent.objects(Q(company_id=company_id) & Q(event_type=event_type) & Q(created__gte=int(original_start_date)) & Q(created__lte=int(original_end_date)) & Q(details__url=url))            
         events_list = list(events_list)      
         #print 'final results ' + str(events_list)
         total = len(events_list)

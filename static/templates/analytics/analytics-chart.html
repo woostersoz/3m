@@ -47,11 +47,11 @@
 					ng-options="item.id as item.name for item in filterValues['comparison_periods']"
 					ng-model="selectedFilterValues['comparison_period']" ng-show="filters['comparison_periods']" ng-required="filters['comparison_periods']">
 					<option value="">Select Comparison Period</option>
-			</select>
-			<select name="campaign_guids" class="input-small form-control" style="clear:none; margin-right:5px"
-					ng-options="item.id as item.name for item in filterValues['campaign_guids']"
-					ng-model="selectedFilterValues['campaign_guid']" ng-show="filters['campaign_guids']" ng-required="filters['campaign_guids']">
-					<option value="">Select Campaign</option>
+			</select> 
+			<select name="campaign_guids" class="ac-select input-small form-control" style="clear:none; margin-right:5px"
+					ac-options="item.id as item.name for item in filterValues['campaign_guids']"
+					ac-model="selectedFilterValues['campaign_guid']" ac-key="id" ng-if="filterValuesFilled['campaign_guids']" ng-show="filters['campaign_guids']" ng-required="filters['campaign_guids']">
+					<option selected value="">Select Campaign</option>
 			</select>
 		</div>
 		<div class="col-sm-5 pull-right chart-tools">

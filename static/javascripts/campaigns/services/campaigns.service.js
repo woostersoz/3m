@@ -22,7 +22,8 @@
       get: get,
       getAll: getAll,
       cleanCampaignsBeforeDisplay: cleanCampaignsBeforeDisplay,
-      getEventsByCampaignEmailEventType: getEventsByCampaignEmailEventType
+      getEventsByCampaignEmailEventType: getEventsByCampaignEmailEventType,
+      getEventsByEmailCTA: getEventsByEmailCTA
       
     };
 
@@ -96,5 +97,9 @@
     	return $http.get('/api/v1/company/' + company + '/campaigns/filter/events/?event_type=' + eventType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType + '&page_number=' + pageNumber + '&per_page=' + perPage + '&system_type=' + systemType + '&chart_name=' + chartName + '&campaign_guid=' + selectedCampaignGuid + '&email_id=' + emailId);
     }
     
+    
+    function getEventsByEmailCTA(company, eventType, startDate, endDate, queryType, pageNumber, perPage, systemType, chartName, url) { // called from Analytics
+    	return $http.get('/api/v1/company/' + company + '/campaigns/filter/ctas/?event_type=' + eventType + '&start_date=' + startDate + '&end_date=' + endDate + '&query_type=' + queryType + '&page_number=' + pageNumber + '&per_page=' + perPage + '&system_type=' + systemType + '&chart_name=' + chartName + '&url=' + url);
+    }
   }
 })();

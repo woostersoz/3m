@@ -82,6 +82,10 @@ select.form-control  {
 	padding-left: 6px;
 }
 
+:focus {
+	outline-color: #fff !important;
+}
+
 .djng-form-control-feedback {
 /* 	clear: both; */
 /*     padding-left: 10px; */
@@ -1716,4 +1720,23 @@ div.dynamic_content_max_width {
 .inline_attachment .attachment_title {
   font-weight: 700;
   font-size: 1pc;
+}
+
+.svg-thumbnail {
+	-webkit-transition: all 0.5s ease;
+	-moz-transition: all 0.5s ease;
+	transition: all 0.5s ease;
+	-webkit-backface-visibility: hidden;
+}
+
+.svg-thumbnail:hover {
+    -webkit-transform: scale(1.5);
+    -moz-transform: scale(1.5);
+    transform: matrix(1.5, 0, 0, 1.5, 25, 0);	
+    /* transform-origin: 50% 50%; */
+    cursor: pointer;
+}
+
+.nvd3 .nv-axis {
+	pointer-events: all !important;
 }

@@ -62,7 +62,11 @@
 		
 		$scope.filters = {};
 		$scope.filterValues = {};
+		$scope.filterValues['campaign_guids'] = [];
+		$scope.filterValuesFilled = {};
+		$scope.filterValuesFilled['campaign_guids'] = false;
 		$scope.selectedFilterValues = {};
+		$scope.selectedFilterValues['campaign_guid'] = '';
 		
 		var account = Authentication.getAuthenticatedAccount();
 		if (account) {
@@ -168,10 +172,11 @@
 		      $scope.spinneractive = false;
 	    });
 	    
-	    var scope_options = AnalyticsCharts.getScopeOptions($scope);
-		$scope = scope_options['scope'];
-	
+	    
 		function drawChart(chartTitle, chartName, chartType, systemType, chartFilters) { //$event
+			var scope_options = AnalyticsCharts.getScopeOptions($scope);
+			$scope = scope_options['scope'];
+		
 			$scope.showCarousel = false;
 			$scope.showChart = true;
 			$scope.stopSpin();
@@ -263,7 +268,7 @@
 					
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 						+ e.data.key + ' on ' + e.data.x //+ e.series.key + ' on ' + e.point.x
 						+ ')';
 					startDate = moment(e.data.x)
@@ -299,7 +304,7 @@
 					
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 						+ e.point.label
 						+ ')';
 					startDate = $scope.startDate.unix();
@@ -349,7 +354,7 @@
 					$scope.filterBySource = false;
 					$scope.filterByRevenueSource = false;
 					
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 						+ series
 						+ ')';
 					startDate = $scope.startDate.unix();
@@ -378,7 +383,7 @@
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for source '
+					$scope.filterTitle = ' (filtered for source '
 					    + e.data.x //e.point.x 
 						+ ')';
 					$scope.filterBySource = true;
@@ -412,7 +417,7 @@
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for source '
+					$scope.filterTitle = ' (filtered for source '
 					    + e.data.x
 						+ ')';
 					$scope.filterByRevenueSource = true;
@@ -452,7 +457,7 @@
 					
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 					    + e.data.x
 						+ ')';
 					startDate = moment(e.data.x)
@@ -489,7 +494,7 @@
 					
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 					    + e.data.x
 						+ ')';
 					startDate = moment(e.data.x)
@@ -526,7 +531,7 @@
 					
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for '
+					$scope.filterTitle = ' (filtered for '
 					    + e.data.x
 						+ ')';
 					startDate = moment(e.data.x)
@@ -547,7 +552,7 @@
 				if (account) {
 					var startDate = 0;
 					var endDate = 0;
-					$scope.filterTitle = '(filtered for event '
+					$scope.filterTitle = ' (filtered for event '
 					    + e.data.key
 						+ ' on email ' + e.data.label + ')';
 					$scope.filterByCampaignEmail = true;
@@ -566,10 +571,44 @@
 					$scope.csv.param[4] = 'easy';
 					$scope.csv.param[5] = $scope.currentPage;
 					$scope.csv.param[6] = $scope.leadsPerPage;
-					$scope.csv.param[7] = $scope.selectedFilterValues['campaign_guid'];
+					$scope.csv.param[7] = $scope.selectedFilterValues['campaign_guid']['id'];
 					
 					Campaigns.getEventsByCampaignEmailEventType(account.company,
-							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, $scope.selectedFilterValues['campaign_guid'], e.data.email_id)
+							e.data.key, startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, $scope.selectedFilterValues['campaign_guid']['id'], e.data.email_id)
+							.then(CampaignsSuccessFn, CampaignsErrorFn);
+					
+			    	
+				}
+			} // if campaign_email_performance
+			
+			else if ($scope.chartName == "email_cta_performance")
+			{
+			
+				if (account) {
+					var startDate = 0;
+					var endDate = 0;
+					$scope.filterTitle = ' (filtered for Clicks '
+						+ ' on link: <a href="' + e.data.url + '" target="_blank">'+ e.data.url + '</a>)';
+					$scope.filterByCampaignEmail = true;
+					$scope.filterByRevenueSource = false;
+					$scope.filterBySource = false;
+					startDate = $scope.startDate.unix();
+					endDate = $scope.endDate.unix();
+
+					$scope.csv.functionToCall = Campaigns.getEventsByEmailCTA;
+					$scope.csv.param[0] = account.company;
+					$scope.csv.param[2] = startDate;
+					$scope.csv.param[3] = endDate;
+					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
+					$scope.csv.param[7] = e.data.url;
+					
+					Campaigns.getEventsByEmailCTA(account.company,
+							'CLICK', startDate, endDate, 'easy', $scope.currentPage, $scope.leadsPerPage, $scope.systemType, $scope.chartName, encodeURIComponent(e.data.url))
 							.then(CampaignsSuccessFn, CampaignsErrorFn);
 					
 			    	
@@ -620,7 +659,10 @@
 				$scope.clickOnNewChart = false;
 			}
 			else {*/
-			Analytics.retrieveChart(account.company, $scope.chartName, startDate, endDate, $scope.systemType, $scope.selectedFilterValues)
+            var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
+			filters = parseFilter(filters);
+			
+			Analytics.retrieveChart(account.company, $scope.chartName, startDate, endDate, $scope.systemType, filters)
 			.then(RetrieveAnalyticsSuccessFn,
 					RetrieveAnalyticsErrorFn);
 		    //}
@@ -647,12 +689,29 @@
 			var account = Authentication.getAuthenticatedAccount();
 			$scope.data = [];
 			
-			Analytics.retrieveChart(account.company, $scope.chartName, startDate, endDate, $scope.systemType, $scope.selectedFilterValues)
+			var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
+			filters = parseFilter(filters);
+			
+			Analytics.retrieveChart(account.company, $scope.chartName, startDate, endDate, $scope.systemType, filters)
 			.then(RetrieveAnalyticsSuccessFn,
 					RetrieveAnalyticsErrorFn);
 			
 			
 		}, true);
+		
+		function parseFilter(filters) {
+			// do this dance because of the acute plugin sending both id and name for the filter selected value
+			for (var key in $scope.selectedFilterValues) {
+				if ($scope.selectedFilterValues.hasOwnProperty(key)) {
+					var obj = $scope.selectedFilterValues[key];
+					for (var prop in obj) {
+						if (obj.hasOwnProperty(prop) && prop == 'id')
+							filters[key] = $scope.selectedFilterValues[key]['id'];
+					}
+				}
+			}
+			return filters;
+		}
 		
 		function RetrieveAnalyticsSuccessFn(data, status, headers, config) {
 			$scope.stopSpin();
@@ -1220,9 +1279,7 @@
 		}
 		
 		function handleFilters(chartFilters) {
-			$scope.filters = {};
-			$scope.filterValues = {};
-			$scope.selectedFilterValues = {};
+			
 			$scope.requests = [];
 			for (var i=0; i < chartFilters.length; i++) {
 				$scope.filters[chartFilters[i]] = true;
@@ -1235,6 +1292,7 @@
         		for (var i=0; i < chartFilters.length; i++) {
     				$scope.filterValues[chartFilters[i]] = results[resultsPosition].data.results;
     				$scope.filterValues[chartFilters[i]].sort(Common.sortByProperty("name"));
+    				$scope.filterValuesFilled[chartFilters[i]] = true;
     				if (results[resultsPosition].data.defaultValue)
     				   $scope.selectedFilterValues[results[resultsPosition].data.defaultMetric] = results[resultsPosition].data.defaultValue;
     				resultsPosition++;

@@ -25,7 +25,8 @@
         exportToPdf: exportToPdf,
         getCountriesGeoData: getCountriesGeoData,
         getCountriesData: getCountriesData,
-        sortByProperty: sortByProperty
+        sortByProperty: sortByProperty,
+        generateScreenshot: generateScreenshot
     };
 
     return Common;
@@ -106,6 +107,10 @@
     
     function getCountriesGeoData() {
     	return $http.get('/static/data/geo.json');
+    }
+    
+    function generateScreenshot(url) {
+    	return $http.get('/capture?url=' + url);
     }
     
     

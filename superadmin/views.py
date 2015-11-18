@@ -10,7 +10,7 @@ from superadmin.models import SuperIntegration, SuperJobMonitor
 from superadmin.serializers import SuperIntegrationSerializer, SuperJobMonitorSerializer
 
 
-# Create your views here.
+# Create your lenses here.
 
 class JobViewSet(viewsets.ModelViewSet):  
     

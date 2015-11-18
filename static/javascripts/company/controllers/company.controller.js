@@ -9,12 +9,12 @@
     .module('mmm.company.controllers')
     .controller('CompanyController', CompanyController);
   
-  CompanyController.$inject = ['$scope', 'Company', 'Authentication', '$location', '$filter', '$window', '$state', '$stateParams', '$document'];
+  CompanyController.$inject = ['$scope', 'Company', 'Authentication', '$location', '$filter', '$window', '$state', '$stateParams', '$document', 'Common'];
 
   /**
   * @namespace CompanyController
   */
-  function CompanyController($scope, Company, Authentication, $location, $filter, $window, $state, $stateParams, $document) {
+  function CompanyController($scope, Company, Authentication, $location, $filter, $window, $state, $stateParams, $document, Common) {
     var vm = this;
 
     vm.isAuthenticated = Authentication.isAuthenticated();
@@ -25,7 +25,7 @@
     
     
     $scope.$state = $state;
-    $scope.scopeName = $state.current.name
+    $scope.scopeName = $state.current.name;
   
     
     
@@ -41,8 +41,14 @@
     	}
     	else 
     	{ 
-    	  Company.getLeadCount(authenticatedAccount.company).then(LeadCountSuccessFn, LeadCountErrorFn);	
-    	  Company.getCampaignCount(authenticatedAccount.company).then(CampaignCountSuccessFn, CampaignCountErrorFn);
+    	  //Company.getLeadCount(authenticatedAccount.company).then(LeadCountSuccessFn, LeadCountErrorFn);	
+    	  //Company.getCampaignCount(authenticatedAccount.company).then(CampaignCountSuccessFn, CampaignCountErrorFn);
+    	}
+    	
+    	// call the screenshot function and pass the URL
+    	if ($state.current.name == 'screenshot') {
+    		Common.generateScreenshot($stateParams.url);
+    		console.log('Capture ' + $stateParams.url);
     	}
     	
     	

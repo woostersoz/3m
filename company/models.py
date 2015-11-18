@@ -70,7 +70,7 @@ class TempData(Document): #middleware table to store source data from initial ru
     source_record = DynamicField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     
-    meta = {'collection': 'tempData', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type'], 'ordering':['-updated_date']}
+    meta = {'collection': 'tempData', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type', {'fields' : ('company_id', 'job_id', 'source_system', 'record_type', 'source_record.campaign_guid'), 'unique': False, 'name': 'campaign_guid'}], 'ordering':['-updated_date']}
 
 class TempDataDelta(Document): #middleware table to store source data from delta runs
     company_id = IntField()

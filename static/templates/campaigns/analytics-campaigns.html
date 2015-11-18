@@ -4,7 +4,7 @@
 		<div class="portlet light"  style="">
 			<div class="portlet-title">
 				<div class="caption class="col-sm-8">
-					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Drilldown</span><span class="font-blue-madison font-md"> {{filterTitle}}</span>
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Drilldown</span><span style="white-space:normal;overflow:auto" class="font-blue-madison font-md" ng-bind-html="filterTitle | unsafe"></span>
 				</div>
 				<div class="btn-group col-sm-4 pull-right chart-tools">
 				    

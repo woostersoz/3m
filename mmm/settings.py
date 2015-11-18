@@ -12,7 +12,7 @@ from __future__ import absolute_import
 import os
 from django.conf.global_settings import EMAIL_USE_SSL, EMAIL_BACKEND,\
     EMAIL_SUBJECT_PREFIX
-#from mmm.views import TimezoneMiddleware
+#from mmm.lenses import TimezoneMiddleware
 
 # from django.conf.global_settings import STATIC_ROOT, STATICFILES_DIRS,\
 #     SERVER_EMAIL
@@ -99,8 +99,10 @@ INSTALLED_APPS = (
     'accounts',
     'social',
     'dashboards',
+    'lenses',
     'websites',
-    'django_countries'
+    'django_countries',
+    'screamshot'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -179,6 +181,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATIC_ROOT = 'staticfiles'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
@@ -267,6 +270,8 @@ CELERYBEAT_SCHEDULE = {
                        }
 
 BASE_URL = 'http://localhost:8000'
+
+SCREAMSHOT_CONFIG =  { 'CAPTURE_METHOD': 'phantomjs', 'CAPTURE_SCRIPT': './capture-phantomjs.js' }#'CASPERJS_CMD': '/home/satya/workspace/3m/ve/casperjs' }
 
 #MONGONAUT_JQUERY = os.path.join(BASE_DIR, 'static') + '/theme/assets/global/plugins/jquery.min.js' 
 #MONGONAUT_TWITTER_BOOTSTRAP = os.path.join(BASE_DIR, 'static') + '/theme/assets/global/plugins/bootstrap/css/bootstrap.min.css'

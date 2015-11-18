@@ -9,13 +9,13 @@
     .module('mmm.analytics.services')
     .factory('AnalyticsCharts', AnalyticsCharts);
 
-  AnalyticsCharts.$inject = ['$http'];
+  AnalyticsCharts.$inject = ['$http', '$filter'];
 
   /**
   * @namespace AnalyticsCharts
   * @returns {Factory}
   */
-  function AnalyticsCharts($http) {
+  function AnalyticsCharts($http, $filter) {
     var AnalyticsCharts = {
       strcmp: strcmp,
       natcmp: natcmp,
@@ -645,15 +645,15 @@
 	
 		};
 		
-		scope_options.horizontal_multibar = {
+		scope_options.campaign_email_performance = {
 	            chart: {
 	                type: 'multiBarHorizontalChart',
-	                height: 450, //function(d) {return ((d.values.length * 20) + 'px')},
+	                height: 1200, //function(d) {return ((d.values.length * 20) + 'px')},
 	                margin : {
 	                    top: 20,
 	                    right: 20,
 	                    bottom: 60,
-	                    left: 100
+	                    left: 200
 	                },
 	                x: function(d){return d.label;},
 	                y: function(d){return d.value;},
@@ -673,7 +673,8 @@
 						
 	                	tickFormat : function(d) {
 							return d3.format(',f')(d);
-						}
+						},
+						tickValues: [0, 1, 2, 3, 4]
 	                
 					},
 	                tooltip :  { //function(key, x, y, e, graph)
@@ -705,10 +706,95 @@
 	            },
 	        };
 		
-		scope_options.campaign_email_performance = scope_options.horizontal_multibar;
+		/*scope_options.campaign_email_performance = scope_options.horizontal_multibar;
 		scope_options.campaign_email_performance['chart']['margin']['left'] = 200;
-		scope_options.campaign_email_performance['chart']['height'] = 1200;
+		scope_options.campaign_email_performance['chart']['height'] = 1200;*/
+		
+		/*scope_options.email_cta_performance = scope_options.horizontal_multibar;
+		scope_options.email_cta_performance['chart']['margin']['left'] = 20;
+		scope_options.email_cta_performance['chart']['xAxis']['orient'] = 'right';
+		scope_options.email_cta_performance['chart']['yAxis']['tickValues'] = [0, 1, 2, 3, 4];
+		scope_options.email_cta_performance['chart']['yAxis']['ticks'] = 5;
+		scope_options.email_cta_performance['chart']['height'] = 1500;
+		scope_options.email_cta_performance['chart']['x'] = function(d){return d.label.substring(0,99);}*/
 		//scope_options.campaign_email_performance['chart']['yAxis']['orient'] = 'top';
+		
+		scope_options.email_cta_performance = {
+	            chart: {
+	                type: 'multiBarHorizontalChart',
+	                height: 1500, //function(d) {return ((d.values.length * 20) + 'px')},
+	                margin : {
+	                    top: 20,
+	                    right: 20,
+	                    bottom: 60,
+	                    left: 100
+	                },
+	                x: function(d){return $filter('unsafe')(d.label);}, //function(d){return d.label;},
+	                y: function(d){return d.value;},
+	                showValues: false,
+	                showLegend: true,
+	                showControls: true,
+	                valueFormat: function(d){
+	                    return d3.format(',f')(d);
+	                },
+	                transitionDuration: 500,
+	                xAxis: {
+	                	domain: scope.data.map(function(d) { return d.value; }),
+	                	tickFormat: function(d, i) {
+		                    d3.select(this.parentNode).append('a')
+		                      .attr('xlink:href', function(d) { return scope.data[0]['values'][i].url; })
+		                      .attr('xlink:show', 'new')
+		                      .append('image')
+		                      .attr('xlink:href', d) //
+		                      .attr('x', -75).attr('y', -25)
+		                      .attr('width', 50).attr('height', 50)
+		                      .attr('class', 'svg-thumbnail')
+		                      /*.on('mouseenter', function() { console.log('xxx');
+		                    	  svg.selectAll('image').sort(function(a, b) {
+		                    		  if (a.id != d.id) return -1;
+		                    		  else return 1;
+		                    	  });
+		                      }); */
+	                	},
+	                	height: 150,
+	                },
+	                yAxis : {
+						
+	                	tickFormat : function(d) {
+							return d3.format(',f')(d);
+						},
+						//tickValues: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],
+						height: 150,
+	                
+					},
+	                tooltip :  { //function(key, x, y, e, graph)
+/*						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+						+ key
+						+ '</h4>'
+						+ '<p>'
+						+ y
+						+ ' on '
+						+ x
+						+ '</p></div>';*/
+	                	contentGenerator : function(input) { //key, x, y, e, graph
+							return '<div style=\'text-align:center; width:500px;height:100%;white-space:normal;overflow:auto\'><h4 style=\'font-size:0.8rem !important\'>'
+							+ input.data.key
+							+ '</h4>'
+							+ '<p style=\'text-align:left;height:100%;word-wrap;break-word;\'>'
+							+ input.data.value
+							+ ' on '
+							+ input.data.url
+							+ '</p></div>';
+	                	}
+					},
+					multibar : {
+					
+					},
+					legend : {
+	
+					}
+	            },
+	        };
 		
 		scope_options.scope = scope;
 	

@@ -142,6 +142,8 @@ def retrieveHsptCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
         #print 'campaign list is ' + str(campaignList)
         #campaignIds = [i['id'] for i in campaignList['results']]
         for i in campaignList['results']:
+            #if i['id'] != 23202074:
+            #    continue
             campaignStats = hspt.get_campaign_stats(i['id'])
             i['stats'] = campaignStats.get('stats', None)
             
@@ -154,7 +156,9 @@ def retrieveHsptCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
             email_content = hspt.get_email_by_content_id(contentId)
             #get events
             #i['events'] = {}
+            
             email_events = hspt.get_campaign_events(i['id'], i['appId'], utc_day_start_epoch, utc_day_end_epoch)
+           
             #i['events'] = email_events
             #print 'email events are ' + str(email_events)
             #process each event to add to lead record
@@ -164,22 +168,28 @@ def retrieveHsptCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
             i['name'] = email_content['name']
             i['created'] = email_content['created']
             i['last_event_timestamp'] = 0
-            print 'guid is ' + str(email_content['campaign'])
+            #print 'guid is ' + str(email_content['campaign'])
             #if campaign GUID found, do actualCampaign stuff
             if 'campaign' in email_content and email_content['campaign'] is not None and email_content['campaign'] != "":
                 if email_content['campaign'] not in actualCampaignsTempList: #first time this actualcampaign is being encountered
-                    print 'campaign not found'
+                    #print 'campaign not found'
                     actualCampaignsTempList.append(email_content['campaign'])
+                    #print '1'
                     actualCampaignsDict[email_content['campaign']] = {}
                     actualCampaignsDict[email_content['campaign']]['guid'] = email_content['campaign']
                     actualCampaignsDict[email_content['campaign']]['name'] = email_content['campaign_name']
+                    #print '2'
                     actualCampaignsDict[email_content['campaign']]['emails'] = []
                     actualCampaignsDict[email_content['campaign']]['emails'].append(i)
+                    #print '3'
                     #print '1st dict is ' + str(actualCampaignsDict)
                 else: #this actualcampaign has already been found before so add this email template to it
                     #print 'campaign exists ' + str(actualCampaignsDict)
                     actualCampaignsDict[email_content['campaign']]['emails'].append(i)
                 #save email events separately to prevent Mongo size error
+                #print 'email events is ' + str(email_events)
+                if email_events is None:
+                    continue
                 for eventType, events in email_events.iteritems():
                     for event in events:
                         event_record = {'company_id': company_id, 'source_system':'hspt', 'campaign_guid': email_content['campaign'], 'email_id': i['id'], 'event_id': event['id'], 'event_type': eventType, 'created': event['created'], 'recipient': event['recipient'], 'details': event}
@@ -316,6 +326,7 @@ def saveHsptCampaigns(user_id=None, company_id=None, campaign=None, job_id=None,
         saveTempDataDelta(company_id=company_id, record_type="campaign", source_system="hspt", source_record=campaign, job_id=job_id)
 
 def saveHsptCampaignEmailEvent(user_id=None, company_id=None, event=None, job_id=None, run_type=None):
+    #print 'saving hspt email event in temp'
     if run_type == 'initial':
         saveTempData(company_id=company_id, record_type="campaign_email_event", source_system="hspt", source_record=event, job_id=job_id)
     else:
@@ -352,13 +363,13 @@ def saveHsptCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
                 newCampaign = Campaign(emails = emails, name = name, guid = guid, company_id = company_id, updated_date=datetime.utcnow, source_system=source_system)
                 newCampaign.save()
             else: #campaign already exists so update relevant fields
-                print 'existing campaign is ' + str(existingCampaign)
+                #print 'existing campaign is ' + str(existingCampaign)
                 if 'emails' not in existingCampaign: #should never happen
                     continue
-                print 'before emails ' + str(emails)
+                #print 'before emails ' + str(emails)
                 for email in emails: #loop through each email found in API call for this campaign
                     #save events separately
-                    print 'entering emails'
+                    #print 'entering emails'
                     
                     #now create/update the campaign record        
                     email_found = False
@@ -387,14 +398,14 @@ def saveHsptCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
 def saveHsptCampaignEmailEventRecords(company_id=None, run_type=None, job_id=None, guid=None):
     '''called from saveHsptCampaignsToMaster to save all events for a single Hspt campaign email record'''
     try:
-        print 'saving single event'
+        #print 'saving single event'
         if run_type == 'initial':
             events = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign_email_event') & Q(source_system='hspt') & Q(job_id=job_id) & Q(source_record__campaign_guid=guid) ).only('source_record') #& Q(job_id=job_id) 
         else:
             events = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='campaign_email_event') & Q(source_system='hspt') & Q(job_id=job_id) & Q(source_record__campaign_guid=guid) ).only('source_record') #& Q(job_id=job_id) 
         eventsListTemp = list(events)
         eventsList = [j['source_record'] for j in eventsListTemp]
-        print 'found events ' + str(eventsList)
+        #print 'found events ' + str(eventsList)
         for event in eventsList:
             #print 'about to check for event with ' + guid + ' email id ' + str(email['id'])  + ' event id ' +  str(event['event_id']) + ' recipient ' + str(event['recipient']) + ' created ' + str(event['created']) + ' details ' + str(event)    
             existingEvent = EmailEvent.objects(Q(company_id=company_id) & Q(campaign_guid=guid) & Q(email_id=event['email_id']) & Q(event_id=event['event_id'])).first()

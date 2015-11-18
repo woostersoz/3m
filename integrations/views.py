@@ -65,7 +65,7 @@ from social.serializers import FbInsightsSerializer
 import sys, inspect, json
 
 
-# Create your views here.
+# Create your lenses here.
 
 class AuthorizeViewSet(viewsets.ViewSet, APIView):
     renderer_classes(JSONRenderer, )
@@ -1511,14 +1511,20 @@ class Hubspot:
             eventTypes = 'SENT', 'DELIVERED', 'OPEN', 'CLICK', 'UNSUBSCRIBED', 'SPAMREPORT', 'BOUNCE', 'DEFERRED', 'MTA_DROPPED', 'DROPPED', 
             for eventType in eventTypes:
                 params['eventType'] = eventType
+                params['offset'] = ''
                 print 'getting events for ' + str(campaignId) + ' with appId ' + str(appId) + ' with type ' + eventType
-                results[eventType] = hspt.get_campaign_events(params = params).get('results', None)
+                results[eventType] = []
+                results_temp = hspt.get_campaign_events(params = params)
+                
+                if results_temp is not None and 'results' in results_temp:
+                    print 'results temp is ' + str(len(results_temp['results']))
+                    results[eventType] = results_temp['results']
  
             return results
             
         except Exception as e:
             print "Could not retrieve campaign events from Hubspot: " + str(e)
-            raise Exception("Could not retrieve campaign events from Hubspot: " + str(e))
+            #raise Exception("Could not retrieve campaign events from Hubspot: " + str(e))
         
     def get_campaign_stats(self, campaignId=None):
         try:

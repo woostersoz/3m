@@ -33,7 +33,7 @@ from authentication.models import Company
 from authentication.serializers import CompanySerializer
 from company.tasks import companyDataExtract
 
-# Create your views here.
+# Create your lenses here.
 
 class SystemsList(drfme_generics.ListCreateAPIView):
     

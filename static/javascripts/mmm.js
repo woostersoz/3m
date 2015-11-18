@@ -25,6 +25,7 @@
     'mmm.social',
     'mmm.websites',
     'mmm.common',
+    'mmm.views',
     'ng.django.forms',
     'ngTouch', 
     //'slick',
@@ -48,7 +49,8 @@
     'ngWebSocket',
     'dbaq.emoji',
     'ngSanitize',
-    'luegg.directives'
+    'luegg.directives',
+    'acute.select'
   ]);
 
   angular

@@ -1,0 +1,35 @@
+<div class="portlet light">
+
+  <div class="portlet-header">
+        <div class="title col-md-12">Views</div>
+        <div ncy-breadcrumb class="title col-md-12 breadcrumb animate-show-hide"></div>
+  </div>
+  
+  <div class="portlet-title">
+      <div class="note note-info italic col-md-12">
+		<p>Select a view</p>
+      </div>   
+  </div>
+  
+<div class="portlet-body padding-zero ">
+<ul class="analytics-category">
+  <li ng-repeat="(key, value) in views | groupBy: 'category'">
+    <div class="col-md-12 font-blue-madison padding-zero" style="margin-bottom:10px"><i class="fa fa-signal"></i> {{key}}</div>
+    <ul class="analytics-charts">
+	    <li ng-repeat="view in value" class="col-md-3 col-xs-6 col-sm-3  header-box">
+	      <div class="col-sm-3">
+	         <a ng-if="view.status=='Active'" ui-sref="showview({name: view.name })"><span style="font-size:24px; font-weight:700; " class="{{view.src}}"></span></a>
+	         <span ng-if="view.status!='Active'" style="font-size:24px; font-weight:700;" class="{{view.src}} muted-text"></span>
+	      </div>
+	      <div class="col-sm-9 left" style="text-align:left;">
+	         <a ng-if="view.status=='Active'" ui-sref="showview({name: view.name })"><div class="chart-title"><strong>{{view.title}}</strong></div></a>
+	         <div ng-if="view.status!='Active'" class="chart-title muted-text">{{view.title}}</div>
+	         <div class="chart-descr muted-text">{{view.descr}}</div>
+	      </div>
+	    </li>
+    </ul>
+  </li>
+</ul>
+
+</div>
+</div>

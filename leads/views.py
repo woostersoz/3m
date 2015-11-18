@@ -122,7 +122,9 @@ def getAllLeads(request, id):
         stages = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
         sources = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
         serializer = LeadSerializer(queryset, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data, 'total_with_company': total_with_company, 'total_without_company': total_without_company, 'stages':stages, 'sources':sources})    
+        type = 'contacts'
+        others = {'total_with_company': total_with_company, 'total_without_company': total_without_company, 'stages':stages, 'sources':sources}
+        return JsonResponse({'count' : total, 'results': serializer.data, 'others': others, 'type': type})    
     except Exception as e:
         print 'exception while getting all leads ' + str(e)
         return JsonResponse({'Error' : str(e)})

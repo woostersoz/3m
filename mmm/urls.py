@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
-#from django.views.decorators.cache import never_cache
+#from django.lenses.decorators.cache import never_cache
 #from django.contrib.auth.decorators import login_required
 
 from rest_framework_nested import routers
@@ -27,7 +27,7 @@ from campaigns.views import CampaignsViewSet
                 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'mysite.views.home', name='home'),
+    # url(r'^$', 'mysite.lenses.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
     #url(r'^api/v1/', include(router.urls)),
     #url(r'^api/v1/', include(accounts_router.urls)),
@@ -48,5 +48,6 @@ urlpatterns = patterns('',
     url(r'^docs/', include('rest_framework_swagger.urls')),
     url(r'^socket\.io', include(sdjango.urls)),
     url(r'^mongonaut/', include('mongonaut.urls')),
+    url(r'^capture/$', include('screamshot.urls', namespace='screamshot', app_name='screamshot')),
     url('^.*$', views.IndexView.as_view(), name='index'),
 )

@@ -22,6 +22,14 @@
 							return '/static/templates/analytics/binder-pdf.html';
 					}*/
 				})
+				.state(
+				'screenshot',
+				{
+					url : '/capture?url',
+					controller : 'BindersController',
+					controllerAs : 'vm'
+					//templateUrl : '/static/templates/analytics/binder-pdf.html'
+				})
 				.state('dashboards-listing', {
 					url : '/dashboards',
 					controller : 'DashboardsController',
@@ -49,6 +57,25 @@
 				    ncyBreadcrumb: {
 				    	label: '{{ current_dashboard.title }}',
 				    	parent: 'dashboards-listing'
+				    }
+				})
+				.state('views-listing', {
+					url : '/views',
+					controller : 'ViewsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/views/views-listing.html',
+					ncyBreadcrumb: {
+				    	label: 'Views'
+				    }
+				})	
+				.state('showview', {
+					url : '/views/:name',
+					controller : 'ViewsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/views/view.html',
+					ncyBreadcrumb: {
+				    	label: '{{ viewTitle }}',
+				    	parent: 'views-listing'
 				    }
 				})
 		        .state(

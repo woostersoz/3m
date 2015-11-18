@@ -1,0 +1,105 @@
+<!-- BEGIN TABLE PORTLET-->
+<div class="portlet light">
+    <div class="portlet-header">
+        <div class="title col-md-12">{{ viewTitle }}</div>
+        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-3 breadcrumb">
+           <a href="#" ui-sref="views-listing" class="pull-right" style="font-weight:700;">Back to Views</a>
+	    </div>
+    </div>
+	<div class="portlet-title">
+		<div class="caption col-md-9">
+			<i class="fa fa-signal font-blue-madison"></i>
+			<span class="caption-subject bold font-blue-madison">
+                 <span class="italic filter-text">Filtered from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
+            </span>
+		</div>
+		<div class="input-group col-md-3 pull-right" style="padding-top:2px;">
+			<span class="input-group-addon"><span
+				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
+				date-range-picker class="form-control date-picker pull-right"
+				style="font-size: 0.7rem !important; width: 100% !important"
+				name="groupDates.date" ng-model="groupDates.date" options="opts"
+				placeholder="Select date range" />
+		</div>
+	</div>
+	<div class="portlet-bodyx">
+
+    <div ng-if="showView">
+		
+		<div class="input-group col-sm-7 pull-left" id="filters">
+			<select name="google_profiles" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.profile_id as item.account_name + '- ' + item.profile_name for item in filterValues['google_profiles']"
+					ng-model="selectedFilterValues['google_profile']" ng-show="filters['google_profiles']" ng-required="filters['google_profiles']">
+					<option value="">All Google Analytics Profiles</option>
+			</select>
+			<select name="facebook_pages" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.id as item.name for item in filterValues['facebook_pages']"
+					ng-model="selectedFilterValues['facebook_page']" ng-show="filters['facebook_pages']" ng-required="filters['facebook_pages']">
+					<option value="">Select Facebook Page</option>
+			</select>
+			<select name="facebook_accounts" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.id as item.account_id for item in filterValues['facebook_accounts']"
+					ng-model="selectedFilterValues['facebook_account']" ng-show="filters['facebook_accounts']" ng-required="filters['facebook_accounts']">
+					<option value="">Select Facebook Ad Account</option>
+			</select>
+			<select name="comparison_periods" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.id as item.name for item in filterValues['comparison_periods']"
+					ng-model="selectedFilterValues['comparison_period']" ng-show="filters['comparison_periods']" ng-required="filters['comparison_periods']">
+					<option value="">Select Comparison Period</option>
+			</select> 
+			<select name="campaign_guids" class="ac-select input-small form-control" style="clear:none; margin-right:5px"
+					ac-options="item.id as item.name for item in filterValues['campaign_guids']"
+					ac-model="selectedFilterValues['campaign_guid']" ac-key="id" ng-if="filterValuesFilled['campaign_guids']" ng-show="filters['campaign_guids']" ng-required="filters['campaign_guids']">
+					<option selected value="">Select Campaign</option>
+			</select>
+		</div>
+		<div class="col-sm-5 pull-right chart-tools">
+		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
+				ng-click="postToSlack()" title="Post to Slack">
+				<span class="fa fa-slack"></span>
+				Post to Slack
+			</a>
+			<a href="#" class="btn btn-sm pull-right"
+				ng-click="postToChannel()" title="Post to Channel">
+				<span class="fa fa-volume-up"></span>
+				Post
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="snapshot()" title="Take Snapshot">
+				<span class="glyphicon glyphicon-camera"></span>
+				Snapshot
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="createNote()" title="Add Sticky">
+				<span class="glyphicon glyphicon-comment"></span>
+				Sticky
+			</a> 
+			
+		</div>
+
+		<div class="clearfix">&nbsp;</div>
+		<completearea>
+		<div class="chartTop">
+		<div sticky ng-repeat="note in notes" class="sticky draggable" note="note" ondelete="deleteNote(id)">
+	      <button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
+	      <input ng-model="note.title" ng-change="updateNote(note)" type="text" class="title">
+	      <textarea ng-model="note.body" ng-change="updateNote(note)" placeholder='Your note goes here' class="body">{{note.body}}</textarea>
+	    </div>
+		
+		<div style="margin-left:-20px; margin-right:-20px" ng-show="showView" class="animate-show-hide"><ng-include src="'/static/templates/leads/leads.html'"></ng-include></div>
+		
+		
+		</div>
+		</completearea>
+		<div style="text-align:center; margin-left:auto; margin-right:auto">
+		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
+		</div>
+	</div>
+
+</div>
+
+    	
+<h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
+    
+</div>

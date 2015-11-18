@@ -99,3 +99,16 @@ class SuperDashboards(Document):
     filters = ListField(StringField())
     
     meta = {'collection': 'superDashboards', 'indexes': ['system_type', 'name', 'object']}
+    
+class SuperViews(Document):
+    title = StringField(max_length=1000)
+    name = StringField(max_length=200)
+    system_type = StringField()
+    object = StringField()
+    category = StringField()
+    src = StringField(max_length=200)
+    status = StringField()
+    descr = StringField()
+    filters = ListField(StringField())
+    
+    meta = {'collection': 'superViews', 'indexes': ['system_type', 'name', 'object']}

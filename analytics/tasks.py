@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from datetime import timedelta, date, datetime
 import pytz
-import os, copy
+import os, copy, requests, shutil, pwd, grp
 import time, calendar
 import urllib2
 from dateutil import tz
@@ -13,6 +13,7 @@ from celery import shared_task
 from mmm.celery import app
 
 from django.http import HttpResponse, JsonResponse
+from django.conf import settings
 from rest_framework.response import Response
 from mongoengine.queryset.visitor import Q
 
@@ -26,6 +27,8 @@ from social.models import PublishedTweet, FbAdInsight, FbPageInsight
 from analytics.models import AnalyticsData, AnalyticsIds
 from websites.models import Traffic
 from superadmin.models import SuperUrlMapping, SuperIntegration, SuperCountry
+from mmm.models import ImageFile
+from screamshot.utils import render_template
 
 from django.utils.timezone import get_current_timezone
 from dashboards.tasks import _str_from_date
@@ -86,7 +89,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills,"campaign_email_performance": hspt_campaign_email_performance}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills,"campaign_email_performance": hspt_campaign_email_performance, "email_cta_performance": hspt_email_cta_performance}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -4048,7 +4051,7 @@ def hspt_campaign_email_performance(user_id, company_id, chart_name, mode, start
                 AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
 #                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
             except Exception as e:
-                print 'exception while saving analytics data: ' + str(e)
+                print 'exception while saving analytics data for Campaign Email performance: ' + str(e)
                 continue
             print 'saved'
                             
@@ -4056,6 +4059,164 @@ def hspt_campaign_email_performance(user_id, company_id, chart_name, mode, start
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)}) 
     
+def hspt_email_cta_performance(user_id, company_id, chart_name, mode, start_date):
+#HSPT aggregate campaign results by email
+    print 'starting  email cta performance'
+    try:
+        if mode == 'delta':
+            #start_date = datetime.utcnow() + timedelta(-1)
+            start_date = start_date
+        else:
+            #start_date = datetime.utcnow() + timedelta(-60)
+            start_date = start_date
+            
+        end_date = datetime.utcnow()
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        #print 'local start is ' + str(local_start_date)
+        #print 'local end is ' + str(local_end_date)
+        #time1 = str(time.time())
+    
+        delta = timedelta(days=1)
+        e = local_end_date
+        delta = timedelta(days=1)
+        e = local_end_date
+        #print 'local end date is ' + str(local_end_date)
+        
+        #all query parameters
+        system_type_qry = 'system_type'
+        chart_name_qry = 'chart_name'
+        company_id_qry = 'company_id'
+        date_qry = 'date'
+        
+        #all other predefined data
+        source_system = 'hspt'
+        
+        #print 'campaigns are ' + str(campaignsList)
+        #collection = Lead._get_collection()
+        
+        ###loop through each day of the period 
+        s = local_start_date - timedelta(days=1)
+        while s < (e - delta):
+            s += delta #increment the day counter
+            date = s.strftime('%Y-%m-%d')
+            print 'date is ' + date
+            utc_day_start = s.astimezone(pytz.timezone('UTC'))
+            utc_day_end = utc_day_start + timedelta(seconds=86399)
+            #print 'utc day start is ' + str(utc_day_start)
+            #print 'utc day end is ' + str(utc_day_end)
+            utc_day_start_epoch = calendar.timegm(utc_day_start.timetuple()) * 1000
+            utc_day_end_epoch = calendar.timegm(utc_day_end.timetuple()) * 1000
+            print 'utc day starte is ' + str(utc_day_start_epoch)
+            print 'utc day ende is ' + str(utc_day_end_epoch)
+            
+            daily_record = []
+            
+            #calculate numbers by click url
+            existingEvents = EmailEvent.objects(Q(company_id=company_id) & Q(event_type='CLICK') & Q(created__gte=int(utc_day_start_epoch)) & Q(created__lte=int(utc_day_end_epoch))).aggregate({'$group': {'_id': '$details.url', 'count': {'$sum': 1}}}, {'$sort': {'count': -1}})     
+            for url in list(existingEvents):
+                url_record = {}
+                url_record['url'] = url['_id']
+                url_record['count'] = url['count']
+                #print '2'
+                # get details to set file permissions
+                uid = pwd.getpwnam("www-data").pw_uid
+                gid = grp.getgrnam("www-data").gr_gid
+                
+                #check if the thumbnail already exists
+                existingImage = ImageFile.objects(Q(company_id=company_id) & Q(source=url['_id']) & Q(type='cta_thumbnail')).first()
+                if existingImage is None:
+                    label = _createThumbNail(company_id=company_id, url=url['_id'], uid=uid, gid=gid)
+                else: #the file url for this source url already exists i.e. thumbnail exists
+                    label = existingImage['file_url']
+                    
+                url_record['label'] = label
+                #now save the URL record to the daily record    
+                daily_record.append(url_record)
+                    
+                #print '3b'
+            #print '4'
+            #prepare analytics collections           
+            queryDict = {company_id_qry : company_id, system_type_qry: 'MA', chart_name_qry: chart_name, date_qry: date}
+            analyticsData = AnalyticsData.objects(**queryDict).first()
+            if analyticsData is None:
+                analyticsData = AnalyticsData()
+                analyticsData.system_type = 'MA'
+                analyticsData.company_id = company_id  
+                analyticsData.chart_name = chart_name
+                analyticsData.date = date
+                analyticsData.results = {}
+                analyticsData.save()
+                
+#             analyticsIds = AnalyticsIds.objects(**queryDict).first()
+#             if analyticsIds is None:
+#                 analyticsIds = AnalyticsIds()
+#                 analyticsIds.system_type = 'MA'
+#                 analyticsIds.company_id = company_id  
+#                 analyticsIds.chart_name = chart_name
+#                 analyticsIds.date = date
+#                 analyticsIds.results = {}
+#                 analyticsIds.save()
+  
+            #print 'results are ' + str(results)
+            analyticsData.results = daily_record
+#            analyticsIds.results = result_ids
+            
+            print 'saving' 
+            try:
+                AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
+#                AnalyticsIds.objects(id=analyticsIds.id).update(results = analyticsIds.results)
+            except Exception as e:
+                print 'exception while saving analytics data for CTA performance: ' + str(e)
+                continue
+            print 'saved'
+                            
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+    
+    
+def _createThumbNail(company_id=None, url=None, uid=None, gid=None):
+    if company_id is None or url is None or uid is None or gid is None:
+        return
+    #print 'url is ' + str(url)
+    try:
+        s = requests.Session()
+        host = settings.BASE_URL
+        host_url = host + '/capture/'
+        #first check if the URL points to a page or file
+        resp = s.get(url)
+        if resp.status_code == requests.codes.ok and 'content-type' in resp.headers and 'text/html' in resp.headers['content-type']: # points to a page 
+            params = {'url':url, 'render': 'png', 'width': '1024', 'height': '768', 'size': '300x300', 'crop': 'true'}
+            resp = s.get(host_url, params=params) #generate the screenshot.. resp.text contains the name of the file generated
+        
+            print 'resp was ' + str(resp.text)
+            source_file = resp.text
+            file_name = os.path.basename(resp.text)
+            print 'fname is ' + str(file_name)
+            dest_file = settings.MEDIA_ROOT + '/' + file_name
+            shutil.copy(source_file, dest_file)
+            
+            if os.path.isfile(dest_file): #copy was successful
+                file_url = host + '/media/' + file_name 
+                os.chown(dest_file, uid, gid)
+            else:
+                file_url = host + '/media/unknown.png'
+        else:
+            file_url = host + '/media/unknown.png'
+        imageFile = ImageFile(company_id=company_id, source=url, file_url=file_url, type='cta_thumbnail')
+        imageFile.save()
+        return file_url #return the file URL to be used in the label
+    
+    except Exception as e:
+        print 'exception while creating thumbnail ' + str(e) 
+        return JsonResponse({'Error' : str(e)}) 
+    #render_template('messages/screenshot.html', {'context': {'url': url}}, format='png', output='/home/satya/workspace/3m/mmm/media/test.png')#'/var/www/webapps/3m/mmm/media/temp.png')
+    
+    
+    
+    #create the thumbnail
     
 def _process_form_list(listx):
     

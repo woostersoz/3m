@@ -11,7 +11,6 @@ urlpatterns = patterns('',
     url(r'^twtr/$', views.get_twtr_token, name='twtr'),
     url(r'^slck/$', views.get_slck_token, name='slck'),
     url(r'^goog-test/$', views.goog_test, name='goog-test'),
-#    url(r'^fbok-test/$', views.get_campaign_stats, name='fbok-test'),
     url(r'^metadata/$', views.get_metadata, name='retrieve_metadata'),
 
 )
