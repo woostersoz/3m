@@ -61,7 +61,7 @@ def _str_from_date(dateTime, format=None): # returns a datetime object from a ti
 
 @app.task
 def calculateMktoAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie, "funnel": hspt_funnel, "waterfall_chart": mkto_waterfall}
+    method_map = { "sources_bar" : mkto_sources_bar_chart, "contacts_distr" : mkto_contacts_distr_chart, "source_pie" : mkto_contacts_sources_pie, "pipeline_duration" : mkto_contacts_pipeline_duration, "revenue_source_pie" : mkto_contacts_revenue_sources_pie}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'
@@ -89,7 +89,7 @@ def calculateSfdcAnalytics(user_id=None, company_id=None):
 
 @app.task
 def calculateHsptAnalytics(user_id=None, company_id=None, chart_name=None, chart_title=None, mode='delta', start_date=None):
-    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "social_roi" : hspt_social_roi, "funnel" : hspt_funnel, "waterfall_chart": None, "form_fills": hspt_form_fills,"campaign_email_performance": hspt_campaign_email_performance, "email_cta_performance": hspt_email_cta_performance}
+    method_map = { "sources_bar" : hspt_sources_bar_chart, "contacts_distr" : hspt_contacts_distr_chart, "pipeline_duration" : hspt_contacts_pipeline_duration, "source_pie" : hspt_contacts_sources_pie, "revenue_source_pie" : hspt_contacts_revenue_sources_pie, "multichannel_leads" : hspt_multichannel_leads, "campaign_email_performance": hspt_campaign_email_performance, "email_cta_performance": hspt_email_cta_performance}
     method_map[chart_name](user_id, company_id, chart_name, mode, _date_from_str(start_date, 'short')) # the conversion from string to date object is done here
     try:
         message = 'Data retrieved for ' + chart_title + ' - ' + mode + ' run'

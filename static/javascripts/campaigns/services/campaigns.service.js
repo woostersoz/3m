@@ -70,7 +70,7 @@
     	var campaigns = [];
 		for (var i=0; i < results.length; i++)
 	    {
-		    currRecord = results[i].campaigns;
+		    /*currRecord = results[i].campaigns;
 		    if (currRecord['mkto'])
 		    {
 		    	for (var key in currRecord['mkto']) // convert first letter to lower case
@@ -87,7 +87,9 @@
 		    	campaigns.push(currRecord['sfdc']);
 		    }
 		    else
-		    	toastr.error('Something fishy going on!');
+		    	toastr.error('Something fishy going on!');*/
+			
+			
 	    	
 	    }
 		return campaigns;

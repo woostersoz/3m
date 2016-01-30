@@ -1,4 +1,4 @@
-import datetime, json, time
+import datetime, json, time, calendar
 from datetime import timedelta, date, datetime
 import pytz
 import urllib
@@ -98,18 +98,49 @@ def getAllLeads(request, id):
     try:
         #log = logging.getLogger(__name__)
         company_id = request.user.company_id
+        start_date = int(request.GET.get('start_date'))
+        end_date = int(request.GET.get('end_date'))
+        superfilters = request.GET.get('superfilters')
+        super_filters = json.loads(superfilters)
+        #print 'super filters are ' + str(super_filters)
+        date_field = None
+        if super_filters is not None:
+            if 'date_types' in super_filters: # need to filter by a certain type of date
+                date_field = super_filters['date_types']
+                if start_date is not None:
+                    utc_day_start_epoch =  datetime.fromtimestamp(float(start_date / 1000))
+                    #utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
+                    print 'utc start epoch is ' + str(utc_day_start_epoch)
+       
+                    #local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
+                #print 'start2 is ' + str(time.time())
+                if end_date is not None:
+                    utc_day_end_epoch = datetime.fromtimestamp(float(end_date / 1000))
+                    #utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
+                    print 'utc end epoch is ' + str(utc_day_end_epoch)
+                    
         page_number = int(request.GET.get('page_number'))
         items_per_page = int(request.GET.get('per_page'))
         offset = (page_number - 1) * items_per_page
         collection = Lead._get_collection()
-        total = collection.find({'company_id': int(company_id)}).hint('company_id_1').count()
+        if date_field is None:
+            total = collection.find({'company_id': int(company_id)}).count() #.hint('company_id_1')
+        else:
+            total = collection.find({'company_id': int(company_id), date_field: {'$gte':utc_day_start_epoch, '$lte':utc_day_end_epoch}}).count() #.hint('company_id_1')
         #print 'got count'
         total_with_company = 0 #collection.find({'company_id' : company_id, 'source_company' : {'$ne' : None}}).hint('source_sourcedata1_index').count()
         #print 'got count w company'
         #total = Lead.objects.filter(company_id=company_id).count()
         #total_with_company = Lead.objects.filter(Q(company_id=company_id) & Q(source_company__ne=None)).count()
         total_without_company = total - total_with_company
-        queryset = Lead.objects(company_id=company_id).skip(offset).limit(items_per_page)
+        if date_field is None:
+            queryset = Lead.objects(company_id=company_id).skip(offset).limit(items_per_page)
+        else:
+            date_field_start_qry = date_field + '__gte'
+            date_field_end_qry = date_field + '__lte'
+            company_field_qry = 'company_id'
+            querydict = {company_field_qry: company_id, date_field_start_qry: utc_day_start_epoch, date_field_end_qry: utc_day_end_epoch}
+            queryset = Lead.objects(**querydict).skip(offset).limit(items_per_page)
         
         #leads_cursor = collection.find({'company_id': int(company_id)}).hint('co_fname_lname').sort([('source_first_name', 1), ('source_last_name', 1)]) 
         #queryset = list(leads_cursor)

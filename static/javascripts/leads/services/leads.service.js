@@ -146,12 +146,7 @@
 				    		
 				    	leads.push(currRecord['hspt']);
 				    }
-				    else if (currRecord['sfdc'])
-				    {
-				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
-				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
-				    	leads.push(currRecord['sfdc']);
-				    }
+				    
 				    else if (currRecord['mkto'])
 				    {   
 				    	for (var key in currRecord['mkto']) // convert first letter to lower case
@@ -160,7 +155,7 @@
 				    	}
 				    	currRecord['mkto']['sourceSystem'] = 'MKTO';
 				    	currRecord['mkto']['id'] = currRecord['mkto']['id'];
-				    	currRecord['mkto']['source_status'] = results[i]['source_status'];
+				    	currRecord['mkto']['SourceStatus'] = results[i]['source_status'];
 				    	currRecord['mkto']['source_created_date'] = results[i]['source_created_date'];
 				    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
 				    	var currActivities = results[i].activities;
@@ -201,7 +196,14 @@
 				    	
 				    	leads.push(currRecord['mkto']);
 				    }	
-				    
+				    else if (currRecord['sfdc'])
+				    {
+				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
+				    	currRecord['sfdc']['SourceStatus'] = results[i]['source_status'];
+				    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
+				    	leads.push(currRecord['sfdc']);
+				    }
 				    else
 				    	toastr.error('Something fishy going on!');
 				} // if lead record
@@ -232,14 +234,17 @@
 				currRecord['id'] = currRecord['sfdc_id'];
 				
 			}
-			if (results[i].contacts)  // contact record
+			if (results[i].contacts && Object.keys(results[i].leads).length == 0)  // contact record but not lead
 			{
 				currRecord =  results[i].contacts
-				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a lead record
+				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a contact record
 				{
 					if (currRecord['sfdc'])
 				    {
+						currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
+				    	currRecord['sfdc']['SourceStatus'] = results[i]['source_status'];
 				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+				    	currRecord['sfdc']['sourceChannelDetail'] = results[i]['source_source'];
 				    	leads.push(currRecord['sfdc']);
 				    }
 				}

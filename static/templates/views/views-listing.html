@@ -16,7 +16,7 @@
   <li ng-repeat="(key, value) in views | groupBy: 'category'">
     <div class="col-md-12 font-blue-madison padding-zero" style="margin-bottom:10px"><i class="fa fa-signal"></i> {{key}}</div>
     <ul class="analytics-charts">
-	    <li ng-repeat="view in value" class="col-md-3 col-xs-6 col-sm-3  header-box">
+	    <li ng-repeat="view in value | orderBy: 'sequence'" class="col-md-3 col-xs-6 col-sm-3  header-box">
 	      <div class="col-sm-3">
 	         <a ng-if="view.status=='Active'" ui-sref="showview({name: view.name })"><span style="font-size:24px; font-weight:700; " class="{{view.src}}"></span></a>
 	         <span ng-if="view.status!='Active'" style="font-size:24px; font-weight:700;" class="{{view.src}} muted-text"></span>

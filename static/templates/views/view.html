@@ -7,14 +7,18 @@
            <a href="#" ui-sref="views-listing" class="pull-right" style="font-weight:700;">Back to Views</a>
 	    </div>
     </div>
-	<div class="portlet-title">
-		<div class="caption col-md-9">
+	<div class="portlet-title" ng-if="showFilters">
+		<div class="caption col-md-6">
 			<i class="fa fa-signal font-blue-madison"></i>
 			<span class="caption-subject bold font-blue-madison">
-                 <span class="italic filter-text">Filtered from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
+                 <span class="italic filter-text">Filtered for {{selectedDateType}} from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
             </span>
 		</div>
-		<div class="input-group col-md-3 pull-right" style="padding-top:2px;">
+		<div class="input-group col-md-6 pull-right" style="padding-top:2px;">
+		    <select name="date_types" class="input-small form-control" style="clear:none; margin-right:5px; float:right"
+					ng-options="item.value as item.name for item in superFilterValues['date_types']"
+					ng-model="selectedSuperFilterValues['date_types']">
+			</select>
 			<span class="input-group-addon"><span
 				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
 				date-range-picker class="form-control date-picker pull-right"
@@ -80,14 +84,14 @@
 
 		<div class="clearfix">&nbsp;</div>
 		<completearea>
-		<div class="chartTop">
+		<div class="viewTop">
 		<div sticky ng-repeat="note in notes" class="sticky draggable" note="note" ondelete="deleteNote(id)">
 	      <button type="button" class="close" ng-click="deleteNote(note.id)">&times;</button>
 	      <input ng-model="note.title" ng-change="updateNote(note)" type="text" class="title">
 	      <textarea ng-model="note.body" ng-change="updateNote(note)" placeholder='Your note goes here' class="body">{{note.body}}</textarea>
 	    </div>
 		
-		<div style="margin-left:-20px; margin-right:-20px" ng-show="showView" class="animate-show-hide"><ng-include src="'/static/templates/leads/leads.html'"></ng-include></div>
+		<div style="margin-left:-20px; margin-right:-20px" ng-show="showView" class="animate-show-hide"><ng-include src="template"></ng-include></div>
 		
 		
 		</div>

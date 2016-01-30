@@ -19,6 +19,7 @@ from hubspot.contacts._schemas.contacts import CONTACT_SCHEMA
 
 from mongoengine.queryset.visitor import Q
 from mmm.views import _str_from_date, saveTempData, saveTempDataDelta
+from bson.objectid import ObjectId
 
 @app.task
 def retrieveMktoContacts(user_id=None, company_id=None):
@@ -63,7 +64,7 @@ def retrieveSfdcAccounts(user_id=None, company_id=None, job_id=None, run_type=No
         if sinceDateTime is None:
             sinceDateTime = (datetime.now() - timedelta(days=1)).date()
         sfdc = Salesforce()
-        accountList = sfdc.get_accounts(user_id, company_id) #, _str_from_date(sinceDateTime))
+        accountList = sfdc.get_accounts_delta(user_id, company_id, _str_from_date(sinceDateTime), run_type)
         print 'got back accounts ' + str(len(accountList['records']))
         saveSfdcAccounts(user_id=user_id, company_id=company_id, accountList=accountList, job_id=job_id, run_type=run_type)
         try:
@@ -147,6 +148,8 @@ def saveSfdcAccounts(user_id=None, company_id=None, accountList=None, job_id=Non
     
     
 def saveSfdcAccountsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #delete later
+    #job_id = ObjectId("569fd4078afb002426ef2fd3")
     if run_type == 'initial':
         accounts = TempData.objects(Q(company_id=company_id) & Q(record_type='account') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -159,10 +162,17 @@ def saveSfdcAccountsToMaster(user_id=None, company_id=None, job_id=None, run_typ
         for newAccount in accountList:
             sfdc_id = str(newAccount['Id']) 
             #find all leads that have this account ID 
-            relatedLeadList = None
-            relatedLeads = Lead.objects(Q(company_id=company_id) & Q(sfdc_account_id=sfdc_id))
+            relatedLeadList = []
+            relatedLeadListTemp = None
+            relatedLeads = Lead.objects(Q(company_id=company_id) & Q(sfdc_account_id=sfdc_id)).only('sfdc_contact_id') #if SFDC Account, then matching lead must have a SFDC Contact ID
             if relatedLeads is not None:
-                relatedLeadList = list(relatedLeads)
+                relatedLeadListTemp = [lead.to_mongo().to_dict() for lead in relatedLeads]
+                #print 'rll is ' + str(relatedLeadListTemp)
+                for i in relatedLeadListTemp:
+                    if 'sfdc_contact_id' in i:
+                        relatedLeadList.append({'sfdc_contact_id': i['sfdc_contact_id']})
+    
+                #print 'related leads are ' + str(relatedLeadList)
 #             if relatedLeads is not None:
 #                 #leadListTemp = list(relatedLeads)
 #                 #relatedLeadList = [i.id for i in leadListTemp]
@@ -175,6 +185,7 @@ def saveSfdcAccountsToMaster(user_id=None, company_id=None, job_id=None, run_typ
             existingAccount = Account.objects(Q(company_id=company_id) & Q(sfdc_id=sfdc_id)).first()
             
             if existingAccount is not None:  # we found this contact already in the DB
+                print 'found existing account for id ' + str(sfdc_id)
                 if 'sfdc' in existingAccount.accounts:
                     existingAccount.source_name = newAccount['Name']
                     existingAccount.source_source = newAccount['AccountSource']
@@ -191,23 +202,27 @@ def saveSfdcAccountsToMaster(user_id=None, company_id=None, job_id=None, run_typ
                     if relatedLeadList is not None:
                         existingAccount.leads = relatedLeadList
                     existingAccount.save()
-            elif existingAccount is None:  # this lead does not exist     
-                account = Account()
-                account.sfdc_id = sfdc_id
-                account.source_name = newAccount['Name']
-                account.source_source = newAccount['AccountSource']
-                account.source_industry = newAccount['Industry']
-                account.source_created_date = newAccount['CreatedDate']
-                account.accounts = {}
-                account.accounts["sfdc"] = newAccount
-                if relatedLeadList is not None:
-                    account.leads = relatedLeadList
-                account.company_id = company_id
-                account.save()
+            elif existingAccount is None:  # this account does not exist     
+                account = _saveSfdcNewAccount(sfdc_id, newAccount, relatedLeadList, company_id)
     except Exception as e:
         print 'exception while saving accounts ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
 
+def _saveSfdcNewAccount(sfdc_id, newAccount, relatedLeadList, company_id):
+    account = Account()
+    account.sfdc_id = sfdc_id
+    account.source_name = newAccount['Name']
+    account.source_source = newAccount['AccountSource']
+    account.source_industry = newAccount['Industry']
+    account.source_created_date = newAccount['CreatedDate']
+    account.accounts = {}
+    account.accounts["sfdc"] = newAccount
+    if relatedLeadList is not None:
+        account.leads = relatedLeadList
+    account.company_id = company_id
+    account.opportunities = {}
+    account.save()
+    return account
 
 def saveHsptContacts(user_id=None, company_id=None, leadList=None): 
     try: 

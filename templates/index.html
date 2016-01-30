@@ -45,17 +45,24 @@
 				    </a>
 				</li>
 				<li>
-				    <a href="#">
+				    <a href ui-sref="charts-listing" ui-sref-active="active">
 				    <i class="glyphicon glyphicon-signal"></i>
-				    <span class="title">Analytics</span>
+				    <span class="title">Charts</span>
+				    </a>
+				</li>
+				<li>
+				    <a href ui-sref="views-listing" ui-sref-active="active">
+				    <i class="glyphicon glyphicon-th-list"></i>
+				    <span class="title">Views</span>
+				    </a>
+				</li>
+				<li>
+				    <a href="#">
+				    <i class="glyphicon glyphicon-paperclip"></i>
+				    <span class="title">Helpful Stuff</span>
 				    <span class="arrow"></span>
 				    </a>
 				    <ul class="sub-menu">
-					    <li>
-					        <a href ui-sref="charts" ui-sref-active="active">
-					        Charts
-					        </a>
-					    </li>
 					    <li>
 					        <a href ui-sref="snapshots" ui-sref-active="active">
 					        Snapshots
@@ -68,19 +75,13 @@
 					    </li>
 				    </ul>
 				</li>
-				<li>
-				    <a href ui-sref="views-listing" ui-sref-active="active">
-				    <i class="glyphicon glyphicon-th-list"></i>
-				    <span class="title">Views</span>
-				    </a>
-				</li>
-				<li>
+				<li style="display:none">
 				    <a href ui-sref="campaigns" ui-sref-active="active">
 				    <i class="glyphicon glyphicon-bullhorn"></i>
 				    <span class="title">Campaigns</span>
 				    </a>
 				</li>
-				<li>
+				<li style="display:none">
 				    <a href="/accounts">
 				    <i class="glyphicon glyphicon-screenshot"></i>
 				    <span class="title">Accounts</span>
@@ -105,7 +106,7 @@
 					 </ul>
 				    </a>
 				</li>
-				<li>
+				<li style="display:none">
 				    <a href ui-sref="contacts" ui-sref-active="active">
 				    <i class="glyphicon glyphicon-record"></i>
 				    <span class="title">Contacts</span>

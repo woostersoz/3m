@@ -1,9 +1,11 @@
-import datetime, json, time
+from __future__ import division
+import datetime, json, time, math
 from datetime import timedelta, date, datetime
 import pytz
 import os
 from collections import OrderedDict
 from operator import itemgetter
+
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
@@ -39,8 +41,9 @@ from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSeri
 
 from authentication.models import Company, CustomUser
 
-from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics,\
-    mkto_waterfall
+from dashboards.tasks import calculateHsptDashboards, calculateMktoDashboards, calculateSfdcDashboards
+from accounts.models import Account
+from accounts.serializers import AccountSerializer
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -52,7 +55,7 @@ def decodeKey(key):
 
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))    
-def calculateAnalytics(request, company_id): #,  
+def calculateDashboards(request, company_id): #,  
     chart_name = request.GET.get('chart_name')
     chart_title = request.GET.get('chart_title')
     system_type = request.GET.get('system_type')
@@ -61,7 +64,7 @@ def calculateAnalytics(request, company_id): #,
     
     user_id = request.user.id
     #company_id = request.user.company_id
-    
+    print 'in dashboards'
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:   
         code = None
@@ -75,16 +78,16 @@ def calculateAnalytics(request, company_id): #,
         if code is  None:
             raise ValueError("No integrations defined")  
         elif code == 'mkto':
-            result = calculateMktoAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+            result = calculateMktoDashboards(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
         elif code == 'sfdc': 
-            result = calculateSfdcAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+            result = calculateSfdcDashboards(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
         elif code == 'hspt': 
-            result = calculateHsptAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
-        elif code == 'bufr': 
-            result = calculateBufrAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
-        elif code == 'goog': 
-            result = calculateGoogAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
-        else:
+            result = calculateHsptDashboards(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+#         elif code == 'bufr': 
+#             result = calculateBufrAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+#         elif code == 'goog': 
+#             result = calculateGoogAnalytics(user_id=user_id, company_id=company_id, chart_name=chart_name, chart_title=chart_title, mode=mode, start_date=start_date)
+#         else:
             result =  'Nothing to report'
         return JsonResponse(result, safe=False)
     except Exception as e:
@@ -163,7 +166,7 @@ def retrieveHsptDashboards(user_id=None, company_id=None, dashboard_name=None, s
     return result
 
 def retrieveMktoDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None):
-    method_map = { "funnel" : None, "social_roi" : None, "waterfall" : mkto_waterfall, "form_fills": None}
+    method_map = { "funnel" : mkto_funnel, "social_roi" : None, "waterfall" : mkto_waterfall, "form_fills": None}
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
@@ -195,6 +198,7 @@ def drilldownDashboards(request, company_id):
             result = drilldownMktoDashboards(request=request, company_id=company_id)
         else:
             result =  'Nothing to report'
+        #result['source_system'] = code
         return JsonResponse(result, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
@@ -724,6 +728,145 @@ def _filter_by_continent(continents, country):
         if continent.lower() in country.lower():
             return continent
     return None    
+
+#start of Marketo dashboards
+# dashboard - 'Funnel"
+def mkto_funnel(user_id, company_id, start_date, end_date, dashboard_name):
+    try:
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+        
+        #query parameters
+        company_id_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date__in'
+        #date_qry2 = 'date'
+        chart_name = 'funnel'
+        
+        #other variables
+        existed_count = 0
+        created_count = 0
+        leads_created_stage = {}
+        leads_created_source = {}
+        leads_inflow_count = {}
+        leads_outflow_count = {}
+        leads_outflow_duration = {}
+        percentage_increase = 0
+        closed_deal_value = 0
+        max_deal_value = 0
+        
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        source_mappings = existingIntegration['mapping'].get('sources', None)
+        if source_mappings is None:
+            return 'Error: Sources are not summarized'
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        first_record_done = False
+        duration_denom = {} #keeps track of the denominator for the durations - ignore days on which there were no outflow IDs
+        duration_numer = {}
+        
+        for day in days:
+            #get related IDs for duration calcs
+            #querydict2 = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry2: day['date']}
+            #ids = AnalyticsIds.objects(**querydict2).first()
+            #ids = ids['results']['outflow']
+            #print 'ids are ' + str(ids)
+            
+            day = day['results']
+            if first_record_done != True:
+                existed_count = day['existed_count']
+                first_record_done = True
+            
+            #increment all  variables
+            for item, value in day['created_stage'].items():
+                if item not in leads_created_stage:
+                    leads_created_stage[item] = 0
+                leads_created_stage[item] += value
+                
+            for item, value in day['created_source'].items():
+                if item not in leads_created_source:
+                    leads_created_source[item] = 0
+                leads_created_source[item] += value  
+                
+            for item, value in day['inflow_count'].items():
+                if item not in leads_inflow_count:
+                    leads_inflow_count[item] = 0
+                leads_inflow_count[item] += value 
+                
+            for item, value in day['outflow_count'].items():
+                if item not in leads_outflow_count:
+                    leads_outflow_count[item] = 0
+                if value != 'N/A':
+                    leads_outflow_count[item] += value  
+                    
+            for item, value in day['outflow_duration'].items():
+                if item not in leads_outflow_duration:
+                    leads_outflow_duration[item] = 0
+                if item not in duration_denom:
+                    duration_denom[item] = 0
+                if item not in duration_numer:
+                    duration_numer[item] = 0
+                duration_numer[item] += day['outflow_count'][item] * value
+                duration_denom[item] += day['outflow_count'][item]
+                #if value != 'N/A':
+                    #leads_outflow_duration[item] += value 
+                
+            created_count += day['created_count']
+            closed_deal_value += day['closed_deal_value']
+            if day['max_deal_value'] > max_deal_value:
+                max_deal_value = day['max_deal_value']
+         
+        # do post-processing
+        #summarize from sources
+        leads_created_source_new = {}
+        leads_created_source_new['Unknown'] = 0
+        for source, count in leads_created_source.items():
+            source_found = False
+            for parent_source, sources in source_mappings.items():
+                if source in sources:
+                    if parent_source not in leads_created_source_new:
+                        leads_created_source_new[parent_source] = 0
+                    leads_created_source_new[parent_source] += count
+                    source_found = True
+            if not source_found:
+                leads_created_source_new['Unknown'] += count
+            
+        
+        # get the average of the average outflow durations by dividing by the duration of the report
+        print 'numer is ' + str(duration_numer)
+        print 'denom is ' + str(duration_denom)
+        for item, value in leads_outflow_duration.items():
+            if duration_denom[item] > 0:
+                leads_outflow_duration[item] = int(math.ceil(duration_numer[item] / duration_denom[item]))
+            else:
+                leads_outflow_duration[item] = 'N/A'
+            
+            
+        #get the percentage increase in number of contacts
+        if int(existed_count) > 0:
+            percentage_increase = (float(created_count) / existed_count) * 100
+        else:
+            percentage_increase = 0
+        
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'existed_count': existed_count, 'created_count': created_count,  'created_source' : leads_created_source_new,  'created_stage' : leads_created_stage, 'leads_inflow_count': leads_inflow_count, 'leads_outflow_count': leads_outflow_count, 'leads_outflow_duration': leads_outflow_duration, 'percentage_increase' : percentage_increase, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value}
+        return results 
+         
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
+    
 #Waterfall dashboard
 def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name): 
     try:
@@ -772,12 +915,12 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
 def drilldownHsptDashboards(request, company_id):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
-    chart_name = request.GET.get('chart_name')
+    dashboard_name = request.GET.get('dashboard_name')
     
     object = request.GET.get('object').capitalize()
     channel = request.GET.get('channel').capitalize()
     
-    if chart_name == 'form_fills':
+    if dashboard_name == 'form_fills':
         section = request.GET.get('section')    
     else:
         section = request.GET.get('section').capitalize()
@@ -818,18 +961,18 @@ def drilldownHsptDashboards(request, company_id):
         for i in range(delta.days + 1):
             days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
             
-        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        querydict = {company_id_qry: company_id, chart_name_qry: dashboard_name, date_qry: days_list}
         
-        if chart_name == 'form_fills':
-            days = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=chart_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
-            ids_data = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=chart_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
+        if dashboard_name == 'form_fills':
+            days = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=dashboard_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
+            ids_data = AnalyticsIds.objects(Q(company_id=company_id) & Q(chart_name=dashboard_name) & Q(date__in=days_list) & (Q(results__first__geo=section) | Q(results__recent__geo=section)))
             print 'days was ' + str(len(days)) + ' and ids was ' + str(len(ids_data))
         else: #social_roi
             days = AnalyticsData.objects(**querydict)
             ids_data = AnalyticsIds.objects(**querydict)
         #Contacts, Leads and Customers
         if object == 'Contacts' or object == 'Leads' or object == 'Customers':
-            if chart_name == 'form_fills':
+            if dashboard_name == 'form_fills':
                 for ids_datum in ids_data:
                     ids_temp_first = ids_datum['results']['first']
                     ids_temp_recent = ids_datum['results']['recent']
@@ -865,7 +1008,7 @@ def drilldownHsptDashboards(request, company_id):
                 results = {'results': serializer.data, 'count' : len(leads_with_forms_list) }   
                 return results
             
-            elif chart_name == 'social_roi':
+            elif dashboard_name == 'social_roi':
                 for day in days:
                     data = day['results']
                     try: 
@@ -902,6 +1045,7 @@ def drilldownMktoDashboards(request, company_id):
     channel = request.GET.get('channel')
     page_number = int(request.GET.get('page_number'))
     items_per_page = int(request.GET.get('per_page'))
+    dashboard_name = request.GET.get('dashboard_name')
     offset = (page_number - 1) * items_per_page
     
     user_id = request.user.id
@@ -912,14 +1056,18 @@ def drilldownMktoDashboards(request, company_id):
     company_id_qry = 'company_id'
     chart_name_qry = 'chart_name'
     date_qry = 'date__in'
-    chart_name = 'waterfall'
+    sfdc_opp_qry = 'opportunities__sfdc__0__exists'
+    #chart_name = 'waterfall'
     
     #variables
     people = {}
     people['sales'] = []
     people['mktg'] = []
     deals = []
-        
+    opps = {}
+    opps['sales'] = []
+    opps['mktg'] = []
+     
     try:     
         original_start_date = start_date
         original_end_date = end_date
@@ -934,58 +1082,94 @@ def drilldownMktoDashboards(request, company_id):
         for i in range(delta.days + 1):
             days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
             
-        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        querydict = {company_id_qry: company_id, chart_name_qry: dashboard_name, date_qry: days_list}
         days = AnalyticsIds.objects(**querydict)
         #print 'obj is ' + str(channel)
         #Contacts, Leads and Customers
-        if object == 'leads':
-            for day in days:
-                data = day['results']
-                if section == "all":
+        if dashboard_name == 'waterfall':
+            if object == 'leads':
+                for day in days:
+                    data = day['results']
+                    if section == "all":
+                        try: 
+                            key = 'mktg_' + channel if channel != 'mql' else channel
+                            people['mktg'].extend(data[key])
+                            key = 'sales_' + channel if channel != 'mql' else channel
+                            people['sales'].extend(data[key])
+                        except Exception as e:
+                            print 'exception is ' + str(e)
+                            continue
+                    else:
+                        try: 
+                            key = section + '_' + channel if channel != 'mql' else channel
+                            people[section].extend(data[key])
+                        except Exception as e:
+                            print 'exception is ' + str(e)
+                            continue
+                print 'got ids ' + str(time.time())
+                if section == "all":        
+                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                    leads_list = list(leads)
+                    leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                    leads_list.extend(list(leads))
+                elif section == 'mktg':
+                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                    leads_list = list(leads)
+                elif section == 'sales':
+                    leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                    leads_list = list(leads)
+                print 'got leads ' + str(time.time())
+                serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
+                print 'got results ' + str(time.time()) 
+                results = {'results': serializer.data, 'count' : len(leads_list) }   
+                return results
+            #Deals
+            elif (object == 'Deals'):
+                for day in days:
+                    data = day['results']
                     try: 
-                        key = 'mktg_' + channel if channel != 'mql' else channel
-                        people['mktg'].extend(data[key])
-                        key = 'sales_' + channel if channel != 'mql' else channel
-                        people['sales'].extend(data[key])
+                        deals.extend(data['Website']['Hubspot']['social'][channel][section]['Deals'])
                     except Exception as e:
-                        print 'exception is ' + str(e)
                         continue
-                else:
-                    try: 
-                        key = section + '_' + channel if channel != 'mql' else channel
-                        people[section].extend(data[key])
-                    except Exception as e:
-                        print 'exception is ' + str(e)
-                        continue
-            print 'got ids ' + str(time.time())
-            if section == "all":        
-                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                results = {'results': deals[offset:offset + items_per_page], 'count' : len(deals) }   
+                return results
+        elif dashboard_name == 'funnel':
+            if object == 'leads': #object is leads or opps; section is mql, sql etc and channel is inflow and outflow
+                #collect the lead IDs 
+                print 'starting leads day loop' + str(time.time())
+                for day in days:
+                    data = day['results']
+                    people['sales'].extend(data[channel]['sales_' + section])
+                    people['mktg'].extend(data[channel]['mktg_' + section])
+                print 'ending leads day loop ' + str(time.time())
+                #now get the actual leads
+                print 'starting leads DB read1 ' + str(time.time())
+                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg']).only('mkto_id').only('source_first_name').only('source_last_name').only('source_email').only('source_source').only('source_status').only('leads').only('contacts')
                 leads_list = list(leads)
-                leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                print 'ending leads DB read1 ' + str(time.time())
+                leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales'])))
                 leads_list.extend(list(leads))
-            elif section == 'mktg':
-                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
-                leads_list = list(leads)
-            elif section == 'sales':
-                leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
-                leads_list = list(leads)
-            print 'got leads ' + str(time.time())
-            serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
-            print 'got results ' + str(time.time()) 
-            results = {'results': serializer.data, 'count' : len(leads_list) }   
-            return results
-        #Deals
-        elif (object == 'Deals'):
-            for day in days:
-                data = day['results']
-                try: 
-                    deals.extend(data['Website']['Hubspot']['social'][channel][section]['Deals'])
-                except Exception as e:
-                    continue
-            
-             
-            results = {'results': deals[offset:offset + items_per_page], 'count' : len(deals) }   
-            return results
+                print 'ending leads DB read2 ' + str(time.time())
+                #return results
+                serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
+                print 'got results ' + str(time.time()) 
+                results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc' }   
+                print 'ending leads ' + str(time.time())
+                return results
+            #opportunities
+            elif object == 'opps':
+                querydict = {company_id_qry: company_id, sfdc_opp_qry: True}
+                for day in days:
+                    data = day['results']
+                    opps['sales'].extend(data[channel]['sales_' + section])
+                    opps['mktg'].extend(data[channel]['mktg_' + section])
+                opp_ids = opps['sales'] + opps['mktg'] #combine the opp ids - ensure no dupes?
+                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, {'$match': {'opportunities.sfdc.Id' : {'$in': opp_ids}} })
+                opps_list = list(opps)
+                print 'opps list is ' + str(opps_list)
+                serializer = AccountSerializer(opps_list[offset:offset + items_per_page], many=True) 
+                results = {'results': serializer.data, 'count' : len(opps_list), 'source_system': 'sfdc' }   
+                return results
         
         
     except Exception as e:

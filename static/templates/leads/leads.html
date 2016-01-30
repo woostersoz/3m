@@ -1,7 +1,7 @@
 <!--  dashboard -->
 <div class="portlet light">
   
-  <div class="portlet-header short">
+  <div class="portlet-header short view-header">
         <div class="title col-md-12">Contacts Summary</div>
         <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
         <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
@@ -128,7 +128,7 @@
 							<th>First Name</th>
 							<th>Last Name</th>
 							<th>Email</th>
-							<th>Company</th>
+							<th>Status</th>
 							<th>Source</th>
 							<th>System</th>
 						</tr>
@@ -154,7 +154,7 @@
 							{{ lead.Email }}
 							</td>							
 							<td>
-							{{ lead.Company }}</td>
+							{{ lead.SourceStatus }}</td>
 							<td>
 							{{ lead.LeadSource }}
 							</td>

@@ -26,7 +26,7 @@ from integrations.views import Marketo, Salesforce #, get_sfdc_test
 # from activities.serializers import ActivitySerializer
 # from activities.models import Activity
 
-from activities.tasks import retrieveMktoActivities, retrieveSfdcHistory
+from activities.tasks import retrieveMktoActivities #, retrieveSfdcHistory
 # get leads 
 
 #@api_view(['GET'])
@@ -54,7 +54,8 @@ def retrieveActivities(request, id):
             if code == 'mkto':
                 result = retrieveMktoActivities.delay(user_id=user_id, company_id=company_id)
             elif code == 'sfdc': 
-                result = retrieveSfdcActivities.delay(user_id=user_id, company_id=company_id)
+                pass
+                #result = retrieveSfdcActivities.delay(user_id=user_id, company_id=company_id)
             else:
                 result =  'Nothing to report'
             return JsonResponse(result, safe=False)

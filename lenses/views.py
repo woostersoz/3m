@@ -30,13 +30,15 @@ from mongoengine.django.shortcuts import get_document_or_404
 from leads.models import Lead, LeadWithForm
 from leads.serializers import LeadSerializer, LeadWithFormSerializer
 from leads.views import getAllLeads
+from campaigns.views import getAllCampaigns
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, AnalyticsIds, BinderTemplate, Binder
+from accounts.views import getAccounts, getAccountsAndCounts
 
-from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards, SuperCountry, SuperViews
-from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer, SuperViewsSerializer
+from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards, SuperCountry, SuperViews, SuperFilters
+from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer, SuperViewsSerializer, SuperFiltersSerializer
 
 from authentication.models import Company, CustomUser
 
@@ -63,7 +65,7 @@ def retrieveViews(request, company_id):
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:
         #first see if generic view i.e. not dependent on a specific system
-        generic_views = {'all_contacts': getAllLeads} 
+        generic_views = {'all_contacts': getAllLeads, 'all_campaigns': getAllCampaigns, 'all_accounts': getAccounts} 
         if view_name in generic_views:
             result = generic_views[view_name](request, company_id)
             return result #assume that the view will convert to JSONResponse
@@ -123,4 +125,36 @@ def getViews(request, company_id):
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
     
-  
+@api_view(['GET'])
+@renderer_classes((JSONRenderer,))    
+def getSuperFilters(request, company_id):
+    
+    user_id = request.user.id
+    company_id = request.user.company_id
+    object_type = request.GET.get('object_type')
+    system_type = request.GET.get('system_type')
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    try:
+        code = None
+        if existingIntegration is not None:
+            for source in existingIntegration.integrations.keys():
+                defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
+                if defined_system_type is not None:
+                    code = source
+            print 'found code' + str(code)
+                  
+        if code is  None:
+            raise ValueError("No integrations defined")  
+        else:
+            super_filters = SuperFilters.objects(source_system = code).first()
+            if super_filters is None:
+                result = []
+            else:
+                if object_type not in super_filters['filters']:
+                    result = []
+                else:
+                    result = {'results': super_filters['filters'][object_type]}
+            #result =  'Nothing to report'
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        return JsonResponse({'Error' : str(e)})

@@ -19,6 +19,71 @@ from mmm.views import saveTempData, saveTempDataDelta, _str_from_date
 
 
 @app.task
+def retrieveMktoLeadCreatedActivities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
+    #return
+    try:
+        print 'getting mkto lead created activities'
+#         #company_id = request.user.company_id
+#         existingIntegration = CompanyIntegration.objects(company_id = company_id).first()
+#         activityTypeIds = []
+# #         if existingIntegration is not None:
+# #             activityTypeArray = existingIntegration.integrations['mkto']['metadata']['activity']
+# #             for i in range(len(activityTypeArray)):
+# #                 if (activityTypeArray[i]['name'] == 'Send Email' or activityTypeArray[i]['name'] == 'Email Delivered' or activityTypeArray[i]['name'] == 'Open Email' or activityTypeArray[i]['name'] == 'Visit Webpage' or activityTypeArray[i]['name'] == 'Fill out Form' or activityTypeArray[i]['name'] == 'Click Link' or activityTypeArray[i]['name'] == 'Email Bounced' or activityTypeArray[i]['name'] == 'Email Unsubscribed'  or activityTypeArray[i]['name'] == 'Change Data Value'):
+# #                     activityTypeIds.append(str(activityTypeArray[i]['id']))
+# 
+#         if existingIntegration is not None:
+#             activityTypeArray = existingIntegration.integrations['mkto']['metadata']['activity']
+#             for i in range(len(activityTypeArray)):
+#                 activityTypeIds.append(str(activityTypeArray[i]['id']))
+# 
+#         if activityTypeIds is None:
+#             return []
+        
+        activityTypeIds = ['12'] #hard coded Mkto Activity Type for 'New Lead'
+        activityTypeArray = [] # redundant - should be removed later
+        
+        if sinceDateTime is None:
+            sinceDateTime = datetime.now() - timedelta(days=30) #change to 365
+        mkto = Marketo(company_id)
+
+        batch_size = 10  #10 Activity Types at a time
+        activityList = []
+        for i in range(0, len(activityTypeIds), batch_size):
+            activityTypeIdsTemp =  activityTypeIds[i:i+batch_size]
+            print 'gettng activities for ' + str(activityTypeIdsTemp)
+            activityList.extend(mkto.get_lead_activity(activityTypeIdsTemp, sinceDatetime=sinceDateTime))
+        
+        print 'going to save mkto lead created activities - count ' + str(len(activityList))
+        saveMktoActivities(user_id=user_id, company_id=company_id, activityList=activityList, activityTypeArray=activityTypeArray, job_id=job_id, run_type=run_type)
+        
+        try:
+            message = 'Lead Created Activities retrieved from Marketo'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Activities'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+        except Exception as e:
+            send_notification(dict(
+             type='error',
+             success=False,
+             message=str(e)
+            ))         
+        return activityList
+    except Exception as e:
+        send_notification(dict(
+             type='error',
+             success=False,
+             message=str(e)
+            ))   
+        
+@app.task
 def retrieveMktoActivities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     #return
     try:
@@ -43,16 +108,35 @@ def retrieveMktoActivities(user_id=None, company_id=None, job_id=None, run_type=
         if sinceDateTime is None:
             sinceDateTime = datetime.now() - timedelta(days=30) #change to 365
         mkto = Marketo(company_id)
+        
+        #get the 'Claritix Lead List' in order to only get activities for leads in that list
+        listList = mkto.get_lists(id=None , name=['Claritix Leads List'], programName=None, workspaceName=None, batchSize=None)
+        if listList and listList[0]:
+            leadListId = listList[0]['id']
+        else:
+            raise ValueError('Claritix Leads List not found')
+        
 
         batch_size = 10  #10 Activity Types at a time
         activityList = []
         for i in range(0, len(activityTypeIds), batch_size):
             activityTypeIdsTemp =  activityTypeIds[i:i+batch_size]
             print 'gettng activities for ' + str(activityTypeIdsTemp)
-            activityList.extend(mkto.get_lead_activity(activityTypeIdsTemp, sinceDatetime=sinceDateTime))
+            activityList.extend(mkto.get_lead_activity(activityTypeIdsTemp, sinceDatetime=sinceDateTime, leadListId=leadListId))
         
+        
+        #delete leads from lead list in Marketo
+        deleteList = mkto.get_leads_by_listId(listId=leadListId)
+        deleteLeadIds = [str(e['id']) for e in deleteList]
+        print 'leads to be removed from CX List are ' + str(deleteLeadIds)
+        batch_size = 300
+        for i in range(0, len(deleteLeadIds), batch_size):
+            mkto.remove_leads_from_list(listId=leadListId, leadsIds = deleteLeadIds[i:i+batch_size])
+            print 'leads removed from Mkto CX List'
+            
         print 'going to save mkto activities - count ' + str(len(activityList))
         saveMktoActivities(user_id=user_id, company_id=company_id, activityList=activityList, activityTypeArray=activityTypeArray, job_id=job_id, run_type=run_type)
+        
         
         try:
             message = 'Activities retrieved from Marketo'
@@ -74,6 +158,7 @@ def retrieveMktoActivities(user_id=None, company_id=None, job_id=None, run_type=
             ))         
         return activityList
     except Exception as e:
+        print 'Error while retrieving activities from Marketo ' + str(e)
         send_notification(dict(
              type='error',
              success=False,
@@ -133,22 +218,28 @@ def retrieveMktoActivities(user_id=None, company_id=None, job_id=None, run_type=
 #              message=str(e)
 #             ))   
 @app.task    
-def retrieveSfdcHistory(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
+def retrieveSfdcLeadHistory(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
     try:
-        #job_id = ObjectId("55e379e756ea06290ae1759f")
+        #delete later
+        #job_id_new = job_id
+        #job_id = ObjectId("56a690e98afb006883048e7e")
 
+        #set variables
+        sfdc = Salesforce()
+        
         #for leads
         if run_type == 'initial':
             leads = TempData.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
         else:
             leads = TempDataDelta.objects(Q(record_type='lead') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        
         leadListTemp = list(leads)
         if not leadListTemp:
             print 'no leads found'
             return
         leadList = [i['source_record'] for i in leadListTemp]
         
-        sfdc = Salesforce()
+        
         
         batch_size = 500  #10 Activity Types at a time
         activitiesList = []
@@ -162,7 +253,9 @@ def retrieveSfdcHistory(user_id=None, company_id=None, job_id=None, run_type=Non
             activitiesList.extend(sfdc.get_history_for_lead(user_id, company_id, lead_list, _str_from_date(sinceDateTime)))
         
         print 'got back history for SFDC leads ' + str(len(activitiesList))
-        saveSfdcHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
+        #delete later
+        #job_id = job_id_new
+        saveSfdcLeadHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
         
 #         #for contacts
 #         if run_type == 'initial':
@@ -191,7 +284,7 @@ def retrieveSfdcHistory(user_id=None, company_id=None, job_id=None, run_type=Non
 #         
         
         try:
-            message = 'Activities retrieved from Salesforce'
+            message = 'Lead history retrieved from Salesforce'
             notification = Notification()
             #notification.company_id = company_id
             notification.owner = user_id
@@ -210,9 +303,68 @@ def retrieveSfdcHistory(user_id=None, company_id=None, job_id=None, run_type=Non
                 ))    
         return leadList
     except Exception as e:
-        print 'exception while retrieving SFDC history: ' + str(e)
+        print 'exception while retrieving SFDC lead history: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))   
         
+@app.task    
+def retrieveSfdcContactHistory(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
+    try:
+        #delete later
+        #job_id_new = job_id
+        #job_id = ObjectId("56a690e98afb006883048e7e")
+
+        #set variables
+        sfdc = Salesforce()
+        #for leads
+        if run_type == 'initial':
+            contacts = TempData.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        else:
+            contacts = TempDataDelta.objects(Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        
+        contactListTemp = list(contacts)
+        if not contactListTemp:
+            print 'no contacts found'
+            return
+        contactList = [i['source_record'] for i in contactListTemp]
+ 
+        batch_size = 500  #10 Activity Types at a time
+        activitiesList = []
+        
+        for i in range(0, len(contactList), batch_size):
+            contact_list = '('
+            for lead in contactList[i:i+batch_size]:
+                contact_list += '\'' + lead['Id'] + '\'' + ', '
+            contact_list = contact_list[:-2]
+            contact_list += ')'
+            activitiesList.extend(sfdc.get_history_for_contact(user_id, company_id, contact_list, _str_from_date(sinceDateTime)))
+        
+        print 'got back history for SFDC contacts ' + str(len(activitiesList))
+        #delete later
+        #job_id = job_id_new
+        saveSfdcContactHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
+        
+        try:
+            message = 'Contact history retrieved from Salesforce'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Contacts'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+        except Exception as e:
+            send_notification(dict(
+                 type='error',
+                 success=False,
+                 message=str(e)
+                ))    
+        return contactList
+    except Exception as e:
+        print 'exception while retrieving SFDC contact history: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))          
 # @app.task    
 # def retrieveSfdcActivities(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
 #     try:
@@ -343,7 +495,7 @@ def saveMktoActivities(user_id=None, company_id=None, activityList=None, activit
 #         saveTempDataDelta(company_id=company_id, record_type="activity", source_system="mkto", source_record=activity, job_id=job_id)
 
 def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
-    #job_id = ObjectId("55e353b656ea0616f2d02cd6") 
+    #job_id = ObjectId("56a2dd408afb006f9e7cb851") 
     
     
     if run_type == 'initial':   
@@ -411,18 +563,27 @@ def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_t
                 if addThisActivity == True and newActivity['activityTypeId'] == changeActivityId and newActivity['primaryAttributeValue'] == 'Lead Status':
                     print 'processing status activity for id ' + mkto_id
                     #statusRecord = [];
+                    newStatus = ''
+                    oldStatus = ''
                     for attribute in newActivity['attributes']:
                         if attribute['name'] == 'New Value':
                             newStatus = attribute['value']
-                            break
+                        elif attribute['name'] == 'Old Value':
+                            oldStatus = attribute['value']
+#                         elif attribute['name'] == 'Reason':
+#                             reason = attribute['value']    
+                            #break
                     #statusRecord.append({'status': newStatus, 'date': newActivity['activityDate']})
+                    newActivity['newStatus'] = newStatus 
+                    newActivity['oldStatus'] = oldStatus 
+                    newActivity['date'] = newActivity['activityDate']
                     if 'mkto' in existingLead.statuses:
                         currentStatuses = existingLead.statuses['mkto']
-                        currentStatuses.append({'status': newStatus, 'date': newActivity['activityDate']})
+                        currentStatuses.append(newActivity) # changed on 1/22/2016 {'status': newStatus, 'date': newActivity['activityDate']})
                         existingLead.update(statuses__mkto = currentStatuses)
                     else:
                         currentStatuses = []
-                        currentStatuses.append({'status': newStatus, 'date': newActivity['activityDate']})
+                        currentStatuses.append(newActivity) # changed on 1/22/2016{'status': newStatus, 'date': newActivity['activityDate']})
                         existingLead.update(statuses__mkto = currentStatuses)
                         
 #                 if addThisActivity == True: # this activity was not foudn in the lead, so add it
@@ -445,30 +606,30 @@ def saveMktoActivitiesToMaster(user_id=None, company_id=None, job_id=None, run_t
 #             saveTempDataDelta(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
 #     
 
-def saveSfdcHistory(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
+def saveSfdcLeadHistory(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
     print 'saving sfdc activities for leads and contacts'
     if run_type == 'initial':
         for activity in activityList:
-            saveTempData(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
+            saveTempData(company_id=company_id, record_type="lead_history", source_system="sfdc", source_record=activity, job_id=job_id)
     else:
         for activity in activityList:
-            saveTempDataDelta(company_id=company_id, record_type="activity", source_system="sfdc", source_record=activity, job_id=job_id)
+            saveTempDataDelta(company_id=company_id, record_type="lead_history", source_system="sfdc", source_record=activity, job_id=job_id)
     
 
-def saveSfdcHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
-    #job_id = ObjectId("55e379e756ea06290ae1759f")
+def saveSfdcLeadHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #job_id = ObjectId("56a6faa28afb00042171cd89")
 
     if run_type == 'initial':   
         #activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
         collection = TempData._get_collection()
-        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'lead_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
         
     else:
         collection = TempDataDelta._get_collection()
-        activities = collection.find({'company_id': int(company_id), 'record_type': 'activity', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'lead_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
     
     try:
-        print 'got activities ' + str(activities.count())
+        print 'got history ' + str(activities.count())
         for activity in activities: 
                 
             newActivity = activity['source_record']
@@ -510,4 +671,71 @@ def saveSfdcHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type
          type='error',
          success=False,
          message=str(e)
-        ))               
+        ))         
+        
+def saveSfdcContactHistory(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
+    print 'saving sfdc history for contacts'
+    if run_type == 'initial':
+        for activity in activityList:
+            saveTempData(company_id=company_id, record_type="contact_history", source_system="sfdc", source_record=activity, job_id=job_id)
+    else:
+        for activity in activityList:
+            saveTempDataDelta(company_id=company_id, record_type="contact_history", source_system="sfdc", source_record=activity, job_id=job_id)
+    
+
+def saveSfdcContactHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #job_id = ObjectId("56a6faa28afb00042171cd89")
+
+    if run_type == 'initial':   
+        #activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+        collection = TempData._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'contact_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
+    else:
+        collection = TempDataDelta._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'contact_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+    
+    try:
+        print 'got history ' + str(activities.count())
+        for activity in activities: 
+                
+            newActivity = activity['source_record']
+            addThisActivity = True
+            print 'act is ' + str(newActivity)
+            leadId = newActivity["ContactId"]
+            if leadId is not None:
+                print 'trying to get lead'
+                existingLead = Lead.objects(Q(company_id = company_id) & Q(sfdc_contact_id = leadId)).first()
+                print 'contact is ' + str(existingLead)
+            else:
+                continue
+            if existingLead is None:
+                continue
+            
+            if 'sfdc' in existingLead['activities']: # there are activities from SFDC for this leadId
+                for existingActivity in existingLead['activities']['sfdc']:
+                    if existingActivity['Id'] == newActivity['Id']: # this activity already exists so exit the loop
+                        addThisActivity = False
+                        break
+                if addThisActivity:
+                    existingLead['activities']['sfdc'].append(newActivity)
+                    existingLead.save()
+                    print 'saved new activity 1'
+            else:
+                print 'no sfdc acts'
+                addThisActivity = True
+                sfdc = []
+                print 'appending'
+                sfdc.append(newActivity)
+                print 'appended'
+                existingLead['activities']['sfdc'] = sfdc
+                existingLead.save()
+                print 'saved new activity 2'
+
+    except Exception as e:
+        print 'exception ' + str(e)
+        send_notification(dict(
+         type='error',
+         success=False,
+         message=str(e)
+        ))                     

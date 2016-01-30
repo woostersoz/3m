@@ -6,9 +6,9 @@ from rest_framework_mongoengine.serializers import serializers as drfme_serial, 
 from campaigns.models import Campaign, EmailEvent
 
 class CampaignSerializer(DocumentSerializer):       
-    company_id = drfme_serial.IntegerField()
-    campaigns = drfme_serial.DictField()
-    updated_date = drfme_serial.DateTimeField()
+    #company_id = drfme_serial.IntegerField()
+    #campaigns = drfme_serial.DictField()
+    #updated_date = drfme_serial.DateTimeField()
     
     class Meta:
         model = Campaign

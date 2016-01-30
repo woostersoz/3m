@@ -43,23 +43,40 @@ def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None,
         mkto = Marketo(company_id)
         #results = mkto.get_leads_by_changes_today(current_date_string)
         #allActivities = retrieveMktoActivities(user_id, company_id) #all activties in the last 24 hours
+        
+        #delete later
+        #job_id = ObjectId("569d26008afb0063430a7818")
         if run_type == 'initial':
-            allActivities = TempData.objects(Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+            allActivities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
         else:
-            allActivities = TempDataDelta.objects(Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+            allActivities = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
         
         #print "got back Mkto activities: " + str(len(allActivities)) 
         leadIds = [str(e['source_record']['leadId']) for e in allActivities]
         leadIds = list(set(leadIds))
-        batch_size = 300  #100 Lead IDs at a time
+        batch_size = 100  #100 Lead IDs at a time
         leadList = []
         for i in range(0, len(leadIds), batch_size):
             leadIdsTemp =  leadIds[i:i+batch_size]
             leadList.extend(mkto.get_leads_by_changes(leadIdsTemp))
-            print "got back leads from Mkto: " #+ str(leadList) 
+            print "got back leads from Mkto: " + str(len(leadList)) 
         #leadList = mkto.get_leads_by_changes(leadIds) - this bombs because of too many IDs being passed
         
+        #save the leads to the temp collection
         saveMktoLeads(user_id=user_id, company_id=company_id, leadList=leadList, newList=None, job_id=job_id, run_type=run_type)
+        
+        #save these leads to the 'Claritix Leads List' list for retrieving activities later
+        batch_size = 300 #can add 300 leads to the list at a time
+        leadList = []
+        listList = mkto.get_lists(id=None , name=['Claritix Leads List'], programName=None, workspaceName=None, batchSize=None)
+        if listList and listList[0]:
+            for i in range(0, len(leadIds), batch_size):
+                results = mkto.save_leads_to_list(listId=listList[0]['id'], leadsIds = leadIds[i:i+batch_size])
+                print 'Mkto return is ' + str(results)
+        else:
+            raise ValueError('Claritix Leads List not found')
+                
+        
         try:
             message = 'Leads retrieved from Marketo'
             notification = Notification()
@@ -80,6 +97,7 @@ def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None,
                 ))          
         return leadList
     except Exception as e:
+        print 'Error while retrieving leads from Marketo ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
 
 # @app.task
@@ -122,7 +140,7 @@ def retrieveSfdcLeads(user_id=None, company_id=None, job_id=None, run_type=None,
         sdfc = Salesforce()
         if sinceDateTime is None:
             sinceDateTime = (datetime.now() - timedelta(days=1)).date()
-        leadList = sdfc.get_leads_delta(user_id, company_id, _str_from_date(sinceDateTime))
+        leadList = sdfc.get_leads_delta(user_id, company_id, _str_from_date(sinceDateTime), run_type)
         print 'got back leads ' + str(len(leadList['records']))
         saveSfdcLeads(user_id=user_id, company_id=company_id, leadList=leadList, job_id=job_id, run_type=run_type)
         try:
@@ -245,13 +263,18 @@ def retrieveSugrLeads(user_id=None, company_id=None, job_id=None, run_type=None,
             send_notification(dict(type='error', success=False, message=str(e))) 
 #save the data in the temp table
 def saveMktoLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
-    print 'saving Mkto Leads'
-    if run_type == 'initial':
-        for lead in leadList:
-            saveTempData(company_id=company_id, record_type="lead", source_system="mkto", source_record=lead, job_id=job_id)
-    else:
-        for lead in leadList:
-            saveTempDataDelta(company_id=company_id, record_type="lead", source_system="mkto", source_record=lead, job_id=job_id)
+    try:
+        print 'saving Mkto Leads'
+        if run_type == 'initial':
+            for lead in leadList:
+                saveTempData(company_id=company_id, record_type="lead", source_system="mkto", source_record=lead, job_id=job_id)
+        else:
+            for lead in leadList:
+                saveTempDataDelta(company_id=company_id, record_type="lead", source_system="mkto", source_record=lead, job_id=job_id)
+                
+    except Exception as e:
+        print 'error while saving Mkto leads to temp ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))   
 
 
 #     for list in newList:
@@ -259,6 +282,9 @@ def saveMktoLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
 
 
 def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #delete later
+    #job_id = ObjectId("569d26008afb0063430a7818")
+    
     if run_type == 'initial':
         leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -273,11 +299,15 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
             mkto_id = str(newLead['id']) 
             print 'mkto id is ' + mkto_id
             mkto_sfdc_id = ''
+            mkto_sfdc_contact_id = ''
             if 'sfdcLeadId' in newLead:
                 mkto_sfdc_id = str(newLead['sfdcLeadId'])  # check if there is a corresponding lead from SFDC
+            if 'sfdcContactId' in newLead:
+                mkto_sfdc_contact_id = str(newLead['sfdcContactId'])  # check if there is a corresponding lead from SFDC
             created_date = _date_from_str(newLead['createdAt'])
             addThisList = True
             existingLeadSfdc = None
+            existingContactSfdc = None
             existingLead = None
             existingLead = Lead.objects(Q(company_id=company_id) & Q(mkto_id=mkto_id)).first()
             
@@ -286,10 +316,10 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                 existingLead.source_last_name = newLead['lastName']
                 existingLead.source_email = newLead['email']
                 existingLead.source_company = newLead['company']
-                existingLead.source_created_date = created_date
+                #existingLead.source_created_date = created_date
                 existingLead.source_status = newLead['leadStatus']
                 existingLead.source_stage = newLead['leadRevenueStageId']
-                existingLead.source_source = newLead['originalSourceInfo']
+                #existingLead.source_source = newLead['leadSource']
                 existingLead.sfdc_account_id = newLead.get('sfdcAccountId', None)
                 existingLead.leads["mkto"] = newLead
                 existingLead.save()
@@ -310,7 +340,17 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
 #                             existingLead.update(lists__mkto=currentLists)
                 
             elif existingLead is None:  # this lead does not exist 
-                if mkto_sfdc_id is not None:  # but has a SFDC lead id
+                
+                if mkto_sfdc_contact_id is not None: # but has a SFDC contact id
+                    existingContactSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=mkto_sfdc_contact_id)).first()
+                    if existingContactSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
+                        existingContactSfdc.mkto_id = mkto_id
+                        existingContactSfdc.leads['mkto'] = newLead
+                        existingContactSfdc.sfdc_account_id = newLead.get('ConvertedAccountId', None)
+                        existingContactSfdc.save()
+            
+                
+                elif mkto_sfdc_id is not None:  # but has a SFDC lead id
                     existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_id=mkto_sfdc_id)).first()
                     if existingLeadSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
                         existingLeadSfdc.mkto_id = mkto_id
@@ -321,8 +361,8 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
 #                             currentLists = []
 #                             currentLists.append(newList)
 #                             existingLeadSfdc.update(lists__mkto=currentLists)
-            
-            if existingLeadSfdc is None and existingLead is None:  # no matches found so save new record
+                
+            if existingLeadSfdc is None and existingContactSfdc is None and existingLead is None:  # no matches found so save new record
                 lead = Lead()
                 lead.mkto_id = mkto_id
                 lead.company_id = company_id
@@ -333,7 +373,7 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                 lead.source_created_date = created_date
                 lead.source_status = newLead['leadStatus']
                 lead.source_stage = newLead['leadRevenueStageId']
-                lead.source_source = newLead['originalSourceInfo']
+                lead.source_source = newLead['leadSource']
                 lead.sfdc_account_id =  newLead.get('sfdcAccountId', None)
                 lead.leads["mkto"] = newLead
                 lead.save()
@@ -343,6 +383,7 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
 #                     lead.update(lists__mkto=currentLists)
                 
     except Exception as e:
+        print 'error while saving Mkto leads to master ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
 
 #save the data in the temp table
@@ -400,7 +441,7 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                     existingLead.source_first_name = newLead['FirstName']
                     existingLead.source_last_name = newLead['LastName']
                     existingLead.source_email = newLead['Email']
-                    existingLead.source_created_date = newLead['CreatedDate']
+                    #existingLead.source_created_date = newLead['CreatedDate']
                     existingLead.source_source = newLead['LeadSource']
                     existingLead.source_status = newLead['Status']
                     existingLead.sfdc_account_id = sfdc_account_id
@@ -411,8 +452,15 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                     #Lead.objects(Q(company_id=company_id) & Q(sfdc_id=sfdc_Id)).update(leads__sfdc=newLead)
                 else:
                     existingLead.leads['sfdc'] = {}
-                    existingLead.sfdc_account_id = sfdc_account_id
+                    #existingLead.sfdc_account_id = sfdc_account_id
                     existingLead.leads['sfdc'] = newLead
+                    existingLead.source_first_name = newLead['FirstName']
+                    existingLead.source_last_name = newLead['LastName']
+                    existingLead.source_email = newLead['Email']
+                    #existingLead.source_created_date = newLead['CreatedDate']
+                    existingLead.source_source = newLead['LeadSource']
+                    existingLead.source_status = newLead['Status']
+                    existingLead.sfdc_account_id = sfdc_account_id
                     #print '2nd save'
                     existingLead.save()
                     
@@ -426,7 +474,7 @@ def saveSfdcLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
                         existingLeadMkto.source_first_name = newLead['FirstName']
                         existingLeadMkto.source_last_name = newLead['LastName']
                         existingLeadMkto.source_email = newLead['Email']
-                        existingLeadMkto.source_created_date = newLead['CreatedDate']
+                        #existingLeadMkto.source_created_date = newLead['CreatedDate']
                         existingLeadMkto.source_source = newLead['LeadSource']
                         existingLeadMkto.source_status = newLead['Status']
                         existingLeadMkto.sfdc_account_id = sfdc_account_id

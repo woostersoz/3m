@@ -42,6 +42,7 @@ class CompanyIntegration(Document):
 
     company_id = IntField(unique=True)
     integrations = DictField()
+    mapping = DictField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     initial_run_done = BooleanField(default=False)
     initial_run_in_process = BooleanField(default=False)
@@ -70,7 +71,7 @@ class TempData(Document): #middleware table to store source data from initial ru
     source_record = DynamicField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     
-    meta = {'collection': 'tempData', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type', {'fields' : ('company_id', 'job_id', 'source_system', 'record_type', 'source_record.campaign_guid'), 'unique': False, 'name': 'campaign_guid'}], 'ordering':['-updated_date']}
+    meta = {'collection': 'tempData', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type', {'fields' : ('company_id', 'job_id', 'source_system', 'record_type', 'updated_date'), 'unique': False, 'name': 'std_query'}, {'fields' : ('company_id', 'job_id', 'source_system', 'record_type', 'source_record.campaign_guid'), 'unique': False, 'name': 'campaign_guid'}], 'ordering':['-updated_date']}
 
 class TempDataDelta(Document): #middleware table to store source data from delta runs
     company_id = IntField()
@@ -80,7 +81,7 @@ class TempDataDelta(Document): #middleware table to store source data from delta
     source_record = DynamicField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
     
-    meta = {'collection': 'tempDataDelta', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type'], 'ordering':['-updated_date']}
+    meta = {'collection': 'tempDataDelta', 'indexes': ['id', 'company_id', 'job_id', 'updated_date', 'source_system', 'record_type', {'fields' : ('company_id', 'job_id', 'source_system', 'record_type', 'updated_date'), 'unique': False, 'name': 'std_query'}], 'ordering':['-updated_date']}
 
  
 class UserOauth(Document):

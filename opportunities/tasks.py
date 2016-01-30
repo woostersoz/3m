@@ -12,7 +12,9 @@ from mongoengine.queryset.visitor import Q
 
 from leads.models import Lead
 from company.models import CompanyIntegration, TempData, TempDataDelta
+from accounts.models import Account
 from integrations.views import Marketo, Salesforce, Hubspot #, get_sfdc_test
+from accounts.tasks import _saveSfdcNewAccount
 from collab.signals import send_notification
 from collab.models import Notification 
 from mmm.views import _str_from_date
@@ -103,10 +105,16 @@ def retrieveSfdcOpportunities(user_id=None, company_id=None, job_id=None, run_ty
     
         if sinceDateTime is None:
             sinceDateTime = (datetime.now() - timedelta(days=30)).date()
-        oppList = sfdc.get_opportunities_delta(user_id, company_id, _str_from_date(sinceDateTime))
-        print 'got opps ' + str(len(oppList))
-        contactList = sfdc.get_contacts_for_opportunities(user_id, company_id) # needed because SFDC does not have the Contact ID within the Opp record
-        print 'got contacts for opps ' + str(len(contactList))
+        oppList = sfdc.get_opportunities_delta(user_id, company_id, _str_from_date(sinceDateTime), run_type)
+        print 'got opps ' + str(len(oppList['records']))
+        #create list of Opp IDs to send for get_contacts call
+        oppid_list = '('
+        for opp in oppList['records']:
+            oppid_list += '\'' + opp['Id'] + '\'' + ', '
+        oppid_list = oppid_list[:-2]
+        oppid_list += ')'
+        contactList = sfdc.get_contacts_for_opportunities(user_id, company_id, oppid_list) # needed because SFDC does not have the Contact ID within the Opp record
+        print 'got contacts for opps ' + str(len(contactList['records']))
         saveSfdcOpportunities(user_id=user_id, company_id=company_id, oppList=oppList, contactList=contactList, job_id=job_id, run_type=run_type)
         try:
             message = 'Opportunities retrieved from Salesforce'
@@ -196,6 +204,8 @@ def saveSfdcOpportunities(user_id=None, company_id=None, oppList=None, contactLi
             saveTempDataDelta(company_id=company_id, record_type="contact", source_system="sfdc", source_record=contact, job_id=job_id)
 
 def saveSfdcOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, run_type=None):  
+    #job_id = ObjectId("56a3f89f8afb003c13a59e26")
+    
     if run_type == 'initial':
         opps = TempData.objects(Q(company_id=company_id) & Q(record_type='opportunity') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
         contacts = TempData.objects(Q(company_id=company_id) & Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
@@ -360,6 +370,36 @@ def saveSfdcOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, ru
                 opportunities['sfdc'].extend(thisLeadsOpps)  
                 lead.update(opportunities__sfdc = opportunities['sfdc'])
         
+        #new code added on 1/24/2016 - add each opportunity to related account (to capture opps with no contacts)
+        for opp in allOpps:
+            account = Account.objects(Q(company_id=company_id) & Q(sfdc_id=opp['AccountId'])).first()
+            if account is None:
+                print 'no account for opp with ID ' + str(opp['Id'])
+                sfdc = Salesforce()
+                accountList = sfdc.get_single_account(user_id, company_id, opp['AccountId'])
+                for newAccount in accountList['records']:
+                    account = _saveSfdcNewAccount(newAccount['Id'], newAccount, None, company_id)
+            if 'opportunities' not in account:
+                account.update(opportunities = {})
+            if 'sfdc' not in account.opportunities: #no opps exist for this account, so add this opp
+                opportunities = {}
+                opportunities['sfdc'] = []
+                opportunities['sfdc'].append(opp)  
+                account.update(opportunities__sfdc = opportunities['sfdc'])
+            else:
+                if not any (e.get('Id', None) == opp['Id'] for e in account.opportunities['sfdc']): # there is no opportunity with this Id already exist
+                    opportunities = account.opportunities['sfdc']
+                    opportunities.append(opp)
+                    # save this opportunity        
+                    account.update(opportunities__sfdc = opportunities)
+                else: # this opp already exists
+                    for i in range(len(account.opportunities['sfdc'])):
+                        if account.opportunities['sfdc'][i]['Id'] == opp['Id']:
+                            account.opportunities['sfdc'][i] = opp
+                            account.save()
+                
+            
+        
 # code commented out since we are no longer getting only Mkto related opportunities into Cx       
 #         for newOpp in oppList['records']:
 # 
@@ -455,7 +495,9 @@ def saveSfdcOpportunitiesToMaster(user_id=None, company_id=None, job_id=None, ru
 #                 print '5th save'
 #                 lead.save()
     except Exception as e:
-        send_notification(dict(type='error', success=False, message=str(e)))         
+        print 'Error while saving SFDC opportunities ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e))) 
+                
  
     
     

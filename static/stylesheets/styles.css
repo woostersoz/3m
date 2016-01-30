@@ -1,4 +1,4 @@
-body{
+body, .label{
 /*         position:relative; */
     font-family:Lato !important;
     font-weight:700;
@@ -457,6 +457,16 @@ g.nv-series-7 path.nv-line {
 	border: 1px solid #eee;
 }
 
+.viewTop {
+	margin-top:0px;
+	border: 0px solid #eee;
+}
+
+.view-header {
+	border-top:1px #eee solid;
+	border-bottom: 0px solid #eee !important;
+}
+
 /* sticky note */
 
 .sticky {
@@ -771,11 +781,12 @@ input.ng-invalid.ng-touched, textarea.ng-invalid.ng-touched, select.ng-invalid.n
 }
 
 .portlet-title .search-form {
-  margin: 2px 20px 0 5%;
+  margin: 2px 20px 0 0;
   display: inline-block;
   width: 30px;
   float: left;
   background: #FFFFFF;
+  padding-left:0px !important;
 }
 
 .portlet-title .search-form.open {
@@ -955,8 +966,8 @@ div[binderpage] .portlet .portlet-title .tools {
 .info-list-item-compressed {
 	display:inline-block;
 	padding:0px 0px 0px 0px; 
-	margin-right:15px;
-	margin-left:15px;
+	margin-right:10px;
+	margin-left:10px;
 }
 
 .info-list-item-compressed-binder {
@@ -1239,7 +1250,7 @@ ul.analytics-charts > li {
 }
 
 .search-form {
-	display:none !important;
+	/* display:none !important; */
 }
 
 /* Waterfall chart */
@@ -1487,7 +1498,7 @@ ul.analytics-charts > li {
 	border-radius: 2px;
 	text-align: center;
 	margin-right: 20px;
-	width: 22%;
+	/* width: 22%; */
 }
 
 .dataTable tr th, .dataTable tr td {
@@ -1739,4 +1750,8 @@ div.dynamic_content_max_width {
 
 .nvd3 .nv-axis {
 	pointer-events: all !important;
+}
+
+.main-body { /* for dashboards */
+    padding-top:50px;
 }

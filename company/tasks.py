@@ -29,7 +29,7 @@ from mmm.views import _str_from_date
 
 from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, retrieveSugrLeads, saveSugrLeadsToMaster, tempDataCleanup 
 from contacts.tasks import retrieveSfdcContacts, saveSfdcContactsToMaster
-from activities.tasks import retrieveMktoActivities, retrieveSfdcHistory, saveMktoActivitiesToMaster, saveSfdcHistoryToMaster
+from activities.tasks import retrieveMktoActivities, retrieveMktoLeadCreatedActivities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, saveMktoActivitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster
 from opportunities.tasks import retrieveMktoOpportunities, retrieveSfdcOpportunities, saveSfdcOpportunitiesToMaster, retrieveHsptOpportunities, saveHsptOpportunitiesToMaster
 from campaigns.tasks import retrieveHsptCampaigns, saveHsptCampaignsToMaster, retrieveMktoCampaigns, saveMktoCampaignsToMaster, retrieveSfdcCampaigns, saveSfdcCampaignsToMaster
 from accounts.tasks import retrieveSfdcAccounts, saveSfdcAccountsToMaster
@@ -161,9 +161,9 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {
-#                      "mkto" : [retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns],  #
-                     "hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
-#                      "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcOpportunities, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcHistory],
+#                      "mkto" : [retrieveMktoLeadCreatedActivities, retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns], #IMPORTANT - Lead Created Activities has to be before Leads
+#                     "hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
+#                      "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcOpportunities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory],
 #                      #  "sugr" : [retrieveSugrLeads],                    
 #                       "bufr" : [retrieveBufrTwInteractions], 
 #                      "goog" : [retrieveGoogWebsiteTraffic], \
@@ -171,9 +171,9 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {
-#                      "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster], # 
-                      "hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
-#                      "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcHistoryToMaster],  # 
+#                       "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster],
+#                      "hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
+#                       "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster],  # 
 #                      # "sugr" : [saveSugrLeadsToMaster], 
 #                       "bufr" : [saveBufrTwInteractionsToMaster], 
 #                      "goog": [saveGoogleWebsiteTrafficToMaster], 
@@ -184,31 +184,31 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 # #         # saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster
 # #         #collect all relevant tasks in one list and retrieve metadata as well
         for source in existingIntegration.integrations.keys():
-            #change metadata depending on source system
-            if source == 'sfdc':
-                metadata_objects = ['lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
-            elif source == 'mkto':
-                metadata_objects = ['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
-            elif source == 'hspt':
-                metadata_objects = ['lead'] #objects for which metadata should be collected
-            else:
-                metadata_objects = [] #objects for which metadata should be collected
-            # if sfdc, explicitly refresh the access token
-            if source == 'sfdc':
-                sfdc = Salesforce()
-                sfdc.refresh_token(company_id)
-            #collect meta data
-            url = host + '/api/v1/company/' + str(company_id) + '/integrations/metadata/'
-            for object in metadata_objects:
-                _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " started")
-                params = {'code': source, 'object': object}
-                resp = s.get(url, params=params) # get metadata about activities
-                if not resp.status_code == 200:
-                    _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " failed")
-                    continue
-                else:
-                    _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " completed")
-                   
+#             #change metadata depending on source system
+#             if source == 'sfdc':
+#                 metadata_objects = ['lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
+#             elif source == 'mkto':
+#                 metadata_objects = ['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
+#             elif source == 'hspt':
+#                 metadata_objects = ['lead'] #objects for which metadata should be collected
+#             else:
+#                 metadata_objects = [] #objects for which metadata should be collected
+#             # if sfdc, explicitly refresh the access token
+#             if source == 'sfdc':
+#                 sfdc = Salesforce()
+#                 sfdc.refresh_token(company_id)
+#             #collect meta data
+#             url = host + '/api/v1/company/' + str(company_id) + '/integrations/metadata/'
+#             for object in metadata_objects:
+#                 _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " started")
+#                 params = {'code': source, 'object': object}
+#                 resp = s.get(url, params=params) # get metadata about activities
+#                 if not resp.status_code == 200:
+#                     _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " failed")
+#                     continue
+#                 else:
+#                     _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " completed")
+                     
             #collect retrieval tasks
             print 'starting retrieval tasks'
             tasks = []
@@ -254,11 +254,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                     {'chart_name': 'tw_performance', 'system_type': 'SO', 'chart_title':'Twitter Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'fb_performance', 'system_type': 'SO', 'chart_title':'Facebook_Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                     {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                     {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                     #{'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
-#                     {'chart_name': 'form_fills', 'system_type': 'MA', 'chart_title':'Form Fills', 'mode': run_type, 'start_date': sinceDateTime}, \
-                      {'chart_name': 'campaign_email_performance', 'system_type': 'MA', 'chart_title':'Campaign Performance by Email', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                      {'chart_name': 'campaign_email_performance', 'system_type': 'MA', 'chart_title':'Campaign Performance by Email', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                      {'chart_name': 'email_cta_performance', 'system_type': 'MA', 'chart_title':'Email Performance by CTA', 'mode': run_type, 'start_date': sinceDateTime}, \
                
                 ]
@@ -275,16 +271,36 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
             else:
                 _superJobMonitorAddTask(superJobMonitor, 'Claritix', 'Retrieved data for ' + chart['chart_title'])    
         
+        # call dashboard calculate tasks
+        dashboards = [\
+#                     {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
+                     {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                     {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                     {'chart_name': 'form_fills', 'system_type': 'MA', 'chart_title':'Form Fills', 'mode': run_type, 'start_date': sinceDateTime}, \
+                    ]
+        
+        url = host + '/api/v1/company/' + str(company_id) + '/dashboards/calculate/'
+        for dashboard in dashboards:
+            print 'starting dashboard ' + str(dashboard['chart_title'])
+            _superJobMonitorAddTask(superJobMonitor, 'Claritix', "Started calculating " + str(dashboard['chart_title']))
+            resp = s.get(url, params=dashboard)
+            if not resp.status_code == 200:
+                print 'incorrect status code was ' + str(resp.status_code)
+                _superJobMonitorAddTask(superJobMonitor, 'Claritix', 'Could not retrieve data for ' + dashboard['chart_title'])
+                continue
+            else:
+                _superJobMonitorAddTask(superJobMonitor, 'Claritix', 'Retrieved data for ' + dashboard['chart_title'])    
+        
         #delete all data from past successful initial runs in Temp Table
-        if run_type == 'initial':
-            _superJobMonitorAddTask(superJobMonitor, "Claritix", "Deletion of temp data table started") 
-            successfulJobs = SuperJobMonitor.objects(Q(company_id=company_id) & Q(type='initial') & Q(status='Completed'))
-            successfulJobsListTemp = list(successfulJobs)
-            print 'found job ids ' + str(len(successfulJobsListTemp))
-            successfulJobsList = [i.id for i in successfulJobsListTemp]
-            count = TempData.objects(job_id__in=successfulJobsList).count()
-            TempData.objects(job_id__in=successfulJobsList).delete()
-            _superJobMonitorAddTask(superJobMonitor, "Claritix", str(count) + " records deleted from temp data table")
+#         if run_type == 'initial':
+#             _superJobMonitorAddTask(superJobMonitor, "Claritix", "Deletion of temp data table started") 
+#             successfulJobs = SuperJobMonitor.objects(Q(company_id=company_id) & Q(type='initial') & Q(status='Completed'))
+#             successfulJobsListTemp = list(successfulJobs)
+#             print 'found job ids ' + str(len(successfulJobsListTemp))
+#             successfulJobsList = [i.id for i in successfulJobsListTemp]
+#             count = TempData.objects(job_id__in=successfulJobsList).count()
+#             TempData.objects(job_id__in=successfulJobsList).delete()
+#             _superJobMonitorAddTask(superJobMonitor, "Claritix", str(count) + " records deleted from temp data table")
         #delete all data from past successful delta runs in Temp Table
         if run_type == 'delta':
             _superJobMonitorAddTask(superJobMonitor, "Claritix", "Deletion of temp data delta table started") 

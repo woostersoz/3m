@@ -36,6 +36,30 @@
     
   </div>
   
+   <div class="col-md-12 pull-right chart-tools" ng-hide="showBinder">
+		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
+				ng-click="postToSlack()" title="Post to Slack">
+				<span class="fa fa-slack"></span>
+				Post to Slack
+			</a>
+			<a href="#" class="btn btn-sm pull-right"
+				ng-click="postToChannel()" title="Post to Channel">
+				<span class="fa fa-volume-up"></span>
+				Post
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="snapshot()" title="Take Snapshot">
+				<span class="glyphicon glyphicon-camera"></span>
+				Snapshot
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="createNote()" title="Add Sticky">
+				<span class="glyphicon glyphicon-comment"></span>
+				Sticky
+			</a> 
+			
+  </div>
+  
   <div class="main-body">
      <div id="top-half" class="text-center" style="background-color:#fff; margin-left:auto; margin-right: auto; margin-top:0px">
      <div class="col-xs-6 uppercase" style="color:#000; font-size:100%; font-style:italic">Marketing</div>

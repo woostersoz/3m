@@ -15,7 +15,7 @@ from celery.worker.control import heartbeat
 
 class SuperAccount(Document):
 
-    names = ListField(StringField)
+    names = ListField(StringField())
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {'collection': 'superAccount', 'indexes': ['id', 'updated_date', 'names'], 'ordering':['-updated_date']}
@@ -23,11 +23,12 @@ class SuperAccount(Document):
 class Account(Document):
 
     company_id = IntField()
-    mkto_id = StringField(sparse=True)
-    sfdc_id = StringField(sparse=True)
-    hspt_id = StringField(sparse=True)
+    mkto_id = StringField()
+    sfdc_id = StringField()
+    hspt_id = StringField()
     accounts = DictField()
-    leads = ListField(ReferenceField(Lead))
+    leads = ListField(required=False) #ListField(ReferenceField(Lead))) changed this on 1/20/15 to allow for SFDC Contact ID to be kept here rather than CX Lead ID
+    opportunities = DictField()
     source_name = StringField()
     source_source = StringField()
     source_industry = StringField()

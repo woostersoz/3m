@@ -69,6 +69,10 @@ def _date_from_str(dateString, format=None): # returns a datetime object from a 
     
     if format == 'short': 
         return datetime.strptime(dateString, '%Y-%m-%d %H:%M:%S')
+    elif format == 'utc':
+        return datetime.strptime(dateString, '%Y-%m-%dT%H:%M:%SZ') 
+    elif format == 'only_date':
+        return datetime.strptime(dateString, '%Y-%m-%d') 
     else:
         if dateString.find('+0000') != -1: #account for weird formats
             return datetime.strptime(dateString, '%Y-%m-%dT%H:%M:%S.000+0000') 

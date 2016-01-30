@@ -18,7 +18,8 @@ from hubspot.contacts._schemas.contacts import CONTACT_SCHEMA
 from mongoengine.queryset.visitor import Q
 from mmm.views import _str_from_date
 from mmm.views import saveTempData, saveTempDataDelta
-from company.models import TempData, TempDataDelta
+from company.models import TempData, TempDataDelta, CompanyIntegration
+from bson.objectid import ObjectId
 
 @app.task
 def retrieveMktoContacts(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
@@ -61,9 +62,11 @@ def retrieveMktoContacts(user_id=None, company_id=None, job_id=None, run_type=No
 def retrieveSfdcContacts(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
         sdfc = Salesforce()
+        
         if sinceDateTime is None:
-            sinceDateTime = datetime.now() - timedelta(days=30) #change to 365
-        contactList = sdfc.get_contacts(user_id, company_id) #, _str_from_date(sinceDateTime))
+            sinceDateTime = (datetime.now() - timedelta(days=30)).date()
+            
+        contactList = sdfc.get_contacts_delta(user_id, company_id, _str_from_date(sinceDateTime), run_type)
         print 'got back contacts ' + str(len(contactList['records']))
         saveSfdcContacts(user_id=user_id, company_id=company_id, contactList=contactList, job_id=job_id, run_type=run_type)
         try:
@@ -166,6 +169,8 @@ def saveSfdcContacts(user_id=None, company_id=None, contactList=None, job_id=Non
             saveTempDataDelta(company_id=company_id, record_type="contact", source_system="sfdc", source_record=contact, job_id=job_id)
            
 def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #delete later
+    #job_id = ObjectId("569adcfc8afb00205c799f28")
     if run_type == 'initial':
         contacts = TempData.objects(Q(company_id=company_id) & Q(record_type='contact') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -175,6 +180,12 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
     contactList = [i['source_record'] for i in contactListTemp]   
     #print 'saving sfdc contacts'
     try: 
+        #get the custom field for Contact Status, if it exists
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        contact_status = None
+        if 'sfdc' in existingIntegration['integrations']:
+            contact_status = existingIntegration['mapping'].get('sfdc_contact_status', None)
+            
         for newContact in contactList: #['records']:
 
             # company_id = request.user.company_id
@@ -192,8 +203,10 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
                     existingContact.source_first_name = newContact['FirstName']
                     existingContact.source_last_name = newContact['LastName']
                     existingContact.source_email = newContact['Email']
-                    existingContact.source_created_date = str(newContact['CreatedDate'])
+                    #existingContact.source_created_date = str(newContact['CreatedDate'])
                     existingContact.source_source = newContact['LeadSource']
+                    if contact_status is not None and contact_status in newContact:
+                        existingContact.source_status = newContact[contact_status]
                     existingContact.contacts["sfdc"] = newContact
                     existingContact.save()
                     #Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=sfdc_contact_Id)).update(contacts__sfdc=newContact)
@@ -201,28 +214,34 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
                     existingContact.contacts['sfdc'] = {}
                     existingContact.contacts['sfdc'] = newContact
                     existingContact.save()
-            elif existingContact is None:  # this lead does not exist 
-                existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(leads__sfdc__ConvertedContactId=sfdc_contact_Id)).first()
+            #elif existingContact is None:  # this lead does not exist 
+            else:
+                existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(leads__sfdc__ConvertedContactId=sfdc_contact_Id)).hint('company_id_1_leads.sfdc.convertedContactId_1').first()
                 if existingLeadSfdc is not None:
                     print 'found match for sfdc lead for contact ' + str(sfdc_contact_Id)
+                    #existingLeadSfdcList = list(existingLeadSfdc)
                     existingLeadSfdc.sfdc_contact_id = sfdc_contact_Id
+                    if contact_status is not None and contact_status in newContact:
+                        existingLeadSfdc.source_status = newContact[contact_status]
                     existingLeadSfdc.contacts = {}
                     existingLeadSfdc.contacts['sfdc'] = newContact
                     existingLeadSfdc.save()
                     #remove below comments after figuring out how Mkto stored SFDC contact ID
-                existingLeadMkto = Lead.objects(Q(company_id=company_id) & Q(leads__mkto__sfdcContactId=sfdc_contact_Id)).first()
-                if existingLeadMkto is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
-                    print 'found mkto lead' + existingLeadMkto.mkto_id
-                    existingLeadMkto.sfdc_contact_id = sfdc_contact_Id
-                    #existingLeadMkto.contacts = {}
-                    existingLeadMkto.contacts['sfdc'] = newContact
-                    existingLeadMkto.save()
-                existingLeadHspt = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__salesforcecontactid=sfdc_contact_Id)).first()
-                if existingLeadHspt is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
-                    existingLeadHspt.sfdc_contact_id = sfdc_contact_Id
-                    existingLeadHspt.contacts = {}
-                    existingLeadHspt.contacts['sfdc'] = newContact
-                    existingLeadHspt.save()
+                else:
+                    existingLeadMkto = Lead.objects(Q(company_id=company_id) & Q(leads__mkto__sfdcContactId=sfdc_contact_Id)).first()
+                    if existingLeadMkto is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
+                        print 'found mkto lead' + existingLeadMkto.mkto_id
+                        existingLeadMkto.sfdc_contact_id = sfdc_contact_Id
+                        #existingLeadMkto.contacts = {}
+                        existingLeadMkto.contacts['sfdc'] = newContact
+                        existingLeadMkto.save()
+                    else:
+                        existingLeadHspt = Lead.objects(Q(company_id=company_id) & Q(leads__hspt__properties__salesforcecontactid=sfdc_contact_Id)).first()
+                        if existingLeadHspt is not None:  # we found a MKto lead record which is matched to this new Sfdc lead
+                            existingLeadHspt.sfdc_contact_id = sfdc_contact_Id
+                            existingLeadHspt.contacts = {}
+                            existingLeadHspt.contacts['sfdc'] = newContact
+                            existingLeadHspt.save()
             if existingLeadSfdc is None and existingLeadMkto is None and existingLeadHspt is None and existingContact is None:  # no matches found so save new record
                 lead = Lead()
                 lead.sfdc_contact_id = sfdc_contact_Id
@@ -232,6 +251,8 @@ def saveSfdcContactsToMaster(user_id=None, company_id=None, job_id=None, run_typ
                 lead.source_email = newContact['Email']
                 lead.source_created_date = str(newContact['CreatedDate'])
                 lead.source_source = newContact['LeadSource']
+                if contact_status is not None and contact_status in newContact:
+                    lead.source_status = newContact[contact_status]
                 lead.contacts = {}
                 lead.contacts["sfdc"] = newContact
                 lead.save()

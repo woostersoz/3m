@@ -611,16 +611,18 @@ class Marketo:
             mc = self.create_client(self.host, self.client_id, self.client_secret)
 
             fieldList = None
-            names = []
-            company_id = self.company_id  
-            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-            if existingIntegration is not None: 
-                integration = existingIntegration.integrations['mkto']
-                if 'metadata' in integration:
-                    if 'lead' in integration['metadata']:
-                        metadata = integration['metadata']['lead'] 
-                        for i in range(len(metadata)):
-                            names.append(metadata[i]['rest']['name'])
+            #names = []
+            names = ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt', 'sfdcLeadId', 'leadStatus', 'leadRevenueStageId', 'originalSourceInfo', 'sfdcAccountId', 'company', 'sfdcContactId', 'originalSourceType', 'leadSource', 'lastLeadSource']
+
+#             company_id = self.company_id  
+#             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+#             if existingIntegration is not None: 
+#                 integration = existingIntegration.integrations['mkto']
+#                 if 'metadata' in integration:
+#                     if 'lead' in integration['metadata']:
+#                         metadata = integration['metadata']['lead'] 
+#                         for i in range(len(metadata)):
+#                             names.append(metadata[i]['rest']['name'])
                         
             #fieldList = ', ' .join(names)
             if names:
@@ -637,44 +639,47 @@ class Marketo:
             mc = self.create_client(self.host, self.client_id, self.client_secret)
 
             fieldList = None
-            names = []
-            company_id = self.company_id  
-            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-            if existingIntegration is not None: 
-                integration = existingIntegration.integrations['mkto']
-                if 'metadata' in integration:
-                    if 'lead' in integration['metadata']:
-                        metadata = integration['metadata']['lead'] 
-                        for i in range(len(metadata)):
-                            names.append(metadata[i]['rest']['name'])
-                        
+#            names = []
+            names = ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt', 'sfdcLeadId', 'leadStatus', 'leadRevenueStageId', 'originalSourceInfo', 'sfdcAccountId', 'company', 'sfdcContactId', 'originalSourceType', 'leadSource']
+
+#             company_id = self.company_id  
+#             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+#             if existingIntegration is not None: 
+#                 integration = existingIntegration.integrations['mkto']
+#                 if 'metadata' in integration:
+#                     if 'lead' in integration['metadata']:
+#                         metadata = integration['metadata']['lead'] 
+#                         for i in range(len(metadata)):
+#                             names.append(metadata[i]['rest']['name'])
+#                         
             #fieldList = ', ' .join(names)
             if names:
-                return mc.execute(method = 'get_leads', filtr = 'id', values = leadIds, fields=names)
+                return mc.execute(method = 'get_leads', filtr = 'id', values = leadIds, fields=names) #
             else:
                 raise Exception("Could not retrieve field list for Marketo")
 
         except Exception as e:
             raise Exception("Could not retrieve leads from Marketo: " + str(e))
 
-    def get_leads_by_listId(self, listId = None):
+    def get_leads_by_listId(self, listId = None): #needed to delete leads from the CX Leads list in MKTO
         try:
             self.get_creds()
             mc = self.create_client(self.host, self.client_id, self.client_secret)
 
             fieldList = None
-            names = []
-            company_id = self.company_id  
-            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-            if existingIntegration is not None: 
-                integration = existingIntegration.integrations['mkto']
-                if 'metadata' in integration:
-                    if 'lead' in integration['metadata']:
-                        metadata = integration['metadata']['lead'] 
-                        for i in range(len(metadata)):
-                            names.append(metadata[i]['rest']['name'])
+            names = ['id']
+#            names = ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt', 'sfdcLeadId', 'leadStatus', 'leadRevenueStageId', 'originalSourceInfo', 'sfdcAccountId', 'company', 'sfdcContactId', 'originalSourceType', 'leadSource', 'lastLeadSource']
+
+#             company_id = self.company_id  
+#             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+#             if existingIntegration is not None: 
+#                 integration = existingIntegration.integrations['mkto']
+#                 if 'metadata' in integration:
+#                     if 'lead' in integration['metadata']:
+#                         metadata = integration['metadata']['lead'] 
+#                         for i in range(len(metadata)):
+#                             names.append(metadata[i]['rest']['name'])
                         
-            #fieldList = ', ' .join(names)
             if names:
                 return mc.execute(method = 'get_leads_by_listId', listId = listId, batchSize = None, fields=names)
             else:
@@ -699,13 +704,13 @@ class Marketo:
         except Exception as e:
             raise Exception("Could not retrieve activity types from Marketo: " + str(e))
             
-    def get_lead_activity(self, activityTypeIds, sinceDatetime=datetime.now() - timedelta(days=30)):
+    def get_lead_activity(self, activityTypeIds, sinceDatetime=datetime.now() - timedelta(days=30), leadListId=None):
         try:
             self.get_creds()
             mc = self.create_client(self.host, self.client_id, self.client_secret)
             #sinceDatetime=datetime.now() - timedelta(days=365)
             #print 'first date is ' + str(sinceDatetime)
-            return mc.execute(method = 'get_lead_activity', activityTypeIds = activityTypeIds, sinceDatetime = sinceDatetime, batchSize = None, listId = None)
+            return mc.execute(method = 'get_lead_activity', activityTypeIds = activityTypeIds, sinceDatetime = sinceDatetime, batchSize = None, listId = leadListId)
         except Exception as e:
             raise Exception("Could not retrieve activities from Marketo: " + str(e))
         
@@ -726,8 +731,25 @@ class Marketo:
             return mc.execute(method = 'get_lists', id = id, name = name, programName = programName, workspaceName = workspaceName, batchSize = None)
         except Exception as e:
             raise Exception("Could not retrieve lists from Marketo: " + str(e))
-    
-    
+        
+    def save_leads_to_list(self, listId=None, leadsIds=None):
+        try:
+            self.get_creds()
+            mc = self.create_client(self.host, self.client_id, self.client_secret)
+            id = ',' . join(leadsIds)
+            return mc.execute(method = 'save_leads_to_list', id = id, listId = str(listId))
+        except Exception as e:
+            raise Exception("Could not save leads to list in Marketo: " + str(e))
+        
+    def remove_leads_from_list(self, listId=None, leadsIds=None):
+        try:
+            self.get_creds()
+            mc = self.create_client(self.host, self.client_id, self.client_secret)
+            id = ',' . join(leadsIds)
+            return mc.execute(method = 'remove_leads_from_list', id = id, listId = str(listId))
+        except Exception as e:
+            raise Exception("Could not save leads to list in Marketo: " + str(e))
+  
     def describe(self, objName):
         try:
             self.get_creds()
@@ -792,7 +814,7 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve leads from Salesforce: " + str(e))
      
-    def get_leads_delta(self, user_id, company_id, sinceDateTime): #used by cron job
+    def get_leads_delta(self, user_id, company_id, sinceDateTime, run_type): #used by cron job
         try:
             fieldList = None
             names = []
@@ -813,9 +835,11 @@ class Salesforce:
                 #path = 'query/'
                 #client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
                 #return client.restful(path, params)
-                
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                query = 'SELECT ' + fieldList + ' from Lead where CreatedDate > ' + sinceDateTime + ' or LastModifiedDate > ' + sinceDateTime 
+                query = 'SELECT ' + fieldList + ' from Lead where CreatedDate > ' + sinceDateTime + modified_qry
                 #print 'dping query' + str(query)
                 return client.query_all(query)
         except Exception as e:
@@ -850,7 +874,31 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve accounts from Salesforce: " + str(e))
            
-    def get_accounts_delta(self, user_id, company_id, sinceDateTime): #used by cron job
+    def get_accounts_delta(self, user_id, company_id, sinceDateTime, run_type): #used by cron job
+        try:
+            fieldList = None
+            names = []
+            #company_id = request.user.company_id  
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+                if 'metadata' in integration:
+                    if 'contact' in integration['metadata']:
+                        metadata = integration['metadata']['account'] 
+                        for obj in metadata['fields']:
+                            names.append(obj['name'])
+            fieldList = ', ' .join(names)
+            if fieldList is not None:
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
+                client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+                query = 'SELECT ' + fieldList + ' from Account where CreatedDate > ' + sinceDateTime + modified_qry
+                return client.query_all(query)
+        except Exception as e:
+            raise Exception("Could not retrieve accounts from Salesforce: " + str(e))
+        
+    def get_single_account(self, user_id, company_id, account_id): #used to get a specific account (e.g. for an Opp)
         try:
             fieldList = None
             names = []
@@ -866,10 +914,10 @@ class Salesforce:
             fieldList = ', ' .join(names)
             if fieldList is not None:
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                query = 'SELECT ' + fieldList + ' from Account where CreatedDate > ' + sinceDateTime
+                query = 'SELECT ' + fieldList + ' from Account where Id = \'' + account_id + '\''
                 return client.query_all(query)
         except Exception as e:
-            raise Exception("Could not retrieve accounts from Salesforce: " + str(e))
+            raise Exception("Could not retrieve account from Salesforce: " + str(e))
         
     def get_contacts(self, user_id, company_id):
         try:
@@ -900,7 +948,7 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve contacts from Salesforce: " + str(e))
            
-    def get_contacts_delta(self, user_id, company_id, sinceDateTime): #used by cron job
+    def get_contacts_delta(self, user_id, company_id, sinceDateTime, run_type): #used by cron job
         try:
             fieldList = None
             names = []
@@ -915,21 +963,34 @@ class Salesforce:
                             names.append(obj['name'])
             fieldList = ', ' .join(names)
             if fieldList is not None:
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                query = 'SELECT ' + fieldList + ' from Contact where CreatedDate > ' + sinceDateTime
+                query = 'SELECT ' + fieldList + ' from Contact where CreatedDate > ' + sinceDateTime + modified_qry
                 print 'dping query' 
                 print sinceDateTime
                 return client.query_all(query)
         except Exception as e:
             raise Exception("Could not retrieve contacts from Salesforce: " + str(e))
         
-    def get_contacts_for_opportunities(self, user_id, company_id): # because SFDC does not send Contact ID within an Opp
+    def get_contacts_for_opportunities(self, user_id, company_id, oppid_list): # because SFDC does not send Contact ID within an Opp
         try:    
+            fieldList = None
+            names = []
+            #company_id = request.user.company_id  
             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
             if existingIntegration is not None: 
                 integration = existingIntegration.integrations['sfdc']
+                if 'metadata' in integration:
+                    if 'contact' in integration['metadata']:
+                        metadata = integration['metadata']['contact'] 
+                        for obj in metadata['fields']:
+                            names.append(obj['name'])
+            fieldList = ', ' .join(names)
+            if fieldList is not None:
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                query = 'SELECT Id, FirstName, LastName, Email, CreatedDate, LeadSource, (SELECT Id,OpportunityId,Opportunity.StageName, Opportunity.Amount, ContactId FROM OpportunityContactRoles) FROM Contact'
+                query = 'SELECT ' + fieldList + ', (SELECT Id, OpportunityId, Opportunity.StageName, Opportunity.Amount, ContactId FROM OpportunityContactRoles) FROM Contact where Id in (SELECT ContactId from OpportunityContactRole WHERE OpportunityId IN ' + oppid_list + ')'
                 #print 'dping query' + str(query)
                 return client.query_all(query)
             else:
@@ -962,7 +1023,7 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve campaigns from Salesforce: " + str(e))
         
-    def get_campaigns_delta(self, user_id, company_id, sinceDateTime): # for cron job
+    def get_campaigns_delta(self, user_id, company_id, sinceDateTime, run_type): # for cron job
         try:
             fieldList = None
             names = []
@@ -979,7 +1040,10 @@ class Salesforce:
             if fieldList is not None:
                 #print fieldList
                 #path = 'SELECT Id, IsDeleted, MasterRecordId, LastName, FirstName, Salutation, Name, Title, Company from Lead'
-                query = 'SELECT ' + fieldList + ' from Campaign  where CreatedDate > ' + sinceDateTime 
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
+                query = 'SELECT ' + fieldList + ' from Campaign  where CreatedDate > ' + sinceDateTime  + modified_qry
                 #path = 'query/'
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
                 return client.query_all(query)
@@ -1014,7 +1078,7 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve opportunities from Salesforce: " + str(e))
     
-    def get_opportunities_delta(self, user_id, company_id, sinceDateTime): # for cron job
+    def get_opportunities_delta(self, user_id, company_id, sinceDateTime, run_type): # for cron job
         try:
             fieldList = None
             names = []
@@ -1032,7 +1096,10 @@ class Salesforce:
             if fieldList is not None:
                 #print fieldList
                 #path = 'SELECT Id, IsDeleted, MasterRecordId, LastName, FirstName, Salutation, Name, Title, Company from Lead'
-                query = 'SELECT ' + fieldList + ' from Opportunity where CreatedDate > ' + sinceDateTime
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
+                query = 'SELECT ' + fieldList + ' from Opportunity where CreatedDate > ' + sinceDateTime + modified_qry
                 #path = 'query/'
                 #print 'params is ' + str(params)
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
@@ -1068,7 +1135,7 @@ class Salesforce:
         except Exception as e:
             raise Exception("Could not retrieve opportunities from Salesforce: " + str(e))
     
-    def get_opportunities_from_accounts_daily(self, user_id, company_id, account_list, sinceDateTime): # for cron job
+    def get_opportunities_from_accounts_daily(self, user_id, company_id, account_list, sinceDateTime, run_type): # for cron job
         try:
             fieldList = None
             names = []
@@ -1086,7 +1153,10 @@ class Salesforce:
             if fieldList is not None:
                 #print fieldList
                 #path = 'SELECT Id, IsDeleted, MasterRecordId, LastName, FirstName, Salutation, Name, Title, Company from Lead'
-                params = {'q': 'SELECT ' + fieldList + ' from Opportunity where AccountId in ' + account_list + ' AND CreatedDate > ' + sinceDateTime}
+                modified_qry = ''
+                if run_type == 'delta':
+                    modified_qry = ' or LastModifiedDate > ' + sinceDateTime 
+                params = {'q': 'SELECT ' + fieldList + ' from Opportunity where AccountId in ' + account_list + ' AND CreatedDate > ' + sinceDateTime + modified_qry }
                 path = 'query/'
                 #print 'params is ' + str(params)
                 client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
@@ -1151,7 +1221,7 @@ class Salesforce:
             else:
                 return []
                 #raise Exception('No integration found for SFDC')
-            query = 'SELECT Id, LeadId, CreatedById, CreatedDate, OldValue, NewValue from LeadHistory where CreatedDate > ' + sinceDateTime  + ' and LeadId in ' + lead_list
+            query = 'SELECT Id, LeadId, CreatedById, CreatedDate, OldValue, NewValue, Field from LeadHistory where CreatedDate > ' + sinceDateTime  + ' and LeadId in ' + lead_list
             #print 'query is ' + str(query)
             client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
             return client.query_all(query)['records']
@@ -1168,7 +1238,7 @@ class Salesforce:
             else:
                 return []
                 #raise Exception('No integration found for SFDC')
-            query = 'SELECT ContactId, CreatedById, CreatedDate, OldValue, NewValue from ContactHistory where CreatedDate > ' + sinceDateTime  + ' and ContactId in ' + contact_list
+            query = 'SELECT Id, ContactId, CreatedById, CreatedDate, OldValue, NewValue, Field from ContactHistory where CreatedDate > ' + sinceDateTime  + ' and ContactId in ' + contact_list
             client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
             return client.query_all(query)['records']
             

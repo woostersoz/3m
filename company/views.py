@@ -261,7 +261,7 @@ class CompanyIntegrationViewSet(viewsets.ModelViewSet):
     
     def list(self, request, id=None): 
         try:
-            company = CompanyIntegration.objects(company_id=id).first()
+            company = CompanyIntegration.objects(company_id=id).only('initial_run_in_process').first()
             serializedList = CompanyIntegrationSerializer(company, many=False)
             return Response(serializedList.data)
         except Exception as e:

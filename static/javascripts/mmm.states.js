@@ -59,6 +59,32 @@
 				    	parent: 'dashboards-listing'
 				    }
 				})
+				.state('analytics', { //deprecated
+					url : '',
+					redirectTo: 'charts',
+				    ncyBreadcrumb: {
+				    	label: 'Analytics',
+				    }
+				})
+				.state('charts-listing', {
+					url : '/charts',
+					controller : 'AnalyticsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/analytics-listing.html',
+				    ncyBreadcrumb: {
+				    	label: 'Charts'
+				    }
+				})
+				.state('showchart', {
+					url : '/charts/:url',
+					controller : 'AnalyticsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/analytics/analytics-chart.html',
+					ncyBreadcrumb: {
+				    	label: '{{ chartTitle }}',
+				    	parent: 'charts-listing'
+				    }
+				})
 				.state('views-listing', {
 					url : '/views',
 					controller : 'ViewsController',
@@ -76,6 +102,12 @@
 					ncyBreadcrumb: {
 				    	label: '{{ viewTitle }}',
 				    	parent: 'views-listing'
+				    }
+				})
+				.state('utils', {  
+					url : '',
+				    ncyBreadcrumb: {
+				    	label: 'Helpful Stuff',
 				    }
 				})
 		        .state(
@@ -326,33 +358,6 @@
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/company/dashboard.html'
 				})
-				.state('analytics', {
-					url : '',
-					redirectTo: 'charts',
-				    ncyBreadcrumb: {
-				    	label: 'Analytics',
-				    }
-				})
-				.state('charts', {
-					url : '/charts',
-					controller : 'AnalyticsController',
-					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/analytics-listing.html',
-				    ncyBreadcrumb: {
-				    	label: 'Charts',
-				    	parent: 'analytics'
-				    }
-				})
-				.state('showchart', {
-					url : '/charts/:url',
-					controller : 'AnalyticsController',
-					controllerAs : 'vm',
-					templateUrl : '/static/templates/analytics/analytics-chart.html',
-					ncyBreadcrumb: {
-				    	label: '{{ chartTitle }}',
-				    	parent: 'charts'
-				    }
-				})
 				.state('tweets', {
 					url : '/tweets',
 					controller : 'SocialController',
@@ -384,7 +389,7 @@
 					templateUrl : '/static/templates/analytics/binders.html',
 					ncyBreadcrumb: {
 				    	label: 'Binders',
-				    	parent: 'analytics'
+				    	parent: 'utils'
 				    }
 				})
 				.state('binders-list', {
@@ -428,7 +433,7 @@
 					templateUrl : '/static/templates/analytics/snapshots.html',
 					ncyBreadcrumb: {
 				    	label: 'Snapshots',
-				    	parent: 'analytics'
+				    	parent: 'utils'
 				    }
 				})
 				.state('snapshots-detail', {

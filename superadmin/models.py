@@ -106,9 +106,17 @@ class SuperViews(Document):
     system_type = StringField()
     object = StringField()
     category = StringField()
+    sequence = IntField()
     src = StringField(max_length=200)
     status = StringField()
     descr = StringField()
+    template = StringField()
     filters = ListField(StringField())
     
     meta = {'collection': 'superViews', 'indexes': ['system_type', 'name', 'object']}
+
+class SuperFilters(Document):
+    source_system = StringField()
+    filters = DictField()
+    
+    meta = {'collection': 'superFilters', 'indexes': ['source_system', 'filters']}

@@ -7,7 +7,7 @@
   </div>
 
   <div class="portlet-header" ng-hide="showBinder">
-        <div class="title col-md-12">Funnel</div>
+        <div class="title col-md-12">Duration</div>
         <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
         <div class="title col-md-3 breadcrumb">
            <a href="#" ui-sref="dashboards-listing" class="pull-right" style="font-weight:700;">Back to Dashboards</a>
@@ -35,6 +35,30 @@
     
   </div>
   
+  <div class="col-md-12 pull-right chart-tools" ng-hide="showBinder">
+		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
+				ng-click="postToSlack()" title="Post to Slack">
+				<span class="fa fa-slack"></span>
+				Post to Slack
+			</a>
+			<a href="#" class="btn btn-sm pull-right"
+				ng-click="postToChannel()" title="Post to Channel">
+				<span class="fa fa-volume-up"></span>
+				Post
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="snapshot()" title="Take Snapshot">
+				<span class="glyphicon glyphicon-camera"></span>
+				Snapshot
+			</a>
+			<a href="#"  class="btn btn-sm pull-right"
+				ng-click="createNote()" title="Add Sticky">
+				<span class="glyphicon glyphicon-comment"></span>
+				Sticky
+			</a> 
+			
+  </div>
+  
   <div class="main-body">
      <div id="top-half" style="background-color:#fff">
  
@@ -42,9 +66,9 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="margin-top:30px">
+  <div class="col-xs-2 text-center" style="margin-top:35px">
     
-    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{currentPage.dashboardData.created_count | number:0}}</h4> <h5> ( {{ currentPage.dashboardData.percentage_increase | number:2 }}% ) </h5>
+    <h4 class="info-metric"  style="margin-top:0px; color:#003d50" title="Number of new contacts in this time period">{{currentPage.dashboardData.created_count | number:0}}</h4>
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important; background-color:transparent !important;">
       <i class="fa fa-group fa-2x" style="color:#003d50; font-size:1.5em !important"></i>
     </a>
@@ -70,14 +94,15 @@
     <ul style="list-style:none; padding:0px" class="text-center">
       <li ng-repeat='(key, value) in currentPage.dashboardData.created_source' class="info-list-item-compressed text-center" ng-class="{'info-list-item-compressed-binder' : showBinder}">
          <a class="btn btn-lg text-center" style="color:#04a1d9 !important; background-color:transparent !important;">
-            <i ng-show="key == 'EMAIL_MARKETING'" class="fa fa-envelope"></i>
-            <i ng-show="key == 'DIRECT_TRAFFIC'" class="fa fa-bullseye"></i>
-            <i ng-show="key == 'OFFLINE'" class="fa fa-flag-o"></i>
-            <i ng-show="key == 'ORGANIC_SEARCH'" class="fa fa-search"></i>
-            <i ng-show="key == 'REFERRALS'" class="fa fa-bullhorn"></i>
-            <i ng-show="key == 'SOCIAL_MEDIA'" class="fa fa-thumbs-o-up"></i>
-            <i ng-show="key == 'PAID_SEARCH'" class="fa fa-money"></i>
-            <i ng-show="key == 'OTHER_CAMPAIGNS'" class="fa fa-volume-up"></i>
+            <i ng-show="key == 'Email'" class="fa fa-envelope"></i>
+            <i ng-show="key == 'Telemarketing'" class="fa fa-phone"></i>
+            <i ng-show="key == 'Partner'" class="fa fa-hand-o-right"></i>
+            <i ng-show="key == 'Events'" class="fa fa-university"></i>
+            <i ng-show="key == 'Referral'" class="fa fa-bullhorn"></i>
+            <i ng-show="key == 'Social Media'" class="fa fa-thumbs-o-up"></i>
+            <i ng-show="key == 'Advertising'" class="fa fa-money"></i>
+            <i ng-show="key == 'Online'" class="fa fa-globe"></i>
+            <i ng-show="key == 'Others'" class="fa fa-volume-up"></i>
             <i ng-show="key == 'Unknown'" class="fa fa-question"></i>
          </a>
          <h6 class="info-label">{{ sourceNames[key] }}</h6>
@@ -98,11 +123,26 @@
   &nbsp;
   </div>
   <div class="col-xs-10 info-box-orange" style="margin-top:15px;" >
-    <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Stages</h5>
+    <h5 class="text-center info-label info-header" style="margin-top:0px; text-transform:uppercase">Statuses</h5>
     <hr style="border-top:1px solid #9bd9f0; clear:both; margin-top:5px; margin-bottom:0px;">
     <ul style="list-style:none; padding:0px" class="text-center">
       <ul style="list-style:none; padding-left:0px; margin-left:0px">
-      <li class="info-list-item-compressed text-center">
+      <li ng-repeat='(key, value) in currentPage.dashboardData.created_stage' ng-if='stageNames[key]' class="info-list-item-compressed text-center" ng-class="{'info-list-item-compressed-binder' : showBinder}">
+         <a class="btn btn-lg text-center" style="color:#04a1d9 !important; background-color:transparent !important;">
+            <i ng-show="key == 'Assigned'" class="fa fa-check-square-o"></i>
+            <i ng-show="key == 'Blitz'" class="fa fa-bullhorn"></i>
+            <i ng-show="key == 'Marketing Nurture'" class="fa fa-heart"></i>
+            <i ng-show="key == 'Open'" class="fa fa-question"></i>
+            <i ng-show="key == 'Qualified'" class="fa fa-thumbs-o-up"></i>
+            <i ng-show="key == 'Unqualified'" class="fa fa-frown-o"></i>
+            <i ng-show="key == 'Working'" class="fa fa-phone"></i>
+            <i ng-show="key == 'Others'" class="fa fa-volume-up"></i>
+            <i ng-show="key == 'Unknown'" class="fa fa-question"></i>
+         </a>
+         <h6 class="info-label">{{ key }}</h6>
+         <p class="info-label info-metric">{{ value | number:0 }}</p>
+      </li>
+      <!-- li class="info-list-item-compressed text-center">
          <a class="btn btn-lg text-center" style="color:#04a1d9 !important; background-color:transparent !important;">
             <i class="fa fa-user"></i>
          </a>
@@ -143,7 +183,7 @@
          </a>
          <h6 class="info-label">{{ stageNames['customer'] }}</h6>
          <p class="info-label info-metric">{{ currentPage.dashboardData.created_stage['customer'] || 0 | number:0 }}</p>
-      </li>
+      </li -->
     </ul>
   </div>
    <div class="col-xs-1" style="min-height:75px; border-right:2px solid  #e6f6fb; border-bottom:2px solid  #e6f6fb; margin-top:0px; margin-left:-50px; margin-right:50px;">
@@ -172,11 +212,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['subscriber'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('leads', 'premql', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['premql'] | number:0 }}</a></h4>
   
   </div>
   
@@ -189,8 +229,8 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-user info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['subscriber'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['subscriber'] | number:0}} days</h3>
+    <h4 class="info-label info-header" style="font-size:110%;">{{ stageNames['premql'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">Days: {{currentPage.dashboardData.leads_outflow_duration['premql']}} </h3>
     
     </div>
   </div>
@@ -199,11 +239,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['subscriber'] | number:0  }} </h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('leads', 'premql', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['premql'] | number:0  }}</a> </h4>
   </div>
   
   <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -224,11 +264,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to the next stage">{{ currentPage.dashboardData.leads_inflow_count['lead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('leads', 'mql', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['mql'] | number:0 }}</a></h4>
   
   </div>
   
@@ -241,8 +281,8 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-bullhorn info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['lead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['lead'] | number:0}} days</h3>
+    <h4 class="info-label info-header" style="font-size:110%;">{{ stageNames['mql'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">Days: {{currentPage.dashboardData.leads_outflow_duration['mql'] }} </h3>
     
     </div>
   </div>
@@ -251,11 +291,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['lead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('leads', 'mql', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['mql'] | number:0  }}</a></h4>
   </div>
   
   <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -276,11 +316,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['marketingqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('leads', 'sal', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['sal'] | number:0 }}</a></h4>
   
   </div>
   
@@ -293,8 +333,8 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-check-square-o info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['marketingqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['marketingqualifiedlead'] | number:0}} days</h3>
+    <h4 class="info-label info-header" style="font-size:110%; ">{{ stageNames['sal'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">Days: {{currentPage.dashboardData.leads_outflow_duration['sal']}} </h3>
     
     </div>
   </div>
@@ -303,11 +343,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['marketingqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('leads', 'sal', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['sal'] | number:0  }}</a></h4>
   </div>
   
  <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -329,11 +369,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['salesqualifiedlead'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('leads', 'sql', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['sql'] | number:0 }}</a></h4>
   
   </div>
   
@@ -346,8 +386,8 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-thumbs-o-up info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['salesqualifiedlead'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['salesqualifiedlead'] | number:0}} days</h3>
+    <h4 class="info-label info-header" style="font-size:110%;">{{ stageNames['sql'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;" title="Average number of days in this stage">Days: {{currentPage.dashboardData.leads_outflow_duration['sql']}} </h3>
     
     </div>
   </div>
@@ -356,11 +396,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['salesqualifiedlead'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('leads', 'sql', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['sql'] | number:0  }}</a></h4>
   </div>
   
   <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -383,11 +423,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['opportunity'] | number:0 }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['opps'] | number:0 }}</a></h4>
   
   </div>
   
@@ -400,8 +440,8 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-money info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="margin-left:-12px; font-size:110%; text-transform:uppercase">{{ stageNames['opportunity'] }}</h4>
-    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">{{currentPage.dashboardData.leads_outflow_duration['opportunity'] | number:0}} days</h3>
+    <h4 class="info-label info-header" style="margin-left:-12px; font-size:110%; ">{{ stageNames['opps'] }}</h4>
+    <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:0px;" title="Average number of days in this stage">Days: {{currentPage.dashboardData.leads_outflow_duration['opps']}} </h3>
     
     </div>
   </div>
@@ -410,11 +450,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage">{{ currentPage.dashboardData.leads_outflow_count['opportunity'] | number:0  }}</h4>
+    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['opps'] | number:0  }}</a></h4>
   </div>
   
   <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -435,11 +475,11 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #b4e3f4; border-radius:50%; margin-top:25px;">
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label"  title="Number of contacts that moved into this stage">{{ currentPage.dashboardData.leads_inflow_count['customer'] | number:0 }}</h4>
+    <h4 class="info-label"  title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('opps', 'closedwon', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['closedwon'] | number:0 }}</a></h4>
   
   </div>
   
@@ -452,7 +492,7 @@
     <a class="btn btn-lg text-center" style="color:#004358 !important;background-color:transparent !important;">
       <i class="fa fa-heart info-icon"></i>
     </a>
-    <h4 class="info-label info-header" style="font-size:110%; text-transform:uppercase">{{ stageNames['customer'] }}</h4>
+    <h4 class="info-label info-header" style="font-size:110%; ">{{ stageNames['closedwon'] }}</h4>
     <h3 class="info-metric row-center-circle"  style="color:#004358; margin-top:10px;"  title="Total value of deals closed in this period">{{currentPage.dashboardData.closed_deal_value | currency:"$" }}</h3>
     
     </div>
@@ -462,7 +502,7 @@
     &nbsp;
   </div>
   
-  <div class="col-xs-2 text-center" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
+  <div class="col-xs-2 text-center info-metric" style="padding-top:20px; min-height:100px; max-height:100px; width:100px; border:2px solid #04a1d9; border-radius:50%; margin-top:25px;">
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-money info-icon"></i>
     </a>
@@ -490,6 +530,13 @@
     
     <h5 ng-hide="showBinder" class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
   
+    <div ng-switch="showLeads">
+	    <div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+	</div>
+	<div ng-switch="showDeals">
+		<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+	</div>
+	
 </div>  
 <!--  end of dashboard -->
 	

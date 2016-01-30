@@ -79,8 +79,8 @@
 		$scope.start_date = '';
 		$scope.end_date = '';
 		$scope.stageNames = {};
-		$scope.stageNames = {'marketingqualifiedlead' : 'MQL', 'salesqualifiedlead' : 'SQL', 'customer' : 'Customer', 'subscriber' : 'Subscriber', 'lead' : 'Lead', 'opportunity' : 'Opportunity'};
-		$scope.sourceNames = {'DIRECT_TRAFFIC' : 'Direct', 'EMAIL_MARKETING': 'Email', 'OFFLINE': 'Offline', 'ORGANIC_SEARCH': 'Organic', 'REFERRALS': 'Referrals', 'SOCIAL_MEDIA': 'Social', 'PAID_SEARCH': 'Paid', 'OTHER_CAMPAIGNS': 'Others', 'Unknown': 'Unknown'};
+		$scope.stageNames = {'Assigned': 'Assigned', 'Blitz': 'Blitz', 'Marketing Nurture': 'Marketing Nurture', 'Open': 'Open', 'Qualified': 'Qualified', 'Unqualified': 'Unqualified', 'Working': 'Working', 'premql': 'Raw Leads', 'mql':'MQLs', 'sal':'SALs', 'sql': 'SQLs', 'opps': 'Deals', 'closedwon': 'Won', 'marketingqualifiedlead' : 'MQL', 'salesqualifiedlead' : 'SQL', 'customer' : 'Customer', 'subscriber' : 'Subscriber', 'lead' : 'Lead', 'opportunity' : 'Opportunity'};
+		$scope.sourceNames = {'Advertising' : 'Advertising', 'Social Media': 'Social', 'Events': 'Events', 'Telemarketing': 'Telemarketing', 'Email': 'Email', 'Referral': 'Referral', 'Partner': 'Partner', 'Online': 'Online', 'Others': 'Others', 'Unknown': 'Unknown'};
 		// for form fills map
 		$scope.map = false;
 		 var continentProperties= {
@@ -295,6 +295,8 @@
     			endDate = moment(newDate.endDate).endOf('day').unix();
     			$scope.start_date = startDate * 1000;
     			$scope.end_date = endDate * 1000;
+    			$scope.showDeals = false;
+				$scope.showLeads = false;
     			
     			Dashboards.retrieveDashboard(account.company, $scope.dashboard_name, $scope.start_date, $scope.end_date, $scope.system_type).then(DashboardSuccessFxn, DashboardErrorFxn);
     			
@@ -312,10 +314,10 @@
         	
         	if (account)
         		{
-        		   $scope.filterTitle = ' for ' + Common.capitalizeFirstLetter($scope.section) + ' ' + Common.capitalizeFirstLetter($scope.object) + ' from ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date / 1000 ).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date / 1000).format("YYYY-MM-DD");
+        		   $scope.filterTitle = ' for ' + $scope.section.toUpperCase() + ' - ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date / 1000 ).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date / 1000).format("YYYY-MM-DD");
         		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
         		     Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
-        		   else if ($scope.object == 'deals' )
+        		   else if ($scope.object == 'deals'|| $scope.object == 'opps' )
         			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
         		}
         }
@@ -374,6 +376,8 @@
 					
 				}
 				
+				$scope.source_system = data.data.source_system;
+				
 				$timeout(function() {
 					$location.hash('dealdrilldown');
 					$anchorScroll();
@@ -394,7 +398,7 @@
     		{
     		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
     			   Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
-    		   else if ($scope.object == 'deals' )
+    		   else if ($scope.object == 'deals' || $scope.object == 'opps' )
     			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
     		}
 	    }

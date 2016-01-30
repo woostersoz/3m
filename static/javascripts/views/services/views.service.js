@@ -24,7 +24,8 @@
       retrieveView: retrieveView,
       getViewsByCompany: getViewsByCompany, 
       calculateViews: calculateViews,
-      getFilterMasterValues: getFilterMasterValues
+      getFilterMasterValues: getFilterMasterValues,
+      getSuperFilters: getSuperFilters
       
     };
 
@@ -65,8 +66,8 @@
       //return $http.get('/api/v1/Views/');
     }
     
-    function retrieveView(company, view_name, start_date, end_date, system_type, pageNumber, perPage, filters) {
-        return $http.get('/api/v1/company/' + company + '/views/retrieve/?view_name=' + view_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type + '&page_number=' + pageNumber + '&per_page=' + perPage + '&filters=' + JSON.stringify(filters)); 
+    function retrieveView(company, view_name, start_date, end_date, system_type, pageNumber, perPage, filters, superFilters) {
+        return $http.get('/api/v1/company/' + company + '/views/retrieve/?view_name=' + view_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type + '&page_number=' + pageNumber + '&per_page=' + perPage + '&filters=' + JSON.stringify(filters) + '&superfilters=' + JSON.stringify(superFilters)); 
     }
     
     function calculateViews(company, chart_name, system_type, chart_title, mode) {
@@ -81,5 +82,8 @@
     	 return $http.get('/api/v1/company/' + company + '/views/filters/?filter_name=' + filter_name); 
     }
     
+    function getSuperFilters(company, object_type, system_type) {
+    	return $http.get('/api/v1/company/' + company + '/views/superfilters/?object_type=' + object_type + '&system_type=' + system_type); 
+    }
   }
 })();

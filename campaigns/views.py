@@ -76,7 +76,8 @@ def getAllCampaigns(request, id):
         queryset = Campaign.objects.filter(company_id=company_id).skip(offset).limit(items_per_page)
         
         serializer = CampaignSerializer(queryset, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data})    
+        type = 'campaigns'
+        return JsonResponse({'count' : total, 'results': serializer.data, 'type': type})    
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
 

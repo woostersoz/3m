@@ -65,14 +65,31 @@ def getAccounts(request, id):
         items_per_page = int(request.GET.get('per_page'))
         offset = (page_number - 1) * items_per_page
         
+        company_field_qry = 'company_id'
+        
         queryset =  Account.objects(company_id=company_id)
         qlist = list(queryset)
         total = len(qlist)
         result = qlist[offset:offset+items_per_page]
+        for account in result:
+            leadsTemp = []
+            leads = account['leads']
+            for lead in leads: # each 'lead' here is an object of type {lead_id_type: lead_id} e.g. {'sfdc_contact_id': 1234}
+                for k, v in lead.iteritems():
+                    lead_field_qry = k
+                    querydict = {lead_field_qry: v, company_field_qry: company_id}
+                    qset = Lead.objects(**querydict).only('source_first_name').only('source_last_name').only('id').first()
+                    print 'qset ' + str(qset)
+                    #qset_actual_lead_list_temp = [qset_lead.to_mongo().to_dict() for qset_lead in qset]
+                    #for qset_actual_lead in qset_actual_lead_list_temp:
+                    leadsTemp.append(qset)
+            account['leads'] = leadsTemp
         #print 'qset is ' + str(qlist)
         serializer = AccountSerializer(result, many=True)   
-        return JsonResponse({'count' : total, 'results': serializer.data})    
+        type = 'accounts'
+        return JsonResponse({'count' : total, 'results': serializer.data, 'type': type})    
     except Exception as e:
+        print 'exception while getting all accounts ' + str(e)
         return JsonResponse({'Error' : str(e)})
 
 @api_view(['GET'])

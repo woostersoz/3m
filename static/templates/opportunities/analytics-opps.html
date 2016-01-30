@@ -36,7 +36,7 @@
 				<table ng-hide="!vm.deals || !vm.deals.length"  class="table table-striped table-hover table-bordered dataTable"
 					id="deals_table" ng-cloak>
 					<thead ng-show="showDeals"> <!-- ng-hide="showDealsDuration && showDeals" && !showDealsDuration -->
-						<tr>
+						<tr ng-show="source_system == 'hspt'">
 							<th ng-hide="hideDetailColumn" class="center"></th>
 							<th class="center">Deal ID</th>
 							<th class="center">Name</th>
@@ -44,10 +44,18 @@
 							<th class="center">Amount</th>
 							<th class="center">Related Contact</th>
 						</tr>
+						<tr ng-show="source_system == 'sfdc'">
+							<th ng-hide="hideDetailColumn" class="center"></th>
+							<th class="center">Opportunity ID</th>
+							<th class="center">Name</th>
+							<th class="center">Close Date</th>
+							<th class="center">Amount</th>
+							<th class="center">Related Account</th>
+						</tr>
 					</thead>
 					
 
-					<tbody>
+					<tbody ng-show="source_system == 'hspt'">
 						<tr dir-paginate-start="deal in vm.deals | itemsPerPage:10" total-items="totalDeals" current-page="pagination.current">
 							<td class="center" ng-hide=hideDetailColumn>
 							<a ng-hide="showingContact[deal.id]" ng-click="showContactDetails(deal)" href="javascript:;">
@@ -74,14 +82,44 @@
 							</td>
 						</tr>
 						<tr dir-paginate-end ng-show="showingContact[deal.id]">
-						<td colspan="9"><ng-include src="'/static/templates/deals/analytics-deals-detail.html'"></ng-include></td>
+						<td colspan="9"><!-- ng-include src="'/static/templates/deals/analytics-deals-detail.html'"></ng-include --></td>
 						</tr>
 					</tbody>
 					
+					<tbody ng-show="source_system == 'sfdc'">
+						<tr dir-paginate-start="deal in vm.deals | itemsPerPage:10" total-items="totalDeals" current-page="pagination.current">
+							<td class="center" ng-hide=hideDetailColumn>
+							<a ng-hide="showingContact[deal.id]" ng-click="showContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-close"></span>
+							</a>
+							<a ng-show="showingContact[deal.id]" ng-click="hideContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-open"></span>
+							</a>
+							</td>
+							<td class="center">
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.opportunities.sfdc.Id}}">{{ deal.opportunities.sfdc.Id }}</a>
+							</td>
+							<td class="center">
+							{{ deal.opportunities.sfdc.Name }}
+							</td>
+							<td class="center">
+							{{ deal.opportunities.sfdc.CloseDate | date:"yyyy-MM-dd" }}
+							</td>
+							<td class="center">
+							{{ deal.opportunities.sfdc.Amount | currency:"USD " }}
+							</td>
+							<td class="center">
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.sfdc_id}}">{{ deal.source_name }}</a>
+							</td>
+						</tr>
+						<tr dir-paginate-end ng-show="showingContact[deal.id]">
+						<td colspan="9"><!-- ng-include src="'/static/templates/deals/analytics-deals-detail.html'"></ng-include --></td>
+						</tr>
+					</tbody>
 					
 					<div ng-hide="vm.deals && vm.deals.length">
 						<div class="col-sm-12 no-symbols-here">
-							<em>There are no contacts available.</em>
+							<em>There are no opportunities available.</em>
 						</div>
 					</div>
 

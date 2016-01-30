@@ -1,13 +1,25 @@
 <!-- BEGIN TABLE PORTLET-->
-		<div class="portlet light">
-			<div class="portlet-header short">
+<div class="portlet light">
+
+  <div class="portlet-header short view-header hidden">
         <div class="title col-md-12">Companies</div>
         <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
         <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
   </div>
   
-  <div class="portlet-title hidden">
-    &nbsp;
+  <div class="portlet-title">
+    <div class="caption hidden">
+		<i class="fa fa-bullseye font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Companies</span>
+	</div>
+	<form name="search-form" class="col-md-12 search-form open" ng-submit="searchCompaniesByName()">
+		<div class="input-group">
+			<input type="text" class="form-control input-sm" placeholder="Search..." name="company_query" ng-model="companyName">
+			<span class="input-group-btn">
+			<a href="javascript:;" title="Click to search" class="btn" ng-click="searchCompaniesByName()"><i class="icon-magnifier"></i></a>
+			<a href="javascript:;" title="Reset" class="btn" ng-click="resetSearchCompaniesByName()"><i class="icon-refresh"></i></a>
+			</span>
+		</div>
+    </form>
   </div>
 			<div class="portlet-body">
 				<div class="table-toolbar" ng-hide="!vm.accounts || !vm.accounts.length">

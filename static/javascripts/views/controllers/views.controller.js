@@ -10,7 +10,7 @@
 			'ViewsController', ViewsController);
 
 	ViewsController.$inject = [ '$scope', 'Views', 'Authentication',
-	                                'Leads', 'Campaigns', 'Snapshots', '$location', 'DTOptionsBuilder',
+	                                'Leads', 'Campaigns', 'Accounts', 'Snapshots', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
 	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'Social', 'Websites', '$q', 'Common'];
@@ -18,7 +18,7 @@
 	/**
 	 * @namespace ViewsController
 	 */
-	function ViewsController($scope, Views, Authentication, Leads, Campaigns,
+	function ViewsController($scope, Views, Authentication, Leads, Campaigns, Accounts,
 			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
 			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, Social, Websites, $q, Common, $interval) {
@@ -61,6 +61,53 @@
 		$scope.filterValuesFilled['campaign_guids'] = false;
 		$scope.selectedFilterValues = {};
 		$scope.selectedFilterValues['campaign_guid'] = '';
+		$scope.superFilterValues = {};
+		$scope.selectedSuperFilterValues = {};
+		$scope.accountName = '';
+		
+		/* functions for show/hide details */
+		$scope.showingAccount = [];
+	    for (var i=0, length = $scope.data.length; i < length; i++) {
+	    	$scope.showingAccount[$scope.data[i].id] = false;
+	    }
+	    
+	    $scope.showAccountDetails = function(account) {
+	    	$scope.showingAccount[account.id] = true;
+	    }
+	    
+	    $scope.hideAccountDetails = function(account) {
+	    	$scope.showingAccount[account.id] = false;
+	    }
+	    
+	    $scope.showingCompany = [];
+	    for (var i=0, length = $scope.data.length; i < length; i++) {
+	    	$scope.showingCompany[$scope.data[i]._id] = false;
+	    }
+	    
+	    $scope.showCompanyDetails = function(account) {
+	    	$scope.showingCompany[account._id] = true;
+	    }
+	    
+	    $scope.hideCompanyDetails = function(account) {
+	    	$scope.showingCompany[account._id] = false;
+	    }
+	    
+	    /* end of functions for show/hide details */
+	    
+	    /* search and reset functions */
+	    $scope.searchAccountsByName = function() {
+	    	$scope.searchType = 'account';
+	    	$scope.searchTerm = $scope.accountName; 
+	    	searchByName();
+	    }
+	    
+	    $scope.resetSearchAccountsByName = function() {
+	    	$scope.accountName = '';
+	    	$scope.mode = 'all-accounts';
+	    	getAccounts(1);
+	    }
+	    
+	    /* end of search and reset functions */
 		
 		var account = Authentication.getAuthenticatedAccount();
 		if (account) {
@@ -83,7 +130,13 @@
 						return obj.name == $stateParams.name;
 					});
 					if (view[0])
-						drawView(view[0]['title'], view[0]['name'], view[0]['chart_type'], view[0]['system_type'], view[0]['filters']);
+					{
+						drawView(view[0]['title'], view[0]['name'], view[0]['chart_type'], view[0]['system_type'], view[0]['template'], view[0]['filters']);
+						var account = Authentication.getAuthenticatedAccount();
+						if (account) {
+						   Views.getSuperFilters(account.company, view[0]['object'], view[0]['system_type']).then(SuperFiltersSuccessFxn, SuperFiltersErrorFxn);	
+						}
+					}
 					else
 					   toastr.error("Oops! Could not draw chart!");	
 				}
@@ -167,7 +220,7 @@
 	    });
 	    
 	    
-		function drawView(viewTitle, viewName, viewType, systemType, viewFilters) { //$event
+		function drawView(viewTitle, viewName, viewType, systemType, viewTemplate, viewFilters) { //$event
 			//var scope_options = Views.getScopeOptions($scope);
 			//$scope = scope_options['scope'];
 		
@@ -175,7 +228,7 @@
 			$scope.showView = true;
 			$scope.stopSpin();
 			$scope.startSpin();
-			angular.element('.views-charts li div').removeClass('slick-selected');
+			//angular.element('.views-charts li div').removeClass('slick-selected');
 			//angular.element($event.currentTarget).parent().addClass(
 			//'slick-selected');
 			$scope.data = [];
@@ -189,18 +242,12 @@
 			$scope.viewName = viewName;
 			$scope.viewType = viewType;
 			$scope.systemType = systemType;
+			$scope.template = staticUrl('templates/' + viewTemplate);
 			$scope.viewFilters = viewFilters;
 			
 			$scope.options = '';
 			$scope.groupDates = {};
-			$scope.groupDates.date = {
-					startDate : moment().subtract(6, "days").startOf("day"),
-					endDate : moment().endOf("day")
-			};
-		
-			
-			$scope.startDate = $scope.groupDates.date.startDate;
-			$scope.endDate = $scope.groupDates.date.endDate;
+			//moved the assignment of initial date values to SuperFiltersSuccessFxn
 			
 			
 			
@@ -241,10 +288,33 @@
 		$scope.pageChanged = function(newPage) {
 			$scope.currentPage = newPage;
 			var account = Authentication.getAuthenticatedAccount();
-			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, $scope.viewFilters)
-			.then(RetrieveViewsSuccessFn,
-					RetrieveViewsErrorFn);
+			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, $scope.viewFilters, $scope.selectedSuperFilterValues)
+			.then(RetrieveViewSuccessFn,
+					RetrieveViewErrorFn);
 	    }
+		
+		$scope.$watch("selectedSuperFilterValues['date_types']", function(newDateType, oldDateType) {
+			if (!newDateType || !oldDateType) return;
+			
+			if (!$scope.groupDates || !$scope.groupDates.date) return;
+			var newDate = $scope.groupDates.date;
+			
+			var startDate = moment(newDate.startDate).startOf('day');
+			var endDate = moment(newDate.endDate).endOf('day');
+			$scope.startDate = startDate;
+			$scope.endDate = endDate;
+			
+			for (var i=0; i < $scope.superFilterValues['date_types'].length; i++) {
+				if ($scope.superFilterValues['date_types'][i]['value'] == newDateType) {
+					$scope.selectedDateType = $scope.superFilterValues['date_types'][i]['name'];
+				    break;
+			    }
+			}
+			
+			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			.then(RetrieveViewSuccessFn,
+					RetrieveViewErrorFn);
+		}, true);
 		
 		$scope.$watch('groupDates.date', function(newDate, oldDate) { 
 		//$scope.$watchGroup(['groupDates.date', 'selectedFilterValues'], function(newValues, oldValues, scope) { 
@@ -272,9 +342,9 @@
             var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
 			filters = parseFilter(filters);
 			
-			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters)
-			.then(RetrieveViewsSuccessFn,
-					RetrieveViewsErrorFn);
+			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			.then(RetrieveViewSuccessFn,
+					RetrieveViewErrorFn);
 		    //}
 			//else
 				//$scope.data = [{"key":"Stream0","values":[{"x":1,"y":10},{"x":2,"y":13},{"x":3,"y":18},{"x":4,"y":28},{"x":5,"y":19}],"type":"line","yAxis":1}, {"key":"Stream1","values":[{"x":1,"y":13},{"x":2,"y":10},{"x":3,"y":13},{"x":4,"y":20}],"type":"line","yAxis":1}, {"key":"Stream1","values":[{"x":1,"y":13},{"x":2,"y":10},{"x":3,"y":13},{"x":4,"y":20}],"type":"bar","yAxis":1}];
@@ -296,17 +366,7 @@
 			var endDate = moment(newDate.endDate).endOf('day');
 			$scope.startDate = startDate;
 			$scope.endDate = endDate;
-			var account = Authentication.getAuthenticatedAccount();
-			$scope.data = [];
-			
-			var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
-			filters = parseFilter(filters);
-			
-			$scope.currentPage = 1;
-			
-			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters)
-			.then(RetrieveViewsSuccessFn,
-					RetrieveViewsErrorFn);
+			retrieveView();
 			
 			
 		}, true);
@@ -325,7 +385,7 @@
 			return filters;
 		}
 		
-		function RetrieveViewsSuccessFn(data, status, headers, config) {
+		function RetrieveViewSuccessFn(data, status, headers, config) {
 			$scope.stopSpin();
 			if (!data.data) {
 				toastr.error("Oops! Something went wrong!");
@@ -348,7 +408,7 @@
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
 				$scope.startCounter = ($scope.currentPage - 1) * $scope.rowsPerPage + 1;
-			    $scope.endCounter = ($scope.thisSetCount < $scope.rowsPerPage) ? $scope.startLeadCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.rowsPerPage;
+			    $scope.endCounter = ($scope.thisSetCount < $scope.rowsPerPage) ? $scope.startCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.rowsPerPage;
 				// if there are other metrics, add them to the scope
 			    if (data.data.others) {
 			    	for (var key in data.data.others) {
@@ -363,12 +423,43 @@
 			}
 		}
 
-		function RetrieveViewsErrorFn(data, status, headers, config) {
+		function RetrieveViewErrorFn(data, status, headers, config) {
 			stopSpin();
 			$scope.showView = false;
 		}
 
+		function SuperFiltersSuccessFxn(data, status, headers, config) {
+			$scope.showFilters = false;
+			if (data.data.results) {
+				for (var key in data.data.results) {
+	    			if (data.data.results.hasOwnProperty(key)) {
+	    				$scope.superFilterValues[key] = data.data.results[key];
+	    				$scope.showFilters = true;
+	    			}
+		        }
+				for (var key in $scope.superFilterValues) {
+	    			if ($scope.superFilterValues.hasOwnProperty(key)) {
+	    			   var obj = $scope.superFilterValues[key][0];
+				       $scope.selectedSuperFilterValues[key] = obj[Object.keys(obj)[1]];
+				       if (key == 'date_types')
+				    	   $scope.selectedDateType = obj[Object.keys(obj)[0]];
+	    			}
+				}
+				
+				$scope.groupDates.date = {
+						startDate : moment().subtract(6, "days").startOf("day"),
+						endDate : moment().endOf("day")
+				};
+			
+				
+				$scope.startDate = $scope.groupDates.date.startDate;
+				$scope.endDate = $scope.groupDates.date.endDate;
+			}
+		}
 		
+        function SuperFiltersErrorFxn(data, status, headers, config) {
+			
+		}
 
 		function LeadsSuccessFn(data, status, headers, config) {
 			if (data.data.results) // they could contain  Mkto, SFDC or HSPT leads
@@ -907,6 +998,38 @@
     			}
         	});
 			
+		}
+		
+		function searchByName() {
+	    	var trimmedName = $scope.searchTerm.trim();
+	    	if (trimmedName.length ==  0)
+	    	{   
+	    		$scope.mode = 'all-accounts';
+	    		retrieveView();
+	    	}
+	    	else if (trimmedName.length < 3) {
+	    		toastr.error('Please enter at least 3 letters to search');
+	    		return false;
+	    	}
+	    	var account = Authentication.getAuthenticatedAccount();
+		    if (account && $scope.searchType == 'account') {
+		    	$scope.mode = 'search-accounts';
+		    	Accounts.matchAccountName(account.company, trimmedName, $scope.currentPage, $scope.accountsPerPage).then(RetrieveViewSuccessFn, RetrieveViewErrorFn);
+		    }
+	    }
+		
+		function retrieveView() {
+			var account = Authentication.getAuthenticatedAccount();
+			$scope.data = [];
+			
+			var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
+			filters = parseFilter(filters);
+			
+			$scope.currentPage = 1;
+			
+			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			.then(RetrieveViewSuccessFn,
+					RetrieveViewErrorFn);
 		}
 
 	}

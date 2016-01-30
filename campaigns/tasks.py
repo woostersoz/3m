@@ -55,7 +55,7 @@ def retrieveMktoCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
 def retrieveSfdcCampaigns(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
         sdfc = Salesforce()
-        campaignList = sdfc.get_campaigns_delta(user_id, company_id, _str_from_date(sinceDateTime))
+        campaignList = sdfc.get_campaigns_delta(user_id, company_id, _str_from_date(sinceDateTime), run_type)
         saveSfdcCampaigns(user_id=user_id, company_id=company_id, campaignList=campaignList, job_id=job_id, run_type=run_type)
         try:
             message = 'Campaigns retrieved from Salesforce'
