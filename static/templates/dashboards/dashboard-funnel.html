@@ -1,63 +1,4 @@
 <!--  dashboard -->
-<div class="portlet light" ng-class="{'padding-zero' : showBinder}">
-  <div class="portlet-header short" ng-show="showBinder"> 
-        <span class="caption-subject bold font-blue-madison" style="font-size:80%">
-           <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
-        </span>
-  </div>
-
-  <div class="portlet-header" ng-hide="showBinder">
-        <div class="title col-md-12">Duration</div>
-        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
-        <div class="title col-md-3 breadcrumb">
-           <a href="#" ui-sref="dashboards-listing" class="pull-right" style="font-weight:700;">Back to Dashboards</a>
-	    </div>
-  </div>
-  
-  <div class="portlet-title" ng-hide="showBinder">
-    <div class="caption col-md-9" ng-class="{'col-md-12' : hideTimeFilterOnTop==false, 'col-md-9': hideTimeFilterOnTop}">
-      <i class="glyphicon glyphicon-th font-blue-madison"></i>
-      <span class="caption-subject bold font-blue-madison">
-      <span class="italic filter-text">Filtered from {{ currentPage.dashboardData.start_date }} to {{ currentPage.dashboardData.end_date }}</span>
-      </span>
-    </div>   
-    
-    <div ng-hide='hideTimeFilterOnTop' class="col-md-3" style="padding-right:0px">
-	    <div class="input-group col-md-12 pull-right" style="padding-top:2px;">
-			<span class="input-group-addon"><span
-				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
-				date-range-picker class="form-control date-picker pull-right"
-				style="font-size: 0.7rem !important; width: 100% !important"
-				name="groupDates.date" ng-model="groupDates.date" options="opts"
-				placeholder="Select date range" />
-		</div>
-	</div>
-    
-  </div>
-  
-  <div class="col-md-12 pull-right chart-tools" ng-hide="showBinder">
-		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
-				ng-click="postToSlack()" title="Post to Slack">
-				<span class="fa fa-slack"></span>
-				Post to Slack
-			</a>
-			<a href="#" class="btn btn-sm pull-right"
-				ng-click="postToChannel()" title="Post to Channel">
-				<span class="fa fa-volume-up"></span>
-				Post
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="snapshot()" title="Take Snapshot">
-				<span class="glyphicon glyphicon-camera"></span>
-				Snapshot
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="createNote()" title="Add Sticky">
-				<span class="glyphicon glyphicon-comment"></span>
-				Sticky
-			</a> 
-			
-  </div>
   
   <div class="main-body">
      <div id="top-half" style="background-color:#fff">
@@ -427,7 +368,7 @@
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['opps'] | number:0 }}</a></h4>
+    <h4 class="info-label" title="Number of deals that moved to this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['opps'] | number:0 }}</a></h4>
   
   </div>
   
@@ -454,7 +395,7 @@
     <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label" title="Number of contacts that moved out of this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['opps'] | number:0  }}</a></h4>
+    <h4 class="info-label" title="Number of deals that moved out of this stage"><a href="#" ng-click="drilldown('opps', 'opps', 'outflow', 'funnel')">{{ currentPage.dashboardData.leads_outflow_count['opps'] | number:0  }}</a></h4>
   </div>
   
   <div class="col-xs-2" ng-class="{'col-xs-1' : showBinder}">
@@ -479,7 +420,7 @@
      <a class="btn btn-lg text-center" style="color:#04a1d9 !important;background-color:transparent !important;">
       <i class="fa fa-group info-icon"></i>
     </a>
-    <h4 class="info-label"  title="Number of contacts that moved to this stage"><a href="#" ng-click="drilldown('opps', 'closedwon', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['closedwon'] | number:0 }}</a></h4>
+    <h4 class="info-label"  title="Number of deals that moved to this stage"><a href="#" ng-click="drilldown('opps', 'closedwon', 'inflow', 'funnel')">{{ currentPage.dashboardData.leads_inflow_count['closedwon'] | number:0 }}</a></h4>
   
   </div>
   
@@ -527,17 +468,14 @@
       </div> <!--  end of top half -->
       
     </div> <!--  end portlet body -->
-    
-    <h5 ng-hide="showBinder" class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
-  
+     
     <div ng-switch="showLeads">
 	    <div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
 	</div>
 	<div ng-switch="showDeals">
 		<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
 	</div>
-	
-</div>  
+ 
 <!--  end of dashboard -->
 	
 

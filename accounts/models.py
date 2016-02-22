@@ -35,4 +35,4 @@ class Account(Document):
     source_created_date = StringField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'account', 'indexes': ['company_id', 'source_name', 'updated_date'], 'ordering':['-updated_date']}
+    meta = {'collection': 'account', 'indexes': ['company_id', 'source_name', 'updated_date', {'fields' : ('company_id', 'source_name'), 'unique': False, 'name': 'co_name'}], 'ordering':['-updated_date']}

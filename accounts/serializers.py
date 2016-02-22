@@ -43,3 +43,12 @@ class AccountSerializer(DocumentSerializer):
                 setattr(instance, k, v)
             return instance
         return Account(**attrs)
+    
+#     def obj_to_representation(self, obj):
+#         try:
+#             return dict([(f.field_name, f.to_representation(getattr(obj, f.field_name)))
+#                         for f in self.fields.values()])
+#         except Exception as e:
+#             print 'Exception while serializing Account '+ str(e)
+        
+        

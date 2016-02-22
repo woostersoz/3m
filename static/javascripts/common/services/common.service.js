@@ -18,8 +18,10 @@
   function Common($http) {
     var Common = {
     	removeByAttr: removeByAttr, 
+    	removeItemFromArray: removeItemFromArray,
     	findByAttr: findByAttr,
     	findItemsByAttr: findItemsByAttr,
+    	containsItemsByAttr: containsItemsByAttr,
     	capitalizeFirstLetter: capitalizeFirstLetter,
     	capitalizeSentence: capitalizeSentence,
         exportToPdf: exportToPdf,
@@ -39,6 +41,19 @@
 	       if( arr[i] 
 	           && arr[i].hasOwnProperty(attr) 
 	           && (arguments.length > 2 && arr[i][attr] === value ) ){ 
+
+	           arr.splice(i,1);
+
+	       }
+	    }
+	    return arr;
+	}
+    
+    function removeItemFromArray(arr, value){
+	    var i = arr.length;
+	    while(i--){
+	       if( arr[i] 
+	           && (arr[i] === value ) ){ 
 
 	           arr.splice(i,1);
 
@@ -68,6 +83,22 @@
 	       if( arr[i] 
 	           && arr[i].hasOwnProperty(attr) 
 	           && (arguments.length > 2 && arr[i][attr] === value ) ){ 
+
+	           result.push(arr[i]);
+
+	       }
+	    }
+	    return result;
+	    
+	}
+    
+    function containsItemsByAttr(arr, attr, value){ //looks for string 'value' contained in the 'attr'; returns multiple items as array
+	    var i = arr.length;
+	    var result = [];
+	    while(i--){
+	       if( arr[i] 
+	           && arr[i].hasOwnProperty(attr) 
+	           && (arguments.length > 2 && arr[i][attr].toLowerCase().indexOf(value.toLowerCase()) != -1) ){ 
 
 	           result.push(arr[i]);
 

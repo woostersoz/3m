@@ -39,7 +39,17 @@
 				    	label: 'Dashboards'
 				    }
 				})	
-				.state('dashboards', {
+				.state('showdashboard', {
+					url : '/dashboards/:name',
+					controller : 'DashboardsController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/dashboards/dashboard.html',
+					ncyBreadcrumb: {
+				    	label: '{{ current_dashboard.title }}',
+				    	parent: 'dashboards-listing'
+				    }
+				})
+				/*.state('dashboards', {
 					url : '/dashboards/:type',
 					controller : 'DashboardsController',
 					controllerAs : 'vm',
@@ -53,12 +63,14 @@
 							return constUrl + 'dashboard-waterfall.html';
 						else if ($stateParams.type == 'form_fills')
 							return constUrl + 'dashboard-forms.html';
+						else if ($stateParams.type == 'opp_funnel')
+							return constUrl + 'dashboard-opp-funnel.html';
 					},
 				    ncyBreadcrumb: {
 				    	label: '{{ current_dashboard.title }}',
 				    	parent: 'dashboards-listing'
 				    }
-				})
+				})*/
 				.state('analytics', { //deprecated
 					url : '',
 					redirectTo: 'charts',
@@ -357,6 +369,33 @@
 					controller : 'CompanyController',
 					controllerAs : 'vm',
 					templateUrl : '/static/templates/company/dashboard.html'
+				})
+				.state('setup', {
+					url : '/setup',
+					controller : 'CompanyController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/company/setup-main.html',
+					ncyBreadcrumb: {
+				    	label: 'Setup',
+				    	parent: 'admin'
+				    }
+				})
+				.state('setup/:tabname', {
+					url : '/setup/:tabname',
+					controller : 'CompanyController',
+					controllerAs : 'vm',
+					templateUrl : '/static/templates/company/setup-main.html',
+					/*templateUrl : function ($stateParams) {
+						var constUrl = '/static/templates/company/';
+						if ($stateParams.tabname == 'setup')
+							return constUrl + 'setup-main.html';
+						else if ($stateParams.tabname == 'statuses')
+							return constUrl + 'lead-statuses-index.html';
+					},*/
+					ncyBreadcrumb: {
+				    	label: '{{breadcrumbName}}',
+				    	parent: 'setup'
+				    }
 				})
 				.state('tweets', {
 					url : '/tweets',

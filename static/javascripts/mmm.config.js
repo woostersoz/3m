@@ -11,12 +11,15 @@
   * @name config
   * @desc Enable HTML5 routing
   */
-  function config($locationProvider, $httpProvider, usSpinnerConfigProvider, $injector) {
+  function config($locationProvider, $httpProvider, $injector, usSpinnerConfigProvider) {
     $locationProvider.html5Mode(true);
     $locationProvider.hashPrefix('!');
     
+
+    //usSpinnerConfigProvider.setDefaults({'color': '#bedb39'});
     //$httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
     $httpProvider.defaults.headers.common['X-CSRFToken'] = '{% csrf_value %}';
+    
     
     /*$httpProvider.interceptors.push(function($q, $injector) {
        return {

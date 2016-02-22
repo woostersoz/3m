@@ -22,6 +22,7 @@
       get: get,
       getAll: getAll,
       cleanLeadsBeforeDisplay: cleanLeadsBeforeDisplay,
+      cleanDuplicateLeadsBeforeDisplay: cleanDuplicateLeadsBeforeDisplay,
       filterLeadsinTable: filterLeadsinTable,
       getLeadsByFilter: getLeadsByFilter,
       getLeadsByFilterForDistribution: getLeadsByFilterForDistribution,
@@ -97,12 +98,58 @@
     	toastr.info("fileter");
     }
     
+    function cleanDuplicateLeadsBeforeDisplay(results, calculateStatusDuration, fromStatus, toStatus) {
+    	var currRecord = '';
+    	var transformedLeads = [];
+    	for (var i=0; i < results.length; i++)
+	    {   
+    		var transformedLead = {};
+    		transformedLead['Email'] = results[i]['_id'];
+    		for (var j=0; j < results[i].leads.length; j++) // there are leads present in this record
+    		{
+    			var lead = results[i].leads[j];
+    			transformedLead['Name' + (j+1)] = lead['source_first_name'] + ' ' + lead['source_last_name'];
+    			if (lead['mkto_id']) 
+    			{
+    				transformedLead['Id' + (j+1)] = lead['mkto_id'];
+    				transformedLead['SourceSystem' + (j+1)] = 'MKTO';
+    			}
+    			else if (lead['sfdc_id'] || lead['sfdc_contact_id'])
+    			{
+    				if (lead['sfdc_id'])
+	    				transformedLead['Id' + (j+1)] = lead['sfdc_id'];
+    				else
+    					transformedLead['Id' + (j+1)] = lead['sfdc_contact_id'];
+    				transformedLead['SourceSystem' + (j+1)] = 'SFDC';
+    			}
+    		}
+    		transformedLeads.push(transformedLead);
+	    }
+        return transformedLeads;
+    }
+    
     function cleanLeadsBeforeDisplay(results, calculateStatusDuration, fromStatus, toStatus) {
     	var currRecord = '';
     	var leads = [];
 		for (var i=0; i < results.length; i++)
 	    {   
-			if (results[i].leads) // if lead
+			if (results[i].contacts && Object.keys(results[i].contacts).length > 0)  // contact record 
+			{
+				currRecord =  results[i].contacts
+				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a contact record
+				{
+					if (currRecord['sfdc'])
+				    {
+						currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
+				    	currRecord['sfdc']['SourceStatus'] = results[i]['source_status'];
+				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
+				    	currRecord['sfdc']['sourceChannelDetail'] = results[i]['source_source'];
+				    	leads.push(currRecord['sfdc']);
+				    }
+				}
+			}
+			
+			else if (results[i].leads) // if lead
 			{
 				currRecord = results[i].leads;
 				if (results[i]['form'])
@@ -147,7 +194,7 @@
 				    	leads.push(currRecord['hspt']);
 				    }
 				    
-				    else if (currRecord['mkto'])
+				    else if (currRecord['mkto'] && currRecord['mkto']['originalSourceType'] != 'salesforce.com') // if it is from SFDC ignore it
 				    {   
 				    	for (var key in currRecord['mkto']) // convert first letter to lower case
 				    	{
@@ -204,8 +251,8 @@
 				    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
 				    	leads.push(currRecord['sfdc']);
 				    }
-				    else
-				    	toastr.error('Something fishy going on!');
+				    //else
+				    	//toastr.error('Something fishy going on!');
 				} // if lead record
 			}
 			else if (results[i].isContact){ // HSPT lead data coming in from Dashboard drilldown
@@ -234,21 +281,9 @@
 				currRecord['id'] = currRecord['sfdc_id'];
 				
 			}
-			if (results[i].contacts && Object.keys(results[i].leads).length == 0)  // contact record but not lead
-			{
-				currRecord =  results[i].contacts
-				if (currRecord['mkto'] || currRecord['sfdc'] || currRecord['hspt']) // if it is a contact record
-				{
-					if (currRecord['sfdc'])
-				    {
-						currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
-				    	currRecord['sfdc']['SourceStatus'] = results[i]['source_status'];
-				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
-				    	currRecord['sfdc']['sourceChannelDetail'] = results[i]['source_source'];
-				    	leads.push(currRecord['sfdc']);
-				    }
-				}
-			}
+			else
+		    	toastr.error('Something fishy going on!');
+			
 		    
          }
 		return leads;

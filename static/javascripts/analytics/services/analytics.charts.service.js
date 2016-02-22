@@ -139,7 +139,7 @@
 						}
 	                
 					},
-	                tooltipContent : function(key, x, y, e, graph) {
+	                /*tooltipContent : function(key, x, y, e, graph) {
 						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
 						+ key
 						+ '</h4>'
@@ -148,6 +148,18 @@
 						+ ' on '
 						+ x
 						+ '</p></div>';
+					},*/
+					tooltip: {
+						contentGenerator : function(input) { //key, x, y, e, graph
+						return '<div style=\'text-align:center\'><h4 style=\'font-size:0.8rem !important\'>'
+						+ input.data.label
+						+ '</h4>'
+						+ '<p>'
+						+ input.data.y
+						+ ' on '
+						+ input.data.key
+						+ '</p></div>';
+						}
 					},
 					multibar : {
 					
@@ -161,6 +173,10 @@
 					text : 'Contacts Distribution by Stage Date'
 				}
 	        };
+		
+		scope_options.opp_funnel = scope_options.contacts_distr;
+		scope_options.opp_funnel.chart.height = 900;
+		scope_options.opp_funnel.chart.stacked = true;
 		
 			var numbers_to_labels = ['Subscribers', 'Leads', 'MQLs', 'SQLs', 'Opportunities', 'Customers', "All"];
 		scope_options.pipeline_duration = {

@@ -1,6 +1,7 @@
 import requests, json
 import datetime
 from bson import json_util
+from bson.code import Code
 
 from django.views.generic.edit import FormView
 from django.http import HttpResponse, JsonResponse
@@ -23,9 +24,9 @@ from celery import task
 from superadmin.models import SuperIntegration
 from superadmin.serializers import SuperIntegrationSerializer
 
-from company.forms import IntegrationBaseForm
+from company.forms import IntegrationBaseForm #, LeadStatusMappingBaseForm
 from company.models import CompanyIntegration, CompanyIntegrationDeleted, BaseCompanyIntegration, TempData
-from company.serializers import CompanyIntegrationSerializer, CompanyIntegrationDeletedSerializer
+from company.serializers import CompanyIntegrationSerializer, CompanyIntegrationDeletedSerializer #, LeadStatusMappingSerializer
 from leads.models import Lead
 from campaigns.models import Campaign
 import pytz
@@ -44,21 +45,41 @@ class SystemsList(drfme_generics.ListCreateAPIView):
         status = self.kwargs['status']
         company_id = self.request.user.get_company()
         print 'co id is ' + str(company_id)
-        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-        if existingIntegration is not None: #assume there's onlg one entry
+        record_id = CompanyIntegration.objects(company_id = company_id ).only('id').first()
+        existingIntegration = {}
+        existingIntegration['integrations'] = {}
+        
+        map = Code("function () {"
+                 "  for (var key in this.integrations) emit(key, this.integrations[key]['access_token']); } ")
+        
+        reduce = Code("function (key, values) { return null; } ")
+        
+        results = CompanyIntegration.objects(company_id=company_id).map_reduce(map, reduce, "inline")
+        results = list(results)
+        for result in results:
+            existingIntegration['integrations'][result.key] = {'access_token': result.value}
+              
+        
+#         for key in existingIntegration.integrations.keys():
+#             if 'metadata' in existingIntegration.integrations[key]:
+#                 existingIntegration.integrations[key]['metadata'] = {} #empty the metadata object so that excess data is not sent back
+#             if 'metadata' in existingIntegration.integrations[key]:
+#                 existingIntegration.integrations[key]['metadata'] = {} #empty the metadata object so that excess data is not sent back
+        if existingIntegration['integrations'] != {}: #assume there's onlg one entry
             if status == 'new':
-                queryset = SuperIntegration.objects(code__nin=existingIntegration.integrations.keys())
+                queryset = SuperIntegration.objects(code__nin=existingIntegration['integrations'].keys())
                 for obj in queryset:
                     #company_info = CompanyGenericIntegrationSerializer()
                     obj.company_info = {}
             elif status == 'existing':
-                queryset = SuperIntegration.objects(code__in=existingIntegration.integrations.keys())
+                queryset = SuperIntegration.objects(code__in=existingIntegration['integrations'].keys())
                 for obj in queryset:
                     #company_info = CompanyGenericIntegrationSerializer(existingIntegration.integrations[obj.code])
                     # print "code is " + str(existingIntegration.integrations[obj.code])
-                    obj.company_info = existingIntegration.integrations[obj.code]
+                    
+                    obj.company_info = existingIntegration['integrations'][obj.code]
                     obj.company_info["code"] = obj.code
-                    obj.company_info['record_id'] = json.dumps(existingIntegration.id, default=json_util.default)
+                    obj.company_info['record_id'] = json.dumps(record_id['id'], default=json_util.default)
             return queryset
         # if we are here, there are no records for the company 
         if status == 'new':
@@ -214,7 +235,8 @@ class SingleIntegration(drfme_generics.RetrieveDestroyAPIView, FormView):
             return render_to_response('integrations/new.html', {'form':form})
         return HttpResponse("No editable record for " + self.kwargs['code'] + " found!", status=status.HTTP_400_BAD_REQUEST)
    
-   
+
+      
    
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))    

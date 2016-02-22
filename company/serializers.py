@@ -46,12 +46,25 @@ class CompanyIntegrationSerializer(DocumentSerializer):
     class Meta:
         model = CompanyIntegration
 
-    def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            for k, v in attrs.iteritems():
-                setattr(instance, k, v)
+#     def restore_object(self, attrs, instance=None):
+#         if instance is not None:
+#             for k, v in attrs.iteritems():
+#                 setattr(instance, k, v)
+#             return instance
+#         return CompanyIntegration(**attrs)
+
+        def update(self, instance, validated_data):
+            if instance is not None:
+                for k, v in validated_data.iteritems():
+                    setattr(instance, k, v)
+            instance.save()
             return instance
-        return CompanyIntegration(**attrs)
+
+        def create(self, validated_data):
+            return CompanyIntegration.objects.create(**validated_data)
+           
+
+
     
 class CompanyIntegrationDeletedSerializer(DocumentSerializer):       
     #company_code = drfme_serial.IntegerField()
@@ -68,3 +81,8 @@ class CompanyIntegrationDeletedSerializer(DocumentSerializer):
             return instance
         return CompanyIntegrationDeleted(**attrs)
 
+class LeadStatusMappingSerializer(serializers.Serializer):       
+    stage = drfme_serial.DictField()
+    
+    class Meta:
+        fields = ('stage' )

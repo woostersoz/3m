@@ -43,8 +43,11 @@
       retrieveOpportunitiesFromSource: retrieveOpportunitiesFromSource,
       retrieveOpportunitiesFromSourceDaily: retrieveOpportunitiesFromSourceDaily,
       getMetaData: getMetaData,
+      getLeadStatuses: getLeadStatuses,
       googTest: googTest, 
-      fbokTest: fbokTest
+      fbokTest: fbokTest,
+      retrieveLeadStatusMapping: retrieveLeadStatusMapping,
+      saveLeadStatusMapping: saveLeadStatusMapping
     };
 
     return Integrations;
@@ -195,6 +198,10 @@
         return $http.get('/api/v1/company/' + company + '/integrations/metadata/?code=' + code + '&object=' + object); 
     }
     
+    function getLeadStatuses(company) {
+        return $http.get('/api/v1/company/' + company + '/integrations/metadata/lead/statuses/'); 
+    }
+    
     function googTest(company) {
         return $http.get('/api/v1/oauth/goog-test/?company=' + company);	
       }
@@ -202,5 +209,13 @@
     function fbokTest(company) {
         return $http.get('/api/v1/oauth/fbok-test/?company=' + company);	
       }
+    
+    function retrieveLeadStatusMapping(company) {
+        return $http.get('/api/v1/company/' + company + '/integrations/leadstatus/'); //company/' + company + '/campaigns/
+    }
+    
+    function saveLeadStatusMapping(company, mapping) {
+    	return $http.post('/api/v1/company/' + company + '/integrations/leadstatus/', {'mapping' : mapping}); //company/' + company + '/campaigns/
+    }
   }
 })();

@@ -1,7 +1,7 @@
 <!--  dashboard -->
 <div class="portlet light">
   
-  <div class="portlet-header short view-header">
+  <div class="portlet-header short view-header hidden">
         <div class="title col-md-12">Contacts Summary</div>
         <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
         <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
@@ -13,7 +13,7 @@
 
   <div class="portlet-body">
   
-  <div class="row list-separated">
+  <div class="row list-separated hidden">
     <div class="col-md-2 col-sm-2 col-xs-3 header-box header-box-grey">
        <div class="uppercase font-hg font-blue-madison">
           {{ others['total_with_company'] + others['total_without_company'] | number}} 
@@ -91,17 +91,8 @@
 	
 			<div class="portlet-title">
 				<div class="caption">
-					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Contacts - Detail</span>
+					<i class="fa fa-group font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Contacts - {{subview.viewSubtitle}}</span>
 				</div>
-				<div class="btn-group col-sm-4 pull-right chart-tools">
-				    
-					<a href="#" class="btn btn-sm pull-right"
-						ng-click="downloadLeadsCsv()" title="Download as CSV">
-						<span class="glyphicon glyphicon-download"></span>
-						Download CSV
-						
-					</a>
-			    </div>
 			</div>
 			<div class="portlet-body">
 				<div class="table-toolbar" ng-hide="!vm.leads || !vm.leads.length" >
@@ -120,7 +111,8 @@
 						</div>
 					</div>
 				</div>
-				<table ng-hide="!data || !data.length"  class="table table-striped table-hover actionTable dataTable"
+				<!--  Non duplicate contacts table -->
+				<table ng-hide="!data || !data.length || duplicate"  class="table table-striped table-hover actionTable dataTable"
 					id="leads_table" ng-cloak>
 					<thead>
 						<tr>
@@ -173,6 +165,52 @@
 					</div>
 
 				</table>
+				<!--  Duplicate contacts table -->
+				<table ng-hide="!data || !data.length || !duplicate"  class="table table-striped table-hover actionTable dataTable"
+					id="leads_table" ng-cloak>
+					<thead>
+						<tr>
+							<th>Email</th>
+							<th>Name 1</th>
+							<th>Source System 1</th>
+							<th>Name 2</th>
+							<th>Source System 2</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr dir-paginate-start="lead in data | itemsPerPage:10" total-items="totalCount" current-page="pagination.current">
+							<td>
+							{{ lead.Email }}
+							</td>
+							<td>
+							<a ng-if="lead.SourceSystem1=='SFDC'" target="_blank" href="http://login.salesforce.com/{{lead.Id1}}">{{ lead.Name1 }}</a>
+							<a ng-if="lead.SourceSystem1=='MKTO'" target="_blank" href="http://app-sj09.marketo.com/leadDatabase/loadLeadDetail?leadId={{lead.Id1}}">{{ lead.Name1 }}</a>
+							</td>
+							<td>
+							{{ lead.SourceSystem1 }}
+							</td>	
+							<td>
+							<a ng-if="lead.SourceSystem2=='SFDC'" target="_blank" href="http://login.salesforce.com/{{lead.Id2}}">{{ lead.Name2 }}</a>
+							<a ng-if="lead.SourceSystem2=='MKTO'" target="_blank" href="http://app-sj09.marketo.com/leadDatabase/loadLeadDetail?leadId={{lead.Id2}}">{{ lead.Name2 }}</a>
+							</td>
+							<td>
+							{{ lead.SourceSystem2 }}
+							</td>					
+						</tr>
+						<tr dir-paginate-end ng-show="showingContact[lead.id]">
+						<td colspan="9"><ng-include src="'/static/templates/leads/analytics-leads-detail.html'"></ng-include></td>
+						</tr>
+					</tbody>
+					<div ng-hide="data && data.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no duplicate contacts.</em>
+						</div>
+					</div>
+
+				</table>
+				
+				<!--  Common area -->
 				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
 				   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!data || !data.length" >Showing {{startCounter}} to {{endCounter}} of {{totalCount}}</div>
 				   <div class="col-md-9" style="padding-left:0px; padding-right:0px"> 

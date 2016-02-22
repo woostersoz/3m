@@ -11,6 +11,6 @@ urlpatterns = patterns('',
     url(r'^filter/revenue-source/$', views.filterLeadsByRevenueSource, name='filter_leads_by_source'),
     url(r'^(?P<code>[a-z:\\.0-9]+)/$', views.LeadsViewSet.as_view(), name='list_leads_by_source'),
     #url(r'^$', lenses.LeadsViewSet.as_view(), name='list_all_leads'),
-    url(r'^$', views.getAllLeads, name='list_all_leads'),
+    url(r'^$', views.getLeads, name='list_all_leads'),
     #url(r'^$', lenses.CampaignsViewSet.as_view(), name='campaigns_by_source'),
  )

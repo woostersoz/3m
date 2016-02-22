@@ -67,8 +67,8 @@
       //return $http.get('/api/v1/Dashboards/');
     }
     
-    function retrieveDashboard(company, dashboard_name, start_date, end_date, system_type) {
-        return $http.get('/api/v1/company/' + company + '/dashboards/retrieve/?dashboard_name=' + dashboard_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type); 
+    function retrieveDashboard(company, dashboard_name, start_date, end_date, system_type, filters, superFilters) {
+        return $http.get('/api/v1/company/' + company + '/dashboards/retrieve/?dashboard_name=' + dashboard_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type + '&filters=' + JSON.stringify(filters) + '&superfilters=' + JSON.stringify(superFilters)); 
     }
     
     function calculateDashboards(company, chart_name, system_type, chart_title, mode) {
@@ -79,8 +79,8 @@
     	return $http.get('/api/v1/company/' + company + '/dashboards/drilldown/?object=' + object + '&section=' + section + '&channel=' + channel + '&system_type=' + system_type + '&start_date=' + start_date + '&end_date=' + end_date + '&page_number=' + current_page + '&per_page=' + leads_per_page + '&dashboard_name=' + chart_name); 
     }
     
-    function drilldownDeals(company, chart_name, object, section, channel, system_type, start_date, end_date, current_page, leads_per_page) {
-    	return $http.get('/api/v1/company/' + company + '/dashboards/drilldown/?object=' + object + '&section=' + section + '&channel=' + channel + '&system_type=' + system_type + '&start_date=' + start_date + '&end_date=' + end_date + '&page_number=' + current_page + '&per_page=' + leads_per_page + '&dashboard_name=' + chart_name); 
+    function drilldownDeals(company, chart_name, object, section, channel, system_type, start_date, end_date, current_page, leads_per_page, filters, superFilters) {
+    	return $http.get('/api/v1/company/' + company + '/dashboards/drilldown/?object=' + object + '&section=' + section + '&channel=' + channel + '&system_type=' + system_type + '&start_date=' + start_date + '&end_date=' + end_date + '&page_number=' + current_page + '&per_page=' + leads_per_page + '&dashboard_name=' + chart_name + '&filters=' + JSON.stringify(filters) + '&superfilters=' + JSON.stringify(superFilters)); 
     }
     
     function getDashboardsByCompany(company) {

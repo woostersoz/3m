@@ -56,14 +56,17 @@
 		
 		$scope.filters = {};
 		$scope.filterValues = {};
-		$scope.filterValues['campaign_guids'] = [];
+		//$scope.filterValues['campaign_guids'] = [];
 		$scope.filterValuesFilled = {};
 		$scope.filterValuesFilled['campaign_guids'] = false;
 		$scope.selectedFilterValues = {};
-		$scope.selectedFilterValues['campaign_guid'] = '';
+		//$scope.selectedFilterValues['campaign_guid'] = '';
 		$scope.superFilterValues = {};
 		$scope.selectedSuperFilterValues = {};
 		$scope.accountName = '';
+		$scope.subviews = [];
+		$scope.subview = {};
+		$scope.subview['selectedSubview'] = '';
 		
 		/* functions for show/hide details */
 		$scope.showingAccount = [];
@@ -95,16 +98,20 @@
 	    /* end of functions for show/hide details */
 	    
 	    /* search and reset functions */
-	    $scope.searchAccountsByName = function() {
-	    	$scope.searchType = 'account';
-	    	$scope.searchTerm = $scope.accountName; 
-	    	searchByName();
+	    $scope.search = function() {
+	    	if ($scope.viewName == 'accounts') {
+		    	$scope.searchType = 'account';
+		    	$scope.searchTerm = $scope.accountName; 
+		    	searchByName();
+	    	}
 	    }
 	    
-	    $scope.resetSearchAccountsByName = function() {
-	    	$scope.accountName = '';
-	    	$scope.mode = 'all-accounts';
-	    	getAccounts(1);
+	    $scope.resetSearch = function() {
+	    	if ($scope.viewName == 'accounts') {
+		    	$scope.accountName = '';
+		    	$scope.mode = 'all-accounts';
+		    	getAccounts(1);
+	    	}
 	    }
 	    
 	    /* end of search and reset functions */
@@ -131,6 +138,13 @@
 					});
 					if (view[0])
 					{
+						$scope.viewName = view[0]['name'];
+						$scope.subviews = view[0]['subviews'];
+						if ($scope.subviews.length > 0) {
+							$scope.subview['selectedSubview'] = $scope.subviews[0]['value'];
+							$scope.subview['viewSubtitle'] = $scope.subviews[0]['name'];
+						}
+						
 						drawView(view[0]['title'], view[0]['name'], view[0]['chart_type'], view[0]['system_type'], view[0]['template'], view[0]['filters']);
 						var account = Authentication.getAuthenticatedAccount();
 						if (account) {
@@ -138,7 +152,7 @@
 						}
 					}
 					else
-					   toastr.error("Oops! Could not draw chart!");	
+					   toastr.error("Oops! Could not create view!");	
 				}
 			}
 			else {
@@ -195,31 +209,7 @@
 		function deleteNote(id) {
 			$scope.notes = Sticky.handleDeletedNote($scope.notes, id);
 		}
-		
-		$scope.startSpin = function() {
-			 if (!$scope.spinneractive) {
-			        usSpinnerService.spin('spinner-1');
-			        $scope.startcounter++;
-			      }
-		};
-		
-		$scope.stopSpin = function() {
-		      if ($scope.spinneractive) {
-		        usSpinnerService.stop('spinner-1');
-		      }
-		};
-	
-		$scope.spinneractive = false;
-
-	    $rootScope.$on('us-spinner:spin', function(event, key) {
-		      $scope.spinneractive = true;
-	    });
-
-	    $rootScope.$on('us-spinner:stop', function(event, key) {
-		      $scope.spinneractive = false;
-	    });
-	    
-	    
+		 
 		function drawView(viewTitle, viewName, viewType, systemType, viewTemplate, viewFilters) { //$event
 			//var scope_options = Views.getScopeOptions($scope);
 			//$scope = scope_options['scope'];
@@ -243,6 +233,7 @@
 			$scope.viewType = viewType;
 			$scope.systemType = systemType;
 			$scope.template = staticUrl('templates/' + viewTemplate);
+			$scope.toolbar = staticUrl('templates/common/collab-toolbar.html');
 			$scope.viewFilters = viewFilters;
 			
 			$scope.options = '';
@@ -288,13 +279,14 @@
 		$scope.pageChanged = function(newPage) {
 			$scope.currentPage = newPage;
 			var account = Authentication.getAuthenticatedAccount();
-			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, $scope.viewFilters, $scope.selectedSuperFilterValues)
+			retrieveView();
+			/*Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, $scope.viewFilters, $scope.selectedSuperFilterValues, $scope.subview['selectedSubview'])
 			.then(RetrieveViewSuccessFn,
-					RetrieveViewErrorFn);
+					RetrieveViewErrorFn);*/
 	    }
 		
 		$scope.$watch("selectedSuperFilterValues['date_types']", function(newDateType, oldDateType) {
-			if (!newDateType || !oldDateType) return;
+			//if (!newDateType || !oldDateType) return;
 			
 			if (!$scope.groupDates || !$scope.groupDates.date) return;
 			var newDate = $scope.groupDates.date;
@@ -307,13 +299,19 @@
 			for (var i=0; i < $scope.superFilterValues['date_types'].length; i++) {
 				if ($scope.superFilterValues['date_types'][i]['value'] == newDateType) {
 					$scope.selectedDateType = $scope.superFilterValues['date_types'][i]['name'];
+					$scope.selectedDateValue = $scope.superFilterValues['date_types'][i]['value'];
 				    break;
 			    }
 			}
 			
-			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
+			filters = parseFilter(filters);
+			
+			retrieveView();
+			
+			/*Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues, $scope.subview['selectedSubview'])
 			.then(RetrieveViewSuccessFn,
-					RetrieveViewErrorFn);
+					RetrieveViewErrorFn);*/
 		}, true);
 		
 		$scope.$watch('groupDates.date', function(newDate, oldDate) { 
@@ -342,9 +340,10 @@
             var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
 			filters = parseFilter(filters);
 			
-			Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			retrieveView();
+			/*Views.retrieveView(account.company, $scope.viewName, startDate, endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues, $scope.subview['selectedSubview'])
 			.then(RetrieveViewSuccessFn,
-					RetrieveViewErrorFn);
+					RetrieveViewErrorFn);*/
 		    //}
 			//else
 				//$scope.data = [{"key":"Stream0","values":[{"x":1,"y":10},{"x":2,"y":13},{"x":3,"y":18},{"x":4,"y":28},{"x":5,"y":19}],"type":"line","yAxis":1}, {"key":"Stream1","values":[{"x":1,"y":13},{"x":2,"y":10},{"x":3,"y":13},{"x":4,"y":20}],"type":"line","yAxis":1}, {"key":"Stream1","values":[{"x":1,"y":13},{"x":2,"y":10},{"x":3,"y":13},{"x":4,"y":20}],"type":"bar","yAxis":1}];
@@ -359,13 +358,30 @@
 				return;
 			}
 			
-			if (!$scope.groupDates || !$scope.groupDates.date) return;
-			var newDate = $scope.groupDates.date;
+			if (Object.keys(newFilter).length == 0 && Object.keys(oldFilter).length == 0) return;
 			
-			var startDate = moment(newDate.startDate).startOf('day');
-			var endDate = moment(newDate.endDate).endOf('day');
-			$scope.startDate = startDate;
-			$scope.endDate = endDate;
+			retrieveView();
+			
+			
+		}, true);
+		
+		$scope.$watch('subview.selectedSubview', function(newSubview, oldSubview) { 
+			if ($scope.clickOnNewView === true && $scope.notFirstView)
+			{
+				$scope.clickOnNewView = false;
+				return;
+			}
+			
+			if (!newSubview || !oldSubview) return;
+			
+			for (var i=0; i < $scope.subviews.length; i++) {
+				if ($scope.subviews[i]['value'] == $scope.subview['selectedSubview'])
+				{
+					$scope.subview['viewSubtitle'] = $scope.subviews[i]['name'];
+					break;
+				}
+			}
+			
 			retrieveView();
 			
 			
@@ -387,6 +403,8 @@
 		
 		function RetrieveViewSuccessFn(data, status, headers, config) {
 			$scope.stopSpin();
+			$scope.duplicate = false;
+			
 			if (!data.data) {
 				toastr.error("Oops! Something went wrong!");
 				return false;
@@ -402,8 +420,15 @@
 				$scope.others = {}
 				if (data.data.type && data.data.type == 'contacts')
 				   $scope.data = Leads.cleanLeadsBeforeDisplay(data.data.results);
+				else if (data.data.type && data.data.type == 'duplicate-contacts')
+				{
+					   $scope.data = Leads.cleanDuplicateLeadsBeforeDisplay(data.data.results);
+					   $scope.duplicate = true;
+				}
 				else
 				   $scope.data = data.data.results;
+				$scope.source_system = data.data.source_system;
+				$scope.hideDetailColumn = true;
 				$scope.totalCount = data.data.count;
 				$scope.thisSetCount = data.data.results.length;
 				// initialize the start and end counts shown near pagination control
@@ -440,9 +465,11 @@
 				for (var key in $scope.superFilterValues) {
 	    			if ($scope.superFilterValues.hasOwnProperty(key)) {
 	    			   var obj = $scope.superFilterValues[key][0];
-				       $scope.selectedSuperFilterValues[key] = obj[Object.keys(obj)[1]];
-				       if (key == 'date_types')
+				       if (key == 'date_types') {
+				    	   $scope.selectedSuperFilterValues[key] = obj[Object.keys(obj)[1]];
 				    	   $scope.selectedDateType = obj[Object.keys(obj)[0]];
+				           $scope.selectedDateValue = obj[Object.keys(obj)[1]];
+				       }
 	    			}
 				}
 				
@@ -1021,16 +1048,42 @@
 		function retrieveView() {
 			var account = Authentication.getAuthenticatedAccount();
 			$scope.data = [];
+			$scope.stopSpin();
+			$scope.startSpin();
 			
 			var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
 			filters = parseFilter(filters);
 			
-			$scope.currentPage = 1;
+			//$scope.currentPage = 1;
 			
-			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues)
+			Views.retrieveView(account.company, $scope.viewName, $scope.startDate, $scope.endDate, $scope.systemType, $scope.currentPage, $scope.rowsPerPage, filters, $scope.selectedSuperFilterValues, $scope.subview['selectedSubview'])
 			.then(RetrieveViewSuccessFn,
 					RetrieveViewErrorFn);
 		}
+		
+		$scope.startSpin = function() {
+			 if (!$scope.spinneractive) {
+			        usSpinnerService.spin('spinner-1');
+			        $scope.startcounter++;
+			      }
+		};
+		
+		$scope.stopSpin = function() {
+		      if ($scope.spinneractive) {
+		        usSpinnerService.stop('spinner-1');
+		      }
+		};
+	
+		$scope.spinneractive = false;
+
+	    $rootScope.$on('us-spinner:spin', function(event, key) {
+		      $scope.spinneractive = true;
+	    });
+
+	    $rootScope.$on('us-spinner:stop', function(event, key) {
+		      $scope.spinneractive = false;
+	    });
+	    
 
 	}
 })();

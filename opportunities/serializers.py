@@ -3,22 +3,21 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import serializers as drfme_serial, DocumentSerializer
 
-from activities.models import Activity
-
-class ActivitySerializer(DocumentSerializer):       
-    company_id = drfme_serial.IntegerField()
-    lead_id = drfme_serial.CharField()
-    activities = drfme_serial.DictField()
-    updated_date = drfme_serial.DateTimeField()
+#serializes the Opportunity sub-document from within Account/Lead
+class OpportunitySerializer(serializers.Serializer):       
+    _id = drfme_serial.CharField()
+    name = drfme_serial.CharField()
+    close_date = drfme_serial.CharField()
+    created_date = drfme_serial.CharField()
+    amount = drfme_serial.DecimalField(max_digits=10, decimal_places=2)
+    account_name = drfme_serial.CharField()
+    account_id = drfme_serial.CharField()
+    closed = drfme_serial.BooleanField()
+    won = drfme_serial.BooleanField()
+    owner_id = drfme_serial.CharField()
+    owner_name = drfme_serial.CharField()
+    stage = drfme_serial.CharField()
+    multiple_occurences= drfme_serial.BooleanField()
     
     class Meta:
-        model = Activity
-        fields = ('company_id', 'lead_id', 'updated_date', )
-
-    def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            for k, v in attrs.iteritems():
-                setattr(instance, k, v)
-            return instance
-        return Activity(**attrs)
-    
+        fields = ('_id', 'name', 'close_date', 'created_date', 'amount', 'account_name', 'account_id', 'closed', 'won', 'owner_id', 'owner_name', 'stage', 'multiple_occurences' )

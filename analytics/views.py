@@ -39,6 +39,7 @@ from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards
 from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer
 
 from authentication.models import Company, CustomUser
+from opportunities.views import _map_sfdc_userid_name
 
 from analytics.tasks import calculateHsptAnalytics, calculateMktoAnalytics, calculateSfdcAnalytics, calculateBufrAnalytics, calculateGoogAnalytics, calculateFbokAnalytics
 
@@ -182,6 +183,7 @@ def retrieveAnalytics(request, company_id):
     chart_name = request.GET.get('chart_name')
     system_type = request.GET.get('system_type')
     filters = request.GET.get('filters')
+    filters = json.loads(filters)
     
     user_id = request.user.id
     company_id = request.user.company_id
@@ -307,7 +309,10 @@ def retrieveMktoAnalytics(user_id=None, company_id=None, chart_name=None, start_
 
 #@app.task
 def retrieveSfdcAnalytics(user_id=None, company_id=None, chart_name=None, start_date=None, end_date=None, filters=None):
-    pass
+    method_map = { "opp_funnel" : sfdc_opp_funnel}
+    result = method_map[chart_name](user_id, company_id, start_date, end_date, chart_name, filters)
+    return result
+
 
 #@app.task
 def retrieveHsptAnalytics(user_id=None, company_id=None, chart_name=None, start_date=None, end_date=None, filters=None):
@@ -1940,6 +1945,125 @@ def google_os_bar_chart(user_id, company_id, start_date, end_date, chart_name, f
     except Exception as e:
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})  
+
+
+#  SFDC chart - 'Sales Performance"
+def sfdc_opp_funnel(user_id, company_id, start_date, end_date, chart_name, filters): 
+    #print 'orig start' + str(start_date)
+    try:
+     
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+    
+        e = local_end_date
+        s = local_start_date - timedelta(days=1)
+        end_key = e.strftime('%Y-%m-%d')
+         
+        all_values = {}
+        all_dates = []
+        all_totals = {}
+        all_inflows = {}
+        all_outflows = {}
+        temp_owner_dict = {} #contains dicts of the form {'<owner_id>': {'<stage name>': {'duration': 20, 'count': 5}}}
+        temp_dict = {}
+        temp_owner_dict_list = []
+        owners_list = []
+        stages_list = []
+        delta = timedelta(days=1)
+        result = []
+        filter_by_owner = False
+        filter_by_type = False
+        if filters is not None:
+            for key, value in filters.items():
+                if key == 'Type' and value is not None:
+                    filter_by_type = True #creates an additional querydict that can be added to the main qd
+                    filter_type = value
+                    #print 'filter by type ' + str(filter_type)
+       
+        company_field_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_query = 'date'
+           
+        while s < (e - delta):
+            s += delta #increment the day counter
+            start_key = s.strftime('%Y-%m-%d')
+            
+            querydict = {chart_name_qry: chart_name, company_field_qry: company_id, date_query: start_key} 
+            
+            existingData = AnalyticsData.objects(**querydict).only('results').first()
+            if existingData is None: #  no results found for day so move to next day
+                continue
+            data = existingData['results']['outflow_duration_by_owner']
+            #print 'xouch ' + str(data)      
+            for key, values in data.items(): #key is an owner id, values are durations for different types -> stage names
+                #print 'rouch ' + str(values)
+                if key not in temp_owner_dict:
+                    temp_owner_dict[key] = {}
+                owner_found = False
+                for owner in owners_list:
+                    if key == owner['owner_id']:
+                        owner_found = True
+                        break
+                if not owner_found:
+                    owners_list.append({'owner_id': key, 'owner_name': ''})
+                #print 'values is ' + str(values)
+                for type, stagenames in values.items():
+                    if filter_by_type and filter_type != type: #if being filtered by type 
+                        continue
+                    for stagename, duration in stagenames.items(): #loop through each stage
+                        if stagename not in temp_owner_dict[key]:
+                            temp_owner_dict[key][stagename] = {'duration': 0, 'count': 0}
+                        if stagename not in stages_list:
+                            stages_list.append(stagename)
+                        temp_owner_dict[key][stagename]['duration'] += duration
+                        temp_owner_dict[key][stagename]['count'] += existingData['results']['outflow_count_by_owner'][key][type][stagename]
+                    
+            owners_list = _map_sfdc_userid_name(company_id, owners_list)
+        
+        #we have the results by owner 
+        #print 'owners are ' + str(len(owners_list))
+        #print 'stages are ' + str(stages_list)
+        #first initialize the dict with all combos of stages/owners
+        for stage in stages_list:
+            if stage not in temp_dict:
+                temp_dict[stage] = []
+            for owner in owners_list:
+                temp_dict[stage].append({'label': owner['owner_id'], 'value': 0, 'id': owner['owner_id']})
+        #print 'temp  1 ' + str(len(temp_dict['1\\u002e Initial Call Setup']))
+        #now rearrange by stages
+        for ownerid, values in temp_owner_dict.items():
+            for stagename, metrics in values.items():
+                for item in temp_dict[stagename]:
+                    if item['label'] == ownerid:
+                        item['value'] = metrics['duration'] / metrics['count']
+        #print 'temp  2 ' + str(len(temp_dict['1\\u002e Initial Call Setup']))               
+        #last loop 
+        for stagename, values in temp_dict.items():
+            for value in values:
+                for owner in owners_list:
+                    if owner['owner_id'] == value['label']:
+                        value['label'] = owner['owner_name']
+                        break
+            #if stagename == '1\\u002e Initial Call Setup':
+                #print 'temp 3 ' + str(len(values))
+            values = sorted(values, key=itemgetter('label'), reverse=False)
+            result.append({'key': decodeKey(stagename), 'values': values})
+        
+        
+        #sort by stagename
+        result = sorted(result, key=itemgetter('key'), reverse=False)
+        #print 'results is ' + str(result)
+            
+        return result
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})        
+
+
+
 #end of analytics
     
 class SingleBinderTemplate(viewsets.ModelViewSet):  

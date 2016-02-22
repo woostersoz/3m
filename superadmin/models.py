@@ -112,6 +112,7 @@ class SuperViews(Document):
     descr = StringField()
     template = StringField()
     filters = ListField(StringField())
+    subviews = ListField(DictField())
     
     meta = {'collection': 'superViews', 'indexes': ['system_type', 'name', 'object']}
 

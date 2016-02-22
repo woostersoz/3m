@@ -1,0 +1,24 @@
+<div class="portlet light">
+  
+<div class="portlet-header">
+        <div class="title col-md-12">Company Setup</div>
+        <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
+  
+  <div class="portlet-body">
+    <div class="portlet-tabs">
+      <ul class="nav nav-tabs">
+        <li ng-class="tabClass(tab)" ng-repeat="tab in tabs" tab="tab"><a href="{{tab.link}}" ng-click="setSelectedTab(tab)">{{tab.label}}</a></li>
+      </ul>
+      <div class="tab-content">
+         <ng-include src="'/static/templates/company/' + tabname + '-partial.html'"></ng-include> 
+   </div>
+    </div>
+  </div>
+    
+</div>

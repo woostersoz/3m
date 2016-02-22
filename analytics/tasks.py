@@ -297,7 +297,7 @@ def mkto_sources_bar_chart(user_id, company_id, chart_name, mode, start_date):
             statusesForThisLead = []
             if statuses is not None: # if there are statuses in the lead record, find the date for the current status
                 for i in range(len(statuses)):
-                    current_stage =  statuses[i]['status']
+                    current_stage =  statuses[i]['newStatus'] #changed from 'status' on 2/4/2016 due to exception
                     #print 'lead stat d us ' +str(statuses[i]['date'])
                     current_stage_date_naive = _date_from_str(statuses[i]['date'])
                     current_stage_date = pytz.utc.localize(current_stage_date_naive, is_dst=None)

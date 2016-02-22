@@ -1,0 +1,46 @@
+<div class="tab-pane active" id="new_tab">
+	<div class="note note-info italic" style="line-height:25px">
+		<p>Use this screen to map lead statuses from {{lead_status_system}} to revenue stages for your company </p>	    
+	</div>
+	<div class="clearfix margin-bottom-20">
+	<div class="col-md-9"> 
+	 <div class="clearfix margin-bottom-20" ng-repeat="stage in rev_stages">
+	   <form name="lead_status_mapping" class="search-form col-sm-12" method="post" action="." novalidate>
+	    <ul class="media-list">
+			<li class="media">
+			   <div class="col-sm-3 mt-10 pl-0">
+			       <label class="control-label" for="id_{{stage['name']}}">{{stage['name']}}</label>
+			   </div>
+			   <div class="input-group col-sm-9">
+			       <div class="dropzone box"><ul class="target" dnd-list="entered_lead_statuses['{{stage.stage}}_statuses']" dnd-horizontal-list="true"><li dnd-effect-allowed="move" ng-repeat="status in entered_lead_statuses[stage.stage + '_statuses']" dnd-draggable="status" dnd-moved="entered_lead_statuses['{{stage.stage}}_statuses'].splice($index, 1)">{{status}}</li></ul></div>
+			   </div> 
+			</li>
+		</ul>
+	  </form>
+	</div>
+	</div>
+	<div class="col-md-3"> <!--  shows available lead statuses -->
+	
+	<div ng-repeat="(listName, list) in models.lists">
+	<div class="panel panel-info">
+	<div class="panel-heading">
+	  <h3 class="panel-title">{{listName}}</h3>
+	</div>
+	<div class="panel-body">
+	<ul dnd-list="list">
+	   <li ng-repeat="availableStatus in list" dnd-draggable="availableStatus" dnd-moved="list.splice($index, 1)" dnd-effect-allowed="move">{{availableStatus}}</li>	
+	</ul>
+	</div>
+    </div>
+    </div>
+    </div>
+    
+	    <div class="clear col-md-12 form-group">
+	      <button type="cancel" class="btn action-button" ng-click="cancelLeadStatusMapping()">Cancel</button>
+	      <button type="button" class="btn action-button" href="#" ng-click="saveLeadStatusMapping()">Save</button>
+	    </div>
+ 
+		
+	</div>
+
+</div>

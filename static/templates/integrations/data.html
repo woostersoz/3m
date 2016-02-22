@@ -268,6 +268,48 @@
 			</div>
 			
 			<!--  end of sixth col-md-6 -->
+			
+			<div class="col-md-6">
+
+				<div class="portlet box  grey-steel">
+					<div class="portlet-title">
+						<div class="caption">
+							<i class="fa fa-dollar"></i>Users
+						</div>
+					</div>
+					<div class="portlet-body">
+					  <form name="users_form">
+						<ul class="media-list">
+						
+							<li class="media overflow-shown" ng-repeat="system in vm.existingSystems">
+								<div class="pull-right media-button">		
+									<div class="form-group" ng-show="dataSelection == 'users-' + system.code">
+										<a href="#" ng-click="meta(system.code, 'user')" class="btn blue-madison">
+										Meta
+										</a>
+										<a href="#" ng-click="retrieve_users_daily(system.code)" class="btn green-jungle">
+										Daily
+										</a>
+										<a href="#" ng-click="retrieve_users(system.code)" class="btn red-flamingo">
+										Initial
+										</a>
+									</div>
+								</div> 
+								<input style="margin-top:10px; margin-right:10px" class="pull-left" type="radio" name="dataSelection" data-ng-model="$parent.dataSelection" value="system.code" data-ng-value="'users-' + system.code" />
+							    <div class="media-body">
+									<h4 class="media-heading" style="padding-top:2px">{{ system.name }}</h4>
+									<p>&nbsp;</p>
+								</div>
+							</li>
+							
+						</ul>
+					  </form>
+					</div>
+				</div>
+
+			</div>
+			
+			<!--  end of last col-md-6 -->
 
 		</div>
 	</div>

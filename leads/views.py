@@ -29,7 +29,7 @@ from mongoengine.django.shortcuts import get_document_or_404
 from mongoengine.queryset.visitor import Q
 
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
-from leads.serializers import LeadSerializer
+from leads.serializers import LeadSerializer, LeadDuplicateSerializer
 from leads.models import Lead
 from leads.tasks import retrieveMktoLeads, retrieveSfdcLeads, retrieveHsptLeads
 from superadmin.models import SuperIntegration
@@ -94,68 +94,82 @@ class LeadsViewSet(drfme_generics.ListCreateAPIView): #deprecated
               
 @api_view(['GET'])
 #@renderer_classes((JSONRenderer,))    
-def getAllLeads(request, id):
+def getLeads(request, id):
     try:
         #log = logging.getLogger(__name__)
         company_id = request.user.company_id
         start_date = int(request.GET.get('start_date'))
         end_date = int(request.GET.get('end_date'))
+        sub_view = request.GET.get('subview')
         superfilters = request.GET.get('superfilters')
         super_filters = json.loads(superfilters)
         #print 'super filters are ' + str(super_filters)
-        date_field = None
+        #date_field = None
+        
+        company_field_qry = 'company_id'
         if super_filters is not None:
             if 'date_types' in super_filters: # need to filter by a certain type of date
                 date_field = super_filters['date_types']
-                if start_date is not None:
-                    utc_day_start_epoch =  datetime.fromtimestamp(float(start_date / 1000))
-                    #utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
-                    print 'utc start epoch is ' + str(utc_day_start_epoch)
-       
-                    #local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
-                #print 'start2 is ' + str(time.time())
-                if end_date is not None:
-                    utc_day_end_epoch = datetime.fromtimestamp(float(end_date / 1000))
-                    #utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
-                    print 'utc end epoch is ' + str(utc_day_end_epoch)
+                if date_field is not None:
+                    if start_date is not None:
+                        utc_day_start_epoch =  datetime.fromtimestamp(float(start_date / 1000))
+                        #utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
+                        print 'utc start epoch is ' + str(utc_day_start_epoch)
+           
+                    if end_date is not None:
+                        utc_day_end_epoch = datetime.fromtimestamp(float(end_date / 1000))
+                        #utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
+                        print 'utc end epoch is ' + str(utc_day_end_epoch)
+                    
+                    date_field_start_qry = date_field + '__gte'
+                    date_field_end_qry = date_field + '__lte'
                     
         page_number = int(request.GET.get('page_number'))
         items_per_page = int(request.GET.get('per_page'))
         offset = (page_number - 1) * items_per_page
         collection = Lead._get_collection()
-        if date_field is None:
-            total = collection.find({'company_id': int(company_id)}).count() #.hint('company_id_1')
-        else:
-            total = collection.find({'company_id': int(company_id), date_field: {'$gte':utc_day_start_epoch, '$lte':utc_day_end_epoch}}).count() #.hint('company_id_1')
-        #print 'got count'
-        total_with_company = 0 #collection.find({'company_id' : company_id, 'source_company' : {'$ne' : None}}).hint('source_sourcedata1_index').count()
-        #print 'got count w company'
-        #total = Lead.objects.filter(company_id=company_id).count()
-        #total_with_company = Lead.objects.filter(Q(company_id=company_id) & Q(source_company__ne=None)).count()
-        total_without_company = total - total_with_company
-        if date_field is None:
-            queryset = Lead.objects(company_id=company_id).skip(offset).limit(items_per_page)
-        else:
-            date_field_start_qry = date_field + '__gte'
-            date_field_end_qry = date_field + '__lte'
-            company_field_qry = 'company_id'
-            querydict = {company_field_qry: company_id, date_field_start_qry: utc_day_start_epoch, date_field_end_qry: utc_day_end_epoch}
-            queryset = Lead.objects(**querydict).skip(offset).limit(items_per_page)
+        email_field_null_query = 'source_email__ne'
+        email_field_exists_query = 'source_email__exists'
+        querydict = {company_field_qry: company_id}
+          
+        if sub_view == 'allcontacts':
+            if date_field is None:
+                total = collection.find({'company_id': int(company_id)}).count() #.hint('company_id_1')
+                queryset = Lead.objects(**querydict).skip(offset).limit(items_per_page)
+            else:
+                total = collection.find({'company_id': int(company_id), date_field: {'$gte':utc_day_start_epoch, '$lte':utc_day_end_epoch}}).count() #.hint('company_id_1')
+                querydict[date_field_start_qry] = utc_day_start_epoch 
+                querydict[date_field_end_qry] = utc_day_end_epoch
+                queryset = Lead.objects(**querydict).skip(offset).limit(items_per_page)
         
-        #leads_cursor = collection.find({'company_id': int(company_id)}).hint('co_fname_lname').sort([('source_first_name', 1), ('source_last_name', 1)]) 
-        #queryset = list(leads_cursor)
-        #queryset = queryset[offset: offset + items_per_page]
-        #total = collection.find({'company_id': int(company_id)}).hint('company_id_1').count()
+            stages = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
+            sources = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
+            serializer = LeadSerializer(queryset, many=True)   
+            type = 'contacts'
+            others = {'stages':stages, 'sources':sources}
+            return JsonResponse({'count' : total, 'results': serializer.data, 'others': others, 'type': type}) 
+        
+        elif sub_view == 'duplicatesemail': #find contacts who have duplicate emails (non-empty)
+            querydict[email_field_exists_query] = True
+            querydict[email_field_null_query] =  None
+            if date_field is None:
+                pass    
+            else:
+                querydict[date_field_start_qry] = utc_day_start_epoch
+                querydict[date_field_end_qry] = utc_day_end_epoch
+            queryset = Lead.objects(**querydict).aggregate({'$group': {'_id': '$source_email', 'leads': { '$addToSet': {'source_first_name': '$source_first_name', 'source_last_name': '$source_last_name', 'source_email': '$source_email', 'mkto_id': '$mkto_id', 'sfdc_id': '$sfdc_id', 'sfdc_contact_id': '$sfdc_contact_id'}}, 'count': {'$sum': 1}}}, {'$match': {'count': {'$gt': 1}}}) #{'$match': {'source_email' : {'$exists': True, '$ne': None}}},  
+              
             
-        
-        #queryset = Lead.objects().filter(company_id=company_id).order_by('-source_first_name', '-source_last_name').skip(offset).limit(items_per_page)
-        #print 'got qset'
-        stages = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_stage')
-        sources = None #Lead.objects().filter(company_id=company_id).item_frequencies('source_source')
-        serializer = LeadSerializer(queryset, many=True)   
-        type = 'contacts'
-        others = {'total_with_company': total_with_company, 'total_without_company': total_without_company, 'stages':stages, 'sources':sources}
-        return JsonResponse({'count' : total, 'results': serializer.data, 'others': others, 'type': type})    
+            leads_list = list(queryset)
+            #leads_list[:] = [l['leads'] for l in leads_list]
+            print 'qset dupes is ' + str(leads_list) 
+            total = len(leads_list)
+            leads_list = leads_list[offset:offset + items_per_page]
+            serializer = LeadDuplicateSerializer(leads_list, many=True)  
+
+            type = 'duplicate-contacts'
+            return JsonResponse({'count' : total, 'results': serializer.data, 'type': type, 'source_system': 'sfdc'})   
+    
     except Exception as e:
         print 'exception while getting all leads ' + str(e)
         return JsonResponse({'Error' : str(e)})

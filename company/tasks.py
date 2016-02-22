@@ -27,9 +27,9 @@ from collab.signals import send_notification
 from collab.models import Notification 
 from mmm.views import _str_from_date
 
-from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, retrieveSugrLeads, saveSugrLeadsToMaster, tempDataCleanup 
+from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, retrieveSugrLeads, saveSugrLeadsToMaster, tempDataCleanup, mergeMktoSfdcLeads, deleteLeads
 from contacts.tasks import retrieveSfdcContacts, saveSfdcContactsToMaster
-from activities.tasks import retrieveMktoActivities, retrieveMktoLeadCreatedActivities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, saveMktoActivitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster
+from activities.tasks import retrieveMktoActivities, retrieveMktoLeadCreatedActivities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, saveMktoActivitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, retrieveSfdcOppHistory, saveSfdcOppHistoryToMaster
 from opportunities.tasks import retrieveMktoOpportunities, retrieveSfdcOpportunities, saveSfdcOpportunitiesToMaster, retrieveHsptOpportunities, saveHsptOpportunitiesToMaster
 from campaigns.tasks import retrieveHsptCampaigns, saveHsptCampaignsToMaster, retrieveMktoCampaigns, saveMktoCampaignsToMaster, retrieveSfdcCampaigns, saveSfdcCampaignsToMaster
 from accounts.tasks import retrieveSfdcAccounts, saveSfdcAccountsToMaster
@@ -161,21 +161,21 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {
-#                      "mkto" : [retrieveMktoLeadCreatedActivities, retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns], #IMPORTANT - Lead Created Activities has to be before Leads
-#                     "hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
-#                      "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcOpportunities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory],
-#                      #  "sugr" : [retrieveSugrLeads],                    
-#                       "bufr" : [retrieveBufrTwInteractions], 
-#                      "goog" : [retrieveGoogWebsiteTraffic], \
-#                      "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
+#                     "mkto" : [retrieveMktoLeadCreatedActivities, retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns], #IMPORTANT - Lead Created Activities has to be before Leads
+#                     #"hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
+#                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcOpportunities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, retrieveSfdcOppHistory],
+#                     #  "sugr" : [retrieveSugrLeads],                    
+#                     "bufr" : [retrieveBufrTwInteractions], 
+#                     "goog" : [retrieveGoogWebsiteTraffic], \
+#                     "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {
-#                       "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster],
-#                      "hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
-#                       "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster],  # 
-#                      # "sugr" : [saveSugrLeadsToMaster], 
-#                       "bufr" : [saveBufrTwInteractionsToMaster], 
+#                      "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster],#mergeMktoSfdcLeads, deleteLeads #
+#                     #"hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
+#                      "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, saveSfdcOppHistoryToMaster],  # 
+#                     # "sugr" : [saveSugrLeadsToMaster], 
+#                      "bufr" : [saveBufrTwInteractionsToMaster], 
 #                      "goog": [saveGoogleWebsiteTrafficToMaster], 
 #                      "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
                     }
@@ -184,31 +184,31 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 # #         # saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster
 # #         #collect all relevant tasks in one list and retrieve metadata as well
         for source in existingIntegration.integrations.keys():
-#             #change metadata depending on source system
-#             if source == 'sfdc':
-#                 metadata_objects = ['lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
-#             elif source == 'mkto':
-#                 metadata_objects = ['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
-#             elif source == 'hspt':
-#                 metadata_objects = ['lead'] #objects for which metadata should be collected
-#             else:
-#                 metadata_objects = [] #objects for which metadata should be collected
-#             # if sfdc, explicitly refresh the access token
-#             if source == 'sfdc':
-#                 sfdc = Salesforce()
-#                 sfdc.refresh_token(company_id)
-#             #collect meta data
-#             url = host + '/api/v1/company/' + str(company_id) + '/integrations/metadata/'
+            #change metadata depending on source system
+            if source == 'sfdc':
+                metadata_objects = ['user', 'lead', 'contact', 'campaign', 'opportunity', 'task', 'account'] #[] #objects for which metadata should be collected
+            elif source == 'mkto':
+                metadata_objects = ['lead', 'activity', 'campaign'] #[] #objects for which metadata should be collected
+            elif source == 'hspt':
+                metadata_objects = ['lead'] #objects for which metadata should be collected
+            else:
+                metadata_objects = [] #objects for which metadata should be collected
+            # if sfdc, explicitly refresh the access token
+            if source == 'sfdc':
+                sfdc = Salesforce()
+                sfdc.refresh_token(company_id)
+            #collect meta data
+            url = host + '/api/v1/company/' + str(company_id) + '/integrations/metadata/'
 #             for object in metadata_objects:
 #                 _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " started")
 #                 params = {'code': source, 'object': object}
-#                 resp = s.get(url, params=params) # get metadata about activities
+#                 resp = s.get(url, params=params)  # get metadata about activities
 #                 if not resp.status_code == 200:
 #                     _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " failed")
 #                     continue
 #                 else:
 #                     _superJobMonitorAddTask(superJobMonitor, source, "Retrieval of metadata for " + object + " completed")
-                     
+                         
             #collect retrieval tasks
             print 'starting retrieval tasks'
             tasks = []
@@ -256,7 +256,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                     {'chart_name': 'google_analytics', 'system_type': 'AD', 'chart_title':'Google Analytics', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                      {'chart_name': 'campaign_email_performance', 'system_type': 'MA', 'chart_title':'Campaign Performance by Email', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                      {'chart_name': 'email_cta_performance', 'system_type': 'MA', 'chart_title':'Email Performance by CTA', 'mode': run_type, 'start_date': sinceDateTime}, \
-               
+#                 
                 ]
         
         url = host + '/api/v1/company/' + str(company_id) + '/analytics/calculate/'
@@ -274,7 +274,8 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         # call dashboard calculate tasks
         dashboards = [\
 #                     {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-                     {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+                    {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                     {'chart_name': 'opp_funnel', 'system_type': 'CRM', 'chart_title':'Opportunity Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'form_fills', 'system_type': 'MA', 'chart_title':'Form Fills', 'mode': run_type, 'start_date': sinceDateTime}, \
                     ]

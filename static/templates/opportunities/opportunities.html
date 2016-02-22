@@ -1,0 +1,182 @@
+<!--  dashboard -->
+<div class="portlet light">
+  
+  <div class="portlet-header short view-header hidden">
+        <div class="title col-md-12">Opportunities Summary</div>
+        <div class="title col-md-9 breadcrumb animate-show-hide hidden">&nbsp;</div>
+        <div class="title col-md-3 breadcrumb hidden">&nbsp;</div>
+  </div>
+  
+  <div class="portlet-title hidden">
+    &nbsp;
+  </div>
+
+  <div class="portlet-body hidden">
+  
+  <div class="row list-separated">
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box header-box-grey">
+       <div class="uppercase font-hg font-blue-madison">
+          {{ others['total_with_company'] + others['total_without_company'] | number}} 
+       </div>
+       <div class="font-grey-mint font-sm uppercase">
+          Total Contacts
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box header-box-grey">
+       <div class="uppercase font-hg font-blue-madison">
+          {{ others['total_with_company']  | number}} 
+       </div>
+       <div class="font-grey-mint font-sm uppercase">
+          With Company
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box header-box-grey">
+      <div class="uppercase font-hg font-blue-madison">
+          {{ others['stages'].length  | number }} 
+       </div>
+      <span class="uppercase font-hg font-grey-mint" style="position:absolute;top:-0.6rem; left:7.5rem;">
+          <ul style="list-style:none !important; padding: 0px !important">
+            <li class="dropdown">
+                <a href class="dropdown-toggle uppercase font-hg font-grey-mint" data-toggle="dropdown" id="stagesDropdown">
+                   <i class="fa fa-info-circle"></i>
+                </a>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="stagesDropdown">
+                   <li ng-repeat="stage in others['stages']">
+                     {{ stage }}
+                   </li>  
+                </ul>
+            </li>
+          </ul>
+       </span>
+        <div class="font-grey-mint font-sm uppercase">
+          Stages
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box header-box-grey">
+       <div class="uppercase font-hg font-blue-madison">
+          {{ others['sources'].length  | number }} 
+       </div>
+       <span class="uppercase font-hg font-grey-mint" style="position:absolute;top:-0.6rem; left:7.5rem;">
+          <ul style="list-style:none !important; padding: 0px !important">
+            <li class="dropdown">
+                <a href class="dropdown-toggle uppercase font-hg font-grey-mint" data-toggle="dropdown" id="sourcesDropdown">
+                   <i class="fa fa-info-circle"></i>
+                </a>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="sourcesDropdown">
+                   <li ng-repeat="source in others['sources']">
+                     {{ source }}
+                   </li>  
+                </ul>
+            </li>
+          </ul>
+       </span>
+       <div class="font-grey-mint font-sm uppercase">
+          Sources
+       </div>
+       
+    </div>
+    
+    <div class="col-md-2 col-sm-2 col-xs-3 header-box hidden">
+    </div>
+  
+  </div>
+ </div> <!--  portlet body -->  
+<!--  end of dashboard -->
+	
+			<div class="portlet-title">
+				<div class="caption">
+					<i class="fa fa-money font-blue-madison"></i><span class="caption-subject bold uppercase font-blue-madison">Opportunities - {{subview.viewSubtitle}}</span>
+				</div>
+			</div>
+			<div class="portlet-body">
+				<div class="table-toolbar" ng-hide="!vm.leads || !vm.leads.length" >
+					<div class="row">
+						<div class="col-md-12">
+							<div class="btn-group pull-right">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									Tools <i class="fa fa-angle-down"></i>
+								</button>
+								<ul class="dropdown-menu pull-right">
+									<li><a href="#"> Print </a></li>
+									<li><a href="#"> Save as PDF </a></li>
+									<li><a href="#"> Export to Excel </a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table ng-hide="!data || !data.length"  class="table table-striped table-hover actionTable dataTable"
+					id="leads_table" ng-cloak>
+					<thead>
+						<tr>
+							<th class="hidden"></th>
+							<th ng-hide="hideDetailColumn" class="center"></th>
+							<th class="center hidden">Opportunity ID</th>
+							<th class="left" style="width:33%">Name</th>
+							<th class="left">Current Stage</th>
+							<th class="center">Created Date</th>
+							<th class="center">Close Date</th>
+							<th class="center">Amount</th>
+							<th class="left">Owner</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr dir-paginate-start="deal in data | itemsPerPage:10" total-items="totalCount" current-page="pagination.current">
+							<td class="center" ng-hide=hideDetailColumn>
+							<a ng-hide="showingContact[deal.id]" ng-click="showContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-close"></span>
+							</a>
+							<a ng-show="showingContact[deal.id]" ng-click="hideContactDetails(deal)" href="javascript:;">
+							   <span class="row-details row-details-open"></span>
+							</a>
+							</td>
+							<td class="center hidden">
+							
+							</td>
+							<td class="left">
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal._id}}">{{ deal.name }}</a>
+							</td>
+							<td>
+							{{ deal.stage }}
+							</td>
+							<td class="center">
+							{{ deal.created_date | date:"yyyy-MM-dd" }}
+							</td>
+							<td class="center">
+							{{ deal.close_date | date:"yyyy-MM-dd" }}
+							</td>
+							<td class="center">
+							{{ deal.amount | currency:"USD " }}
+							</td>
+							<td class="left">
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.owner_id}}">{{ deal.owner_name }}</a>
+							</td>
+						</tr>
+						<tr dir-paginate-end ng-show="showingContact[lead.id]">
+						<!--  td colspan="9"><ng-include src="'/static/templates/leads/analytics-leads-detail.html'"></ng-include></td -->
+						</tr>
+					</tbody>
+					<div ng-hide="data && data.length">
+						<div class="col-sm-12 no-symbols-here">
+							<em>There are no opportunities available.</em>
+						</div>
+					</div>
+
+				</table>
+				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+				   <div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px" ng-hide="!data || !data.length" >Showing {{startCounter}} to {{endCounter}} of {{totalCount}}</div>
+				   <div class="col-md-9" style="padding-left:0px; padding-right:0px"> 
+				       <dir-pagination-controls class="pull-right" ng-hide="!data || !data.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+			       </div>
+			    </div>
+			</div>
+</div>
+		<!-- END EXAMPLE TABLE PORTLET-->
+<!-- END PAGE CONTENT -->

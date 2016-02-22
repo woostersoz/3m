@@ -1,7 +1,8 @@
 <!-- BEGIN TABLE PORTLET-->
 <div class="portlet light">
     <div class="portlet-header">
-        <div class="title col-md-12">{{ viewTitle }}</div>
+        <div class="title col-md-5">{{ viewTitle }}</div>
+        <ng-include src="toolbar"></ng-include>
         <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
         <div class="title col-md-3 breadcrumb">
            <a href="#" ui-sref="views-listing" class="pull-right" style="font-weight:700;">Back to Views</a>
@@ -9,18 +10,20 @@
     </div>
 	<div class="portlet-title" ng-if="showFilters">
 		<div class="caption col-md-6">
-			<i class="fa fa-signal font-blue-madison"></i>
+			<i class="fa fa-th-list font-blue-madison"></i>
 			<span class="caption-subject bold font-blue-madison">
-                 <span class="italic filter-text">Filtered for {{selectedDateType}} from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
-            </span>
+                 <span ng-if="selectedDateValue != null" class="italic filter-text">Filtered for {{selectedDateType}} from {{ startDate | amDateFormat:'YYYY-MM-DD' }} to {{ endDate | amDateFormat:'YYYY-MM-DD' }}</span>
+                 </span>
+                 <span ng-if="selectedDateValue == null" class="italic filter-text">Not filtered by date</span>
+                 </span>
 		</div>
 		<div class="input-group col-md-6 pull-right" style="padding-top:2px;">
 		    <select name="date_types" class="input-small form-control" style="clear:none; margin-right:5px; float:right"
 					ng-options="item.value as item.name for item in superFilterValues['date_types']"
 					ng-model="selectedSuperFilterValues['date_types']">
 			</select>
-			<span class="input-group-addon"><span
-				class="glyphicon glyphicon-calendar pull-right"></span></span> <input type="text"
+			<span ng-if="selectedDateValue != null" class="input-group-addon"><span ng-if="selectedDateValue != null"
+				class="glyphicon glyphicon-calendar pull-right"></span></span> <input ng-if="selectedDateValue != null" type="text"
 				date-range-picker class="form-control date-picker pull-right"
 				style="font-size: 0.7rem !important; width: 100% !important"
 				name="groupDates.date" ng-model="groupDates.date" options="opts"
@@ -31,7 +34,7 @@
 
     <div ng-if="showView">
 		
-		<div class="input-group col-sm-7 pull-left" id="filters">
+		<div class="input-group col-sm-7 pull-left hidden" id="filters">
 			<select name="google_profiles" class="input-small form-control" style="clear:none; margin-right:5px"
 					ng-options="item.profile_id as item.account_name + '- ' + item.profile_name for item in filterValues['google_profiles']"
 					ng-model="selectedFilterValues['google_profile']" ng-show="filters['google_profiles']" ng-required="filters['google_profiles']">
@@ -58,31 +61,38 @@
 					<option selected value="">Select Campaign</option>
 			</select>
 		</div>
-		<div class="col-sm-5 pull-right chart-tools">
-		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
-				ng-click="postToSlack()" title="Post to Slack">
-				<span class="fa fa-slack"></span>
-				Post to Slack
-			</a>
-			<a href="#" class="btn btn-sm pull-right"
-				ng-click="postToChannel()" title="Post to Channel">
-				<span class="fa fa-volume-up"></span>
-				Post
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="snapshot()" title="Take Snapshot">
-				<span class="glyphicon glyphicon-camera"></span>
-				Snapshot
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="createNote()" title="Add Sticky">
-				<span class="glyphicon glyphicon-comment"></span>
-				Sticky
-			</a> 
-			
+		
+		<div class="input-group col-sm-3 pull-left" id="subviews" ng-if="subviews">
+		   <select name="sub_views" class="input form-control" style="clear:none; margin-right:5px"
+					ng-options="item.value as item.name for item in subviews"
+					ng-model="subview.selectedSubview">
+			</select>
 		</div>
+		<div class="col-sm-3 hidden">
+			<form name="search-form" class="search-form open" ng-submit="search()">
+				<div class="input-group">
+					<input type="text" class="form-control input-sm" placeholder="Search..." name="query" ng-model="searchTerm">
+					<span class="input-group-btn">
+					<a href="javascript:;" title="Click to search" class="btn" ng-click="search()"><i class="icon-magnifier"></i></a>
+					<a href="javascript:;" title="Reset" class="btn" ng-click="resetSearch()"><i class="icon-refresh"></i></a>
+					</span>
+				</div>
+	        </form>
+		</div>
+		<div class="col-sm-2" ng-repeat="(key, values) in superFilterValues" ng-if="key!='date_types'">
+		   <select name="test-{{key}}" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.value as item.label for item in values.values"
+					ng-model="selectedFilterValues[key]">
+					<option value="" selected>Select {{values.label}}</option>
+			</select>
+		</div>
+		
+		
 
 		<div class="clearfix">&nbsp;</div>
+		<div style="text-align:center; margin-left:auto; margin-right:auto">
+		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
+		</div>
 		<completearea>
 		<div class="viewTop">
 		<div sticky ng-repeat="note in notes" class="sticky draggable" note="note" ondelete="deleteNote(id)">
@@ -96,9 +106,7 @@
 		
 		</div>
 		</completearea>
-		<div style="text-align:center; margin-left:auto; margin-right:auto">
-		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
-		</div>
+		
 	</div>
 
 </div>

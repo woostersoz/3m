@@ -3,6 +3,7 @@ from datetime import timedelta, datetime
 from django.shortcuts import render
 from django.views.generic.base import RedirectView
 from django.http import HttpResponse, JsonResponse
+from bson.code import Code
 
 from rest_framework import status, views, permissions, viewsets
 from rest_framework.response import Response
@@ -60,7 +61,10 @@ import sugarcrm
 from slackclient import SlackClient
 
 from company.models import CompanyIntegration,  UserOauth
+from company.serializers import CompanyIntegrationSerializer
 from social.serializers import FbInsightsSerializer
+from superadmin.models import SuperIntegration, SuperFilters
+#from lenses.views import populate_super_filters #cannot be imported from lenses due to circular reference, so keep this routine here
 
 import sys, inspect, json
 
@@ -503,82 +507,277 @@ def get_slck_token(request):
         return JsonResponse(access_token_json)  
     except Exception as e:
             return JsonResponse({'error': str(e)})
-# get metadataof objects 
+        
+class LeadStatusMappingViewSet(viewsets.ModelViewSet):  
+
+# @api_view(['GET'])
+# @renderer_classes((JSONRenderer,))
+# def get_lead_status_mappings(request, company_id):
+    
+    serializer_class = CompanyIntegrationSerializer
+    # get status mapping from integration record
+    def list(self, request, company_id=None): 
+        try:
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            #check which CRM system for this company
+            if existingIntegration is None or 'integrations' not in existingIntegration:
+                raise ValueError('No integration data found')
+            if 'mapping' not in existingIntegration:
+                raise ValueError('No mapping found in integration')
+            return JsonResponse({'status_mappings': existingIntegration['mapping']})
+     
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+    
+    def create(self, request, company_id=None): 
+        try:
+            #print 'comapny is ' + str(company_id)
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            #check which CRM system for this company
+            if existingIntegration is None or 'integrations' not in existingIntegration:
+                raise ValueError('No integration data found')
+            if 'mapping' not in existingIntegration:
+                raise ValueError('No mapping found in integration')
+            
+            data = json.loads(request.body)
+            mapping = data.get('mapping', None)
+            
+            for key, value in mapping.items():
+                if key not in existingIntegration['mapping']:
+                    existingIntegration['mapping'][key] = []
+                existingIntegration['mapping'][key] = value
+                
+            CompanyIntegration.objects(company_id = company_id ).update(mapping=existingIntegration['mapping'])
+                   
+            return JsonResponse({'success': 'Lead status mappings saved'})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)})       
+        
+# get lead statuses from CRM systems
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))
-def get_metadata(request, id):
+def get_lead_statuses(request, company_id):
+    try:
+        
+        statuses_list, source_system = _get_crm_lead_statuses(company_id)
+        if len(statuses_list) == 0 or source_system == 'Unknown':
+            return JsonResponse({'error': 'Unable to get CRM lead statuses'})
+        
+        return JsonResponse({'statuses': statuses_list, 'source_system': source_system})
+ 
+    except Exception as e:
+        print 'error while getting lead statuses ' + str(e)
+        return JsonResponse({'error': str(e)})
     
-    code = request.GET.get('code')
-    object = request.GET.get('object')
-    
-    if code == 'mkto' and (object != 'lead' and object != 'activity'):
-        result = "Sorry, Marketo only provides metadata for Leads and Activities"
-        return JsonResponse(result, safe=False)
-    
-    #company_id = request.user.company_id  
-    company_id = id
-    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-    
-    if existingIntegration is not None:
-        integration = existingIntegration.integrations[code]
-        if integration is not None:    
-            if code == 'sfdc':
-                path = 'sobjects/' + object + '/describe/'
-                params = {}
-                sfdc = Salesforce()
-                client = sfdc.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
-                #print 'path is ' + str(path)
-                metaobject = client.restful(path, params)
-                if object == 'lead': # if lead, get lead statuses as well
-                    params = {'q': 'SELECT IsConverted, IsDefault, MasterLabel, SortOrder from LeadStatus' }
-                    path = 'query/'
-                    metadata_status = client.restful(path, params)
-                    if metadata_status is not None and metadata_status['done'] == True:
-                        if 'records' in metadata_status:
-                            metaobject['statuses'] = metadata_status['records']
-            elif code == 'mkto':
-                mkto = Marketo(company_id)
-                if (object == 'activity'):
-                    metaobject = mkto.get_activity_types()
-                else:
-                    metaobject = mkto.describe(object + 's') #because Mkto needs 'leads' and 'campaigns'
-            elif code == 'hspt':
-                hspt = Hubspot(company_id)
-                if (object == 'lead'):
-                    metaobject_temp = hspt.get_metadata_lead()
-                    metaobject = []
-                    if metaobject_temp is not None:
-                        for property in metaobject_temp:
-                            property = vars(property)['_field_values']
-                            property.pop('options', None)
-                            #print property
-                            metaobject.append(property)
+def _get_crm_lead_statuses(company_id):
+    try:
+        crm_systems = SuperIntegration.objects(system_type='CRM').only('code') #this assumes the lead statuses are in the CRM metadata
+        if crm_systems is None:
+            return
+        crm_systems_list = [d['code'] for d in crm_systems]
+        crm_system_code = None
+        
+        existingIntegration = {}
+        existingIntegration['integrations'] = {}
+        
+        map = Code("function () {"
+                 "  for (var key in this.integrations) emit(key, this.integrations[key]['metadata']); } ")
+        
+        reduce = Code("function (key, values) { return null; } ")
+        
+        results = CompanyIntegration.objects(company_id=company_id).map_reduce(map, reduce, "inline")
+        results = list(results)
+        for result in results:
+            existingIntegration['integrations'][result.key] = {'metadata': result.value}
+        
+        #existingIntegration = CompanyIntegration.objects(company_id = company_id ).first().only('integrations__sfdc__metadata__lead')
+        #check which CRM system for this company
+#         if existingIntegration is None or 'integrations' not in existingIntegration:
+#             raise ValueError('No integration data found')
+        
+        #print 'no error 1' + str(existingIntegration['integrations'].keys())
+        
+        for key in existingIntegration['integrations'].keys():
+            if key in crm_systems_list:
+                crm_system_code = key
+                break
+        if crm_system_code is None:
+            #print 'no error 9'
+            return [], 'Unknown'
+        #print 'no error 2'
+        if crm_system_code == 'sfdc': #if Salesforce. NOTE - other systems to be added later
+            #print 'meta is '+ str(existingIntegration['integrations']['sfdc']['metadata'])
+            metadata = existingIntegration['integrations']['sfdc'].get('metadata', None)
+            #print 'no error 3a' + str(metadata)
+            if metadata is not None:
+                lead = metadata.get('lead', None)
+                #print 'no error 3b'
+                if lead is not None:
+                    statuses = lead.get('statuses', None)
+                    #print 'no error 3c'
+                    if statuses is not None:
+                        statuses_list = [s['MasterLabel'] for s in statuses]
+                        #print 'no error 3d'
+                        return statuses_list, 'Salesforce'
+            raise ValueError('No lead statuses in metadata. Maybe refresh the metadata?')
+        else:
+            return [], 'Unknown'
+    except Exception as e:
+        return e
+# get metadata of objects 
+@api_view(['GET'])
+@renderer_classes((JSONRenderer,))
+def get_metadata(request, company_id):
+    try:
+        code = request.GET.get('code')
+        object = request.GET.get('object')
+        
+        if code == 'mkto' and (object != 'lead' and object != 'activity'):
+            result = "Sorry, Marketo only provides metadata for Leads and Activities"
+            return JsonResponse(result, safe=False)
+        
+        #company_id = request.user.company_id  
+        #company_id = company_id
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        
+        if existingIntegration is not None:
+            integration = existingIntegration.integrations[code]
+            if integration is not None:    
+                if code == 'sfdc':
+                    path = 'sobjects/' + object + '/describe/'
+                    params = {}
+                    sfdc = Salesforce()
+                    client = sfdc.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+                    #print 'path is ' + str(path)
+                    metaobject = client.restful(path, params)
+                    if object == 'lead': # if lead, get lead statuses as well
+                        params = {'q': 'SELECT IsConverted, IsDefault, MasterLabel, SortOrder from LeadStatus' }
+                        path = 'query/'
+                        metadata_status = client.restful(path, params)
+                        if metadata_status is not None and metadata_status['done'] == True:
+                            if 'records' in metadata_status:
+                                metaobject['statuses'] = metadata_status['records']
+                elif code == 'mkto':
+                    mkto = Marketo(company_id)
+                    if (object == 'activity'):
+                        metaobject = mkto.get_activity_types()
+                    else:
+                        metaobject = mkto.describe(object + 's') #because Mkto needs 'leads' and 'campaigns'
+                elif code == 'hspt':
+                    hspt = Hubspot(company_id)
+                    if (object == 'lead'):
+                        metaobject_temp = hspt.get_metadata_lead()
+                        metaobject = []
+                        if metaobject_temp is not None:
+                            for property in metaobject_temp:
+                                property = vars(property)['_field_values']
+                                property.pop('options', None)
+                                #print property
+                                metaobject.append(property)
+                    else:
+                        result = "Nothing to report"
+                        return JsonResponse(result, safe=False)
                 else:
                     result = "Nothing to report"
                     return JsonResponse(result, safe=False)
             else:
-                result = "Nothing to report"
+                result = 'Error: No ' + code + ' integration found'
                 return JsonResponse(result, safe=False)
+        
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        integration = existingIntegration.integrations[code]
+        existingDict = existingIntegration.integrations
+        if 'metadata' in integration:
+            existing_metadata = integration['metadata']
+            existing_metadata[object] = metaobject
+            integration['metadata'] = existing_metadata
         else:
-            result = 'Error: No ' + code + ' integration found'
-            return JsonResponse(result, safe=False)
+            integration['metadata'] = {}
+            integration['metadata'][object] = metaobject
+        existingDict[code] = integration
+        #print existingDict[code]
+        CompanyIntegration.objects(company_id = company_id ).update(integrations=existingDict)
+        
+        #if SFDC user, save the users data in the integration object
+        if code == 'sfdc' and object == 'user':
+            users = sfdc.get_users(company_id)
+            if 'users' not in integration:
+                integration['users'] = []
+            integration['users'] = users
+            existingDict[code] = integration
+        # update below cannot be combined with earlier update since metadata for Users may not have been saved (needed in the SFDC method)
+        CompanyIntegration.objects(company_id = company_id ).update(integrations=existingDict) 
+        
+        #fill the Super Filter items with values 
+        if metaobject is not None: 
+            populate_super_filters(company_id, code, object, metaobject)
+        
+        result = {'describe_' + code + '_' + object  : metaobject}       
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        return JsonResponse({'Error while saving metadata: ' : str(e)})
     
-    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
-    integration = existingIntegration.integrations[code]
-    existingDict = existingIntegration.integrations
-    if 'metadata' in integration:
-        existing_metadata = integration['metadata']
-        existing_metadata[object] = metaobject
-        integration['metadata'] = existing_metadata
-    else:
-        integration['metadata'] = {}
-        integration['metadata'][object] = metaobject
-    existingDict[code] = integration
-    #print existingDict[code]
-    CompanyIntegration.objects(company_id = company_id ).update(integrations=existingDict)
+
+
+def populate_super_filters(company_id=None, code=None, object=None, metaobject=None):
+    try:
+        print 'got into populate'
+        if company_id is None or code is None or object is None or metaobject is None:
+            return
+        
+        super_filters = SuperFilters.objects(source_system = code).first()
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        existingDict = existingIntegration.integrations
+        integration = existingDict[code]
+        
+        if existingIntegration is not None:
+            if not 'filters' in integration:
+                integration['filters'] = {}
+            #if not object in existingIntegration['integrations'][code]['filters']:
+            integration['filters'][object] = {}
+        
+        for filter_name, filter_values in super_filters['filters'][object].items():
+            print 'filter_name is ' + str(filter_name)
+            if filter_name == 'date_types':
+                continue
+            
+            #get the label to be used in the UI dropdown
+            if len(filter_values) > 0 and 'label' in filter_values[0]:
+                filter_label = filter_values[0]['label']
+            else:
+                filter_label = filter_name
+                
+            integration['filters'][object][filter_name] = {}
+            integration['filters'][object][filter_name]['label'] = filter_label
+            
+            if code == 'sfdc': #different systems have different structures for the metadata
+                if filter_name == 'OwnerId': #treat Owner differently because it's a lookup - need to make lookup fields more structured
+                    if not 'users' in existingIntegration['integrations'][code]:
+                        continue #move on to next filter if no users are found
+                    else:
+                        integration['filters'][object][filter_name]['values'] = [{'label': str(item['FirstName']) + ' ' + str(item['LastName']), 'value': item['Id'], 'default': False} for item in existingIntegration['integrations'][code]['users']['records'] ] 
+                
+                else: #if filter is not owner
+                    fields = metaobject['fields']
+                    for field in fields:
+                        if field['name'] == filter_name:
+                            tempList = field['picklistValues']  
+                            break
+                    #print 'temp list is ' + str(tempList)
+                    if not filter_name in integration['filters'][object]:
+                        integration['filters'][object][filter_name] = []
+                    #print 'temp2 list is ' + str(tempList)
+                    integration['filters'][object][filter_name]['values'] = [{'label': item['label'], 'value': item['value'], 'default': item['defaultValue']} for item in tempList ] 
+
+        #print 'integration is ' + str(integration)
+        existingDict[code] = integration
+        CompanyIntegration.objects(company_id = company_id ).update(integrations=existingDict) 
+        
+    except Exception as e:
+        print 'Error while saving filters in metadata: ' + str(e)
+        return JsonResponse({'Error while saving filters in metadata: ' : str(e)})
     
-    result = {'describe_' + code + '_' + object  : metaobject}       
-    return JsonResponse(result, safe=False)
     
 class Marketo:
     
@@ -783,6 +982,27 @@ class Salesforce:
                 authorizeViewSet = AuthorizeViewSet()
                 authorizeViewSet.saveAccessToken(access_token, 'sfdc', company_id, refresh_token, instance_url, None, None)
            
+    def get_users(self, company_id):
+        try:
+            fieldList = None
+            names = []
+            #company_id = request.user.company_id  
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+                if 'metadata' in integration:
+                    if 'user' in integration['metadata']:
+                        metadata = integration['metadata']['user'] 
+                        for obj in metadata['fields']:
+                            names.append(obj['name'])
+            fieldList = ', ' .join(names)
+            if fieldList is not None:                
+                client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+                query = 'SELECT ' + fieldList + ' from User'
+                #print 'dping query' + str(query)
+                return client.query_all(query)
+        except Exception as e:
+            raise Exception("Could not retrieve users from Salesforce: " + str(e))
                 
         
     def get_leads(self, user_id, company_id):
@@ -1245,6 +1465,22 @@ class Salesforce:
         except Exception as e:
             print 'exception while retrieving SFDC contact history: ' + str(e)
             raise Exception("Could not retrieve history for contacts from Salesforce: " + str(e))
+        
+    def get_history_for_opportunity(self, user_id, company_id, opp_list, sinceDateTime):
+        try:
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+            else:
+                return []
+                #raise Exception('No integration found for SFDC')
+            query = 'SELECT Id, OpportunityId, CreatedById, CreatedDate,  OldValue, NewValue, Field  from OpportunityFieldHistory where CreatedDate > ' + sinceDateTime  + ' and OpportunityId in ' + opp_list #Amount, CloseDate, ExpectedRevenue, ForecastCategory, IsDeleted, Probability, StageName
+            client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+            return client.query_all(query)['records']
+            
+        except Exception as e:
+            print 'exception while retrieving SFDC opportunity history: ' + str(e)
+            raise Exception("Could not retrieve history for opportunity from Salesforce: " + str(e))
         
     #Park the below code for now - use it later when trying to get the auth token, not during authorization
 #     def retrieve_auth_token(self): 

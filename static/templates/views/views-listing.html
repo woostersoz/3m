@@ -14,7 +14,7 @@
 <div class="portlet-body padding-zero ">
 <ul class="analytics-category">
   <li ng-repeat="(key, value) in views | groupBy: 'category'">
-    <div class="col-md-12 font-blue-madison padding-zero" style="margin-bottom:10px"><i class="fa fa-signal"></i> {{key}}</div>
+    <div class="col-md-12 font-blue-madison padding-zero" style="margin-bottom:10px"><i class="fa fa-th-list"></i> {{key}}</div>
     <ul class="analytics-charts">
 	    <li ng-repeat="view in value | orderBy: 'sequence'" class="col-md-3 col-xs-6 col-sm-3  header-box">
 	      <div class="col-sm-3">

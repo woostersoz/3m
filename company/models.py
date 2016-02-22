@@ -53,7 +53,7 @@ class CompanyIntegration(Document):
     
     #created_date = DateTimeField(auto_now_add=True)
 
-    meta = {'collection': 'companyIntegration', 'indexes': ['company_id']}
+    meta = {'collection': 'companyIntegration', 'indexes': ['company_id', {'fields' : ('company_id', 'integrations.sfdc.users.records.Id'), 'unique': False, 'name': 'sfdc_user'}]}
     
 class CompanyIntegrationDeleted(Document):
 
@@ -92,4 +92,11 @@ class UserOauth(Document):
     mkto_access_token = StringField(max_length=300)
     slck_access_token = StringField(max_length=300)
 
-    meta = {'collection': 'userOauth', 'indexes': ['user_id'], 'ordering':['-updated_date']}       
+    meta = {'collection': 'userOauth', 'indexes': ['user_id'], 'ordering':['-updated_date']}  
+    
+class BaseLeadStatusMapping(Document):
+    stage = StringField()
+    updated_date = DateTimeField(default=datetime.datetime.utcnow)
+    #created_date = DateTimeField(auto_now_add=True)
+    
+    meta = {'allow_inheritance': True}     

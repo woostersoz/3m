@@ -3,9 +3,10 @@ import datetime, json, time, math
 from datetime import timedelta, date, datetime
 import pytz
 import os
+import collections
 from collections import OrderedDict
 from operator import itemgetter
-
+from dateutil import tz
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
@@ -44,6 +45,9 @@ from authentication.models import Company, CustomUser
 from dashboards.tasks import calculateHsptDashboards, calculateMktoDashboards, calculateSfdcDashboards
 from accounts.models import Account
 from accounts.serializers import AccountSerializer
+from opportunities.serializers import OpportunitySerializer
+from  opportunities.views import _map_sfdc_userid_name
+from mmm.views import _str_from_date, _date_from_str
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -56,6 +60,7 @@ def decodeKey(key):
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))    
 def calculateDashboards(request, company_id): #,  
+    print 'in calculate dashboards'
     chart_name = request.GET.get('chart_name')
     chart_title = request.GET.get('chart_title')
     system_type = request.GET.get('system_type')
@@ -73,7 +78,7 @@ def calculateDashboards(request, company_id): #,
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
-            #print 'found code' + str(code)
+            print 'found db code' + str(code)
                   
         if code is  None:
             raise ValueError("No integrations defined")  
@@ -101,6 +106,10 @@ def retrieveDashboards(request, company_id):
     end_date = request.GET.get('end_date')
     dashboard_name = request.GET.get('dashboard_name')
     system_type = request.GET.get('system_type')
+    filters = request.GET.get('filters')
+    filters = json.loads(filters)
+    superfilters = request.GET.get('superfilters')
+    super_filters = json.loads(superfilters)
     
     user_id = request.user.id
     company_id = request.user.company_id
@@ -120,6 +129,8 @@ def retrieveDashboards(request, company_id):
             result = retrieveHsptDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name)
         elif code == 'mkto': 
             result = retrieveMktoDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name)
+        elif code == 'sfdc': 
+            result = retrieveSfdcDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name, filters=filters, super_filters=super_filters)
         else:
             result =  'Nothing to report'
         return JsonResponse(result, safe=False)
@@ -170,6 +181,11 @@ def retrieveMktoDashboards(user_id=None, company_id=None, dashboard_name=None, s
     result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name)
     return result
 
+def retrieveSfdcDashboards(user_id=None, company_id=None, dashboard_name=None, start_date=None, end_date=None, filters=None, super_filters=None):
+    method_map = { "opp_funnel" : sfdc_opp_funnel}
+    result = method_map[dashboard_name](user_id, company_id, start_date, end_date, dashboard_name, filters, super_filters)
+    return result
+
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))    
 def drilldownDashboards(request, company_id):
@@ -196,6 +212,8 @@ def drilldownDashboards(request, company_id):
             result['portal_id'] = client_secret
         elif code == 'mkto': 
             result = drilldownMktoDashboards(request=request, company_id=company_id)
+        elif code == 'sfdc': 
+            result = drilldownSfdcDashboards(request=request, company_id=company_id)
         else:
             result =  'Nothing to report'
         #result['source_system'] = code
@@ -867,7 +885,7 @@ def mkto_funnel(user_id, company_id, start_date, end_date, dashboard_name):
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)})   
     
-#Waterfall dashboard
+#Deprecated - use mkto_funnel instead - Waterfall dashboard
 def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name): 
     try:
         original_start_date = start_date
@@ -887,7 +905,7 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
         company_id_qry = 'company_id'
         chart_name_qry = 'chart_name'
         date_qry = 'date__in'
-        chart_name = 'waterfall'
+        chart_name = 'funnel' #this dashboard shares data with the funnel dashboard
         
         #other variables
         results = {}
@@ -896,7 +914,7 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
         days = AnalyticsData.objects(**querydict)
         
         for day in days:
-            day_results = day['results']
+            day_results = day['results']['inflow_count']
             for key, value in day_results.items():
                 if key not in results:
                     results[key] = 0
@@ -911,7 +929,212 @@ def mkto_waterfall(user_id, company_id, start_date, end_date, dashboard_name):
         print 'exception is ' + str(e) 
         return JsonResponse({'Error' : str(e)}) 
 
+#start of SFDC dashboards
+# dashboard - 'Opp Funnel"
+def sfdc_opp_funnel(user_id, company_id, start_date, end_date, dashboard_name, filters, super_filters):
+    try:
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            
+        filter_by_owner = False
+        filter_by_type = False
+        querydict_filters = {}
+        match = {'$match' : { }}
+        #print 'filters is ' + str(filters)
+        if filters is not None:
+            for key, value in filters.items():
+                #print 'key is ' + str(key) + ' and val is ' + str(value)
+                if key == 'OwnerId' and value is not None: #filter drilldown by Opp owner
+                    filter_by_owner = True #creates an additional querydict that can be added to the main qd
+                    filter_ownerId = value
+                if key == 'Type' and value is not None:
+                    filter_by_type = True #creates an additional querydict that can be added to the main qd
+                    filter_type = value
+                    #print 'filter by type ' + str(filter_type)
+        
+        
+        #query parameters
+        company_id_qry = 'company_id'
+        chart_name_qry = 'chart_name'
+        date_qry = 'date__in'
+        #date_qry2 = 'date'
+        chart_name = 'opp_funnel'
+        
+        #other variables
+        existed_count = 0
+        created_count = 0
+        opps_created_stage = {}
+        opps_created_source = {}
+        opps_inflow_count = {}
+        opps_outflow_count = {}
+        opps_outflow_duration = {}
+        percentage_increase = 0
+        closed_deal_value = 0
+        max_deal_value = 0
+        
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        #source_mappings = existingIntegration['mapping'].get('sources', None)
+        #if source_mappings is None:
+        #    return 'Error: Sources are not summarized'
+        querydict = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry: days_list}
+        days = AnalyticsData.objects(**querydict)
+        
+        first_record_done = False
+        duration_denom = {} #keeps track of the denominator for the durations - ignore days on which there were no outflow IDs
+        duration_numer = {}
+        
+        for day in days:
+            #get related IDs for duration calcs
+            #querydict2 = {company_id_qry: company_id, chart_name_qry: chart_name, date_qry2: day['date']}
+            #ids = AnalyticsIds.objects(**querydict2).first()
+            #ids = ids['results']['outflow']
+            #print 'ids are ' + str(ids)
+            
+            day = day['results']
+            if first_record_done != True:
+                #existed_count = day['existed_count']
+                first_record_done = True
+            
+            #increment all  variables
+#             for item, value in day['created_stage'].items():
+#                 if item not in leads_created_stage:
+#                     leads_created_stage[item] = 0
+#                 leads_created_stage[item] += value
+#                 
+#             for item, value in day['created_source'].items():
+#                 if item not in leads_created_source:
+#                     leads_created_source[item] = 0
+#                 leads_created_source[item] += value  
 
+            if not filter_by_owner and not filter_by_type: #no filter by owner 
+                    
+                for item, value in day['inflow_count'].items():
+                    item = decodeKey(item)
+                    if item not in opps_inflow_count:
+                        opps_inflow_count[item] = 0
+                    opps_inflow_count[item] += value 
+                    
+                for item, value in day['outflow_count'].items():
+                    item = decodeKey(item)
+                    if item not in opps_outflow_count:
+                        opps_outflow_count[item] = 0
+                    if value != 'N/A':
+                        opps_outflow_count[item] += value  
+                        
+                for item, value in day['outflow_duration'].items():
+                    item = decodeKey(item)
+                    if item not in opps_outflow_duration:
+                        opps_outflow_duration[item] = 0
+                    if item not in duration_denom:
+                        duration_denom[item] = 0
+                    if item not in duration_numer:
+                        duration_numer[item] = 0
+                    duration_numer[item] += day['outflow_count'][encodeKey(item)] * value
+                    duration_denom[item] += day['outflow_count'][encodeKey(item)]    
+            
+            elif filter_by_owner: #filter by owner id
+                if filter_ownerId in day['inflow_count_by_owner']:
+                    for type, stages in day['inflow_count_by_owner'][filter_ownerId].items():
+                        if filter_by_type and type != filter_type:
+                            continue
+                        for item, value in stages.items():
+                            item = decodeKey(item)
+                            if item not in opps_inflow_count:
+                                opps_inflow_count[item] = 0
+                            opps_inflow_count[item] += value 
+                    
+                if filter_ownerId in day['outflow_count_by_owner']:    
+                    for type, stages in day['outflow_count_by_owner'][filter_ownerId].items():
+                        if filter_by_type and type != filter_type:
+                            continue
+                        for item, value in stages.items():
+                            item = decodeKey(item)
+                            if item not in opps_outflow_count:
+                                opps_outflow_count[item] = 0
+                            if value != 'N/A':
+                                opps_outflow_count[item] += value  
+                        
+                if filter_ownerId in day['outflow_duration_by_owner']:
+                    for type, stages in day['outflow_count_by_owner'][filter_ownerId].items():
+                        if filter_by_type and type != filter_type:
+                            continue
+                        for item, value in stages.items():
+                            item = decodeKey(item)
+                            if item not in opps_outflow_duration:
+                                opps_outflow_duration[item] = 0
+                            if item not in duration_denom:
+                                duration_denom[item] = 0
+                            if item not in duration_numer:
+                                duration_numer[item] = 0
+                            if filter_ownerId in day['outflow_count_by_owner']:
+                                duration_numer[item] += day['outflow_count_by_owner'][filter_ownerId][type][encodeKey(item)] * value
+                                duration_denom[item] += day['outflow_count_by_owner'][filter_ownerId][type][encodeKey(item)]  
+                            
+            elif filter_by_type: #filter by opp type
+                print 'getting into type filter'
+                if filter_type in day['inflow_count_by_type']:
+                    for item, value in day['inflow_count_by_type'][filter_type].items():
+                        item = decodeKey(item)
+                        if item not in opps_inflow_count:
+                            opps_inflow_count[item] = 0
+                        opps_inflow_count[item] += value 
+                    
+                if filter_type in day['outflow_count_by_type']:    
+                    for item, value in day['outflow_count_by_type'][filter_type].items():
+                        item = decodeKey(item)
+                        if item not in opps_outflow_count:
+                            opps_outflow_count[item] = 0
+                        if value != 'N/A':
+                            opps_outflow_count[item] += value  
+                        
+                if filter_type in day['outflow_duration_by_type']:    
+                    for item, value in day['outflow_duration_by_type'][filter_type].items():
+                        item = decodeKey(item)
+                        if item not in opps_outflow_duration:
+                            opps_outflow_duration[item] = 0
+                        if item not in duration_denom:
+                            duration_denom[item] = 0
+                        if item not in duration_numer:
+                            duration_numer[item] = 0
+                        if filter_type in day['outflow_count_by_type']:
+                            duration_numer[item] += day['outflow_count_by_type'][filter_type][encodeKey(item)] * value
+                            duration_denom[item] += day['outflow_count_by_type'][filter_type][encodeKey(item)]           
+        
+        # get the average of the average outflow durations by dividing by the duration of the report
+        #print 'numer is ' + str(duration_numer)
+        #print 'denom is ' + str(duration_denom)
+        for item, value in opps_outflow_duration.items():
+            item = decodeKey(item)
+            if duration_denom[item] > 0:
+                opps_outflow_duration[item] = int(math.ceil(duration_numer[item] / duration_denom[item]))
+            else:
+                opps_outflow_duration[item] = 'N/A'
+            
+            
+        #get the percentage increase in number of contacts
+#         if int(existed_count) > 0:
+#             percentage_increase = (float(created_count) / existed_count) * 100
+#         else:
+#             percentage_increase = 0
+        
+        results = {'start_date' : local_start_date.strftime('%Y-%m-%d'), 'end_date' : local_end_date.strftime('%Y-%m-%d'), 'leads_inflow_count': opps_inflow_count, 'leads_outflow_count': opps_outflow_count, 'leads_outflow_duration': opps_outflow_duration, 'percentage_increase' : percentage_increase, 'closed_deal_value' : closed_deal_value, 'max_deal_value': max_deal_value} #'existed_count': existed_count, 'created_count': created_count,  'created_source' : opps_created_source_new,  'created_stage' : opps_created_stage, 
+        return results 
+         
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
+    
 def drilldownHsptDashboards(request, company_id):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -1057,7 +1280,7 @@ def drilldownMktoDashboards(request, company_id):
     chart_name_qry = 'chart_name'
     date_qry = 'date__in'
     sfdc_opp_qry = 'opportunities__sfdc__0__exists'
-    #chart_name = 'waterfall'
+    new_dashboard_name = 'funnel'
     
     #variables
     people = {}
@@ -1082,56 +1305,76 @@ def drilldownMktoDashboards(request, company_id):
         for i in range(delta.days + 1):
             days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
             
-        querydict = {company_id_qry: company_id, chart_name_qry: dashboard_name, date_qry: days_list}
+        querydict = {company_id_qry: company_id, chart_name_qry: new_dashboard_name, date_qry: days_list}
         days = AnalyticsIds.objects(**querydict)
         #print 'obj is ' + str(channel)
         #Contacts, Leads and Customers
         if dashboard_name == 'waterfall':
             if object == 'leads':
                 for day in days:
-                    data = day['results']
+                    data = day['results']['inflow']
                     if section == "all":
                         try: 
-                            key = 'mktg_' + channel if channel != 'mql' else channel
+                            key = 'mktg_' + channel #if channel != 'mql' else channel
                             people['mktg'].extend(data[key])
-                            key = 'sales_' + channel if channel != 'mql' else channel
+                            key = 'sales_' + channel #if channel != 'mql' else channel
                             people['sales'].extend(data[key])
                         except Exception as e:
                             print 'exception is ' + str(e)
                             continue
                     else:
                         try: 
-                            key = section + '_' + channel if channel != 'mql' else channel
+                            key = section + '_' + channel #if channel != 'mql' else channel
                             people[section].extend(data[key])
                         except Exception as e:
                             print 'exception is ' + str(e)
                             continue
-                print 'got ids ' + str(time.time())
+                print 'got  ids ' + str(people)
                 if section == "all":        
-                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg']).hint('co_mkto_id').only('mkto_id').only('source_first_name').only('source_last_name').only('source_email').only('source_source').only('source_status').only('leads').only('contacts')
                     leads_list = list(leads)
-                    leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                    leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales']))).hint('co_sfdc_ids')
                     leads_list.extend(list(leads))
                 elif section == 'mktg':
-                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg'])
+                    leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg']).hint('co_mkto_id').only('mkto_id').only('source_first_name').only('source_last_name').only('source_email').only('source_source').only('source_status').only('leads').only('contacts')
                     leads_list = list(leads)
                 elif section == 'sales':
-                    leads = Lead.objects(company_id=company_id, sfdc_id__in=people['sales'])
+                    leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales']))).hint('co_sfdc_ids')
                     leads_list = list(leads)
                 print 'got leads ' + str(time.time())
                 serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
                 print 'got results ' + str(time.time()) 
-                results = {'results': serializer.data, 'count' : len(leads_list) }   
+                results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc'  }   
                 return results
             #Deals
-            elif (object == 'Deals'):
+            elif object == 'opps':
+                projection = {'$project': {'_id': '$opportunities.sfdc.Id', 'created_date': '$opportunities.sfdc.CreatedDate', 'close_date': '$opportunities.sfdc.CloseDate', 'account_name': '$source_name', 'name': '$opportunities.sfdc.Name', 'amount': '$opportunities.sfdc.Amount', 'account_id': '$sfdc_id', 'closed': '$opportunities.sfdc.IsClosed', 'won': '$opportunities.sfdc.IsWon', 'owner_id': '$opportunities.sfdc.OwnerId', 'stage': '$opportunities.sfdc.StageName' }}
+                querydict = {company_id_qry: company_id, sfdc_opp_qry: True}
                 for day in days:
-                    data = day['results']
-                    try: 
-                        deals.extend(data['Website']['Hubspot']['social'][channel][section]['Deals'])
-                    except Exception as e:
-                        continue
-                results = {'results': deals[offset:offset + items_per_page], 'count' : len(deals) }   
+                    data = day['results']['inflow']
+                    if section == "all":  
+                        opps['sales'].extend(data['sales_' + channel])
+                        opps['mktg'].extend(data['mktg_' + channel])
+                    else:
+                        opps[section].extend(data[section + '_' + channel])
+                opp_ids = opps['sales'] + opps['mktg'] #combine the opp ids - ensure no dupes?
+                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, {'$match': {'opportunities.sfdc.Id' : {'$in': opp_ids}} }, projection)
+                opps_list = list(opps)
+                #print 'opps list is ' + str(opps_list)
+                #users = CompanyIntegration.objects(company_id=company_id).aggregate({'$unwind': '$integrations.sfdc.users.records'}, {'$project': {'_id':'$integrations.sfdc.users.records.Id', 'Fname':'$integrations.sfdc.users.records.FirstName', 'Lname':'$integrations.sfdc.users.records.LastName'}}) #{'$match': {'integrations.sfdc.users.records.Id':opp['owner_id']}},   #only('integrations.sfdc.users.records') 
+                #users = list(users)
+                #print 'users are ' + str(users)
+                
+                for opp in opps_list:
+                    opp['created_date'] = _str_from_date(_date_from_str(opp['created_date']).replace(tzinfo=pytz.utc).astimezone(tz.tzlocal()), 'short') #convert date to local timezone
+                    opp['multiple_occurences'] = False
+                    #sfdc_user_qry = 'integrations__sfdc__users__records__exists'
+                    #querydict = {company_id_qry: company_id}
+                
+                opps_list = _map_sfdc_userid_name(company_id, opps_list)
+        
+                serializer = OpportunitySerializer(opps_list[offset:offset + items_per_page], many=True) 
+                results = {'results': serializer.data, 'count' : len(opps_list), 'source_system': 'sfdc' }   
                 return results
         elif dashboard_name == 'funnel':
             if object == 'leads': #object is leads or opps; section is mql, sql etc and channel is inflow and outflow
@@ -1144,10 +1387,10 @@ def drilldownMktoDashboards(request, company_id):
                 print 'ending leads day loop ' + str(time.time())
                 #now get the actual leads
                 print 'starting leads DB read1 ' + str(time.time())
-                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg']).only('mkto_id').only('source_first_name').only('source_last_name').only('source_email').only('source_source').only('source_status').only('leads').only('contacts')
+                leads = Lead.objects(company_id=company_id, mkto_id__in=people['mktg']).hint('co_mkto_id').only('mkto_id').only('source_first_name').only('source_last_name').only('source_email').only('source_source').only('source_status').only('leads').only('contacts')
                 leads_list = list(leads)
                 print 'ending leads DB read1 ' + str(time.time())
-                leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales'])))
+                leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales']))).hint('co_sfdc_ids')
                 leads_list.extend(list(leads))
                 print 'ending leads DB read2 ' + str(time.time())
                 #return results
@@ -1158,17 +1401,170 @@ def drilldownMktoDashboards(request, company_id):
                 return results
             #opportunities
             elif object == 'opps':
+                projection = {'$project': {'_id': '$opportunities.sfdc.Id', 'created_date': '$opportunities.sfdc.CreatedDate', 'close_date': '$opportunities.sfdc.CloseDate', 'account_name': '$source_name', 'name': '$opportunities.sfdc.Name', 'amount': '$opportunities.sfdc.Amount', 'account_id': '$sfdc_id', 'closed': '$opportunities.sfdc.IsClosed', 'won': '$opportunities.sfdc.IsWon', 'owner_id': '$opportunities.sfdc.OwnerId', 'stage': '$opportunities.sfdc.StageName' }}
                 querydict = {company_id_qry: company_id, sfdc_opp_qry: True}
                 for day in days:
                     data = day['results']
                     opps['sales'].extend(data[channel]['sales_' + section])
                     opps['mktg'].extend(data[channel]['mktg_' + section])
                 opp_ids = opps['sales'] + opps['mktg'] #combine the opp ids - ensure no dupes?
-                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, {'$match': {'opportunities.sfdc.Id' : {'$in': opp_ids}} })
+                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, {'$match': {'opportunities.sfdc.Id' : {'$in': opp_ids}} }, projection)
                 opps_list = list(opps)
-                print 'opps list is ' + str(opps_list)
-                serializer = AccountSerializer(opps_list[offset:offset + items_per_page], many=True) 
+                #print 'opps list is ' + str(opps_list)
+                #users = CompanyIntegration.objects(company_id=company_id).aggregate({'$unwind': '$integrations.sfdc.users.records'},{'$project': {'_id':'$integrations.sfdc.users.records.Id', 'Fname':'$integrations.sfdc.users.records.FirstName', 'Lname':'$integrations.sfdc.users.records.LastName'}}) #{'$match': {'integrations.sfdc.users.records.Id':opp['owner_id']}}, 
+                #users = list(users)
+                for opp in opps_list:
+                    print 'opp is ' + str(opp)
+                    opp['created_date'] = _str_from_date(_date_from_str(opp['created_date']).replace(tzinfo=pytz.utc).astimezone(tz.tzlocal()), 'short') #convert date to local timezone
+                    opp['multiple_occurences'] = False
+                    #print 'user is ' + str(user)
+                opps_list = _map_sfdc_userid_name(company_id, opps_list)
+        
+                serializer = OpportunitySerializer(opps_list[offset:offset + items_per_page], many=True) 
                 results = {'results': serializer.data, 'count' : len(opps_list), 'source_system': 'sfdc' }   
+                return results
+        
+        
+    except Exception as e:
+        print 'exception is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})    
+    
+#Salesforce dashboard drilldown    
+def drilldownSfdcDashboards(request, company_id):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    object = request.GET.get('object')
+    section = request.GET.get('section')
+    channel = request.GET.get('channel')
+    page_number = int(request.GET.get('page_number'))
+    items_per_page = int(request.GET.get('per_page'))
+    dashboard_name = request.GET.get('dashboard_name')
+    filters = request.GET.get('filters')
+    filters = json.loads(filters)
+    superfilters = request.GET.get('superfilters')
+    super_filters = json.loads(superfilters)
+    offset = (page_number - 1) * items_per_page
+    filter_by_owner = False
+    filter_by_type = False
+    querydict_filters = {}
+    match = {'$match' : { }}
+    #print 'filters is ' + str(filters)
+    if filters is not None:
+        for key, value in filters.items():
+            #print 'key is ' + str(key) + ' and val is ' + str(value)
+            if key == 'OwnerId' and value is not None: #filter drilldown by Opp owner
+                filter_by_owner = True #creates an additional querydict that can be added to the main qd
+                filter_ownerId = value
+            if key == 'Type' and value is not None:
+                filter_by_type = True #creates an additional querydict that can be added to the main qd
+                filter_type = value
+                    #print 'filter by type ' + str(filter_type)
+            if key != 'OwnerId' and key != 'Type' and value is not None and value != '':
+                querydict_filters['opportunities__sfdc__' + key] = value #creates an additional querydict that can be added to the main qd
+                match['$match']['opportunities.sfdc.' + key] = value
+        
+    
+    user_id = request.user.id
+    company_id = request.user.company_id
+    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    
+    #query parameters
+    company_id_qry = 'company_id'
+    chart_name_qry = 'chart_name'
+    date_qry = 'date__in'
+    sfdc_opp_qry = 'opportunities__sfdc__0__exists'
+    #new_dashboard_name = 'funnel'
+    
+    #variables
+    people = {}
+    people['sales'] = []
+    people['mktg'] = []
+    deals = []
+    opps = {}
+    opps['sales'] = []
+    opps['mktg'] = []
+    opp_ids = []
+    opp_ids_dupe = set()
+    opp_ids_add = opp_ids.append
+    opp_ids_dupe_add = opp_ids_dupe.add
+     
+    try:     
+        original_start_date = start_date
+        original_end_date = end_date
+        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        end_date = datetime.fromtimestamp(float(end_date) / 1000)#'2015-05-20' + ' 23:59:59'
+        
+        local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+        local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        
+        days_list = []
+        delta = local_end_date - local_start_date
+        for i in range(delta.days + 1):
+            days_list.append((local_start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+            
+        querydict = {company_id_qry: company_id, chart_name_qry: dashboard_name, date_qry: days_list}
+        days = AnalyticsIds.objects(**querydict)
+        #print 'obj is ' + str(channel)
+        #Contacts, Leads and Customers
+        
+        if dashboard_name == 'opp_funnel':
+            #opportunities
+            if object == 'opps':
+                projection = {'$project': {'_id': '$opportunities.sfdc.Id', 'created_date': '$opportunities.sfdc.CreatedDate', 'close_date': '$opportunities.sfdc.CloseDate', 'account_name': '$source_name', 'name': '$opportunities.sfdc.Name', 'amount': '$opportunities.sfdc.Amount', 'account_id': '$sfdc_id', 'closed': '$opportunities.sfdc.IsClosed', 'won': '$opportunities.sfdc.IsWon', 'owner_id': '$opportunities.sfdc.OwnerId', 'stage': '$opportunities.sfdc.StageName'}}
+                querydict = {company_id_qry: company_id, sfdc_opp_qry: True}
+                for day in days:
+                    data = day['results']
+                    if not filter_by_owner and not filter_by_type:
+                        for id in data[channel][encodeKey(section)]:
+                            if id in opp_ids:
+                                opp_ids_dupe_add(id) #capture Opps that have occured more than once
+                            else:
+                                opp_ids_add(id) 
+                    elif filter_by_owner: #filter by owner
+                        if filter_ownerId in data[channel + '_by_owner']:
+                            #print 'dd for owner ' + str(filter_ownerId) + ' for ' + str(encodeKey(section))
+                            for type, stages in data[channel + '_by_owner'][filter_ownerId].items():
+                                if filter_by_type and type != filter_type:
+                                    continue
+                                for stage in stages:
+                                    if encodeKey(section) in data[channel + '_by_owner'][filter_ownerId][type]:
+                                        for id in data[channel + '_by_owner'][filter_ownerId][type][encodeKey(section)]:
+                                            if id in opp_ids:
+                                                opp_ids_dupe_add(id) #capture Opps that have occured more than once
+                                            else:
+                                                opp_ids_add(id) 
+                    elif filter_by_type: #filter by opp type
+                        if filter_type in data[channel + '_by_type']:
+                            #print 'dd for type ' + str(filter_type) + ' for ' + str(encodeKey(section))
+                            if encodeKey(section) in data[channel + '_by_type'][filter_type]:
+                                for id in data[channel + '_by_type'][filter_type][encodeKey(section)]:
+                                    if id in opp_ids:
+                                        opp_ids_dupe_add(id) #capture Opps that have occured more than once
+                                    else:
+                                        opp_ids_add(id) 
+                    #opp_ids.extend(data[channel][encodeKey(section)])
+                #print 'dupe opps list is ' + str(opp_ids_dupe)
+                #print 'dupe ids are ' + str([x for x, y in collections.Counter(opp_ids).items() if x > y])
+                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, {'$match': {'opportunities.sfdc.Id' : {'$in': opp_ids}} }, projection)
+                opps_list = list(opps)
+                count = len(opps_list)
+                opps_list = opps_list[offset:offset + items_per_page]
+                #opp_users = [opp['owner_id'] for opp in opps_list] {'$match': {'integrations.sfdc.users.records.Id' : {'$in': opp_users}} },
+#                 users = CompanyIntegration.objects(company_id=company_id).aggregate({'$unwind': '$integrations.sfdc.users.records'},  {'$project': {'_id':'$integrations.sfdc.users.records.Id', 'Fname':'$integrations.sfdc.users.records.FirstName', 'Lname':'$integrations.sfdc.users.records.LastName'}}) #{'$match': {'integrations.sfdc.users.records.Id':opp['owner_id']}}, 
+#                 users = list(users)
+                for opp in opps_list:
+                    #print 'opp is ' + str(opp)
+                    if opp['_id'] in opp_ids_dupe: #this opp has multiple occurences
+                        opp['multiple_occurences'] = True
+                    else:
+                        opp['multiple_occurences'] = False
+                        
+                    opp['created_date'] = _str_from_date(_date_from_str(opp['created_date']).replace(tzinfo=pytz.utc).astimezone(tz.tzlocal()), 'short') #convert date to local timezone
+                    #print 'user is ' + str(user)
+                    
+                opps_list = _map_sfdc_userid_name(company_id, opps_list)
+                serializer = OpportunitySerializer(opps_list, many=True) 
+                results = {'results': serializer.data, 'count' : count, 'source_system': 'sfdc' }   
                 return results
         
         

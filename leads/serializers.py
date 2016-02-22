@@ -46,3 +46,11 @@ class LeadWithFormSerializer(DocumentSerializer):
             return instance
         return LeadWithForm(**attrs)     
     
+class LeadDuplicateSerializer(serializers.Serializer):  
+    _id = drfme_serial.CharField()
+    leads = drfme_serial.ListField()
+    count = drfme_serial.IntegerField()
+    
+    class Meta:
+        fields = ('_id', 'leads', 'count' )
+    

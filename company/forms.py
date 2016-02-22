@@ -4,7 +4,8 @@ from mongodbforms import DocumentForm, CharField
 from djangular.forms import NgModelFormMixin, NgFormValidationMixin
 from djangular.styling.bootstrap3.forms import  Bootstrap3Form
 
-from company.models import BaseCompanyIntegration
+from company.models import BaseCompanyIntegration, BaseLeadStatusMapping
+from company.widgets import JsonPairInputs
 
 from cProfile import label
 from djangular.styling.bootstrap3.forms import Bootstrap3ModelForm
@@ -30,4 +31,21 @@ class IntegrationBaseForm(NgModelFormMixin, NgFormValidationMixin, BaseForm):
     #from djangular    
     def clean(self):
         return super(IntegrationBaseForm, self).clean()  
+    
+class LeadStatusMappingForm(Bootstrap3Form):
+
+    scope_prefix = 'company'
+    form_name='lead_status_mapping_form'
+    
+    stage  = forms.CharField(label  = "Raw Lead", required = False,
+                                   widget = JsonPairInputs(val_attrs={'size':35},
+                                                           key_attrs={'class':'large'}))
+    
+class LeadStatusMappingBaseForm(NgModelFormMixin, NgFormValidationMixin, LeadStatusMappingForm):    
+    #class Meta:
+    #    document = BaseLeadStatusMapping
+
+    #from djangular    
+    def clean(self):
+        return super(LeadStatusMappingBaseForm, self).clean()  
     

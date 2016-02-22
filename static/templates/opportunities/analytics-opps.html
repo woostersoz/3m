@@ -46,11 +46,12 @@
 						</tr>
 						<tr ng-show="source_system == 'sfdc'">
 							<th ng-hide="hideDetailColumn" class="center"></th>
-							<th class="center">Opportunity ID</th>
-							<th class="center">Name</th>
+							<th class="center hidden">Opportunity ID</th>
+							<th class="left" style="width:33%">Name</th>
+							<th class="center">Created Date</th>
 							<th class="center">Close Date</th>
 							<th class="center">Amount</th>
-							<th class="center">Related Account</th>
+							<th class="left">Owner</th>
 						</tr>
 					</thead>
 					
@@ -96,20 +97,24 @@
 							   <span class="row-details row-details-open"></span>
 							</a>
 							</td>
-							<td class="center">
-							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.opportunities.sfdc.Id}}">{{ deal.opportunities.sfdc.Id }}</a>
+							<td class="center hidden">
+							{{ deal._id }}</a>
+							</td>
+							<td class="left">
+							<i ng-if="deal.multiple_occurences" class="fa fa-exclamation-triangle font-blue-madison"></i>
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal._id}}">{{ deal.name }}</a>
 							</td>
 							<td class="center">
-							{{ deal.opportunities.sfdc.Name }}
+							{{ deal.created_date | date:"yyyy-MM-dd" }}
 							</td>
 							<td class="center">
-							{{ deal.opportunities.sfdc.CloseDate | date:"yyyy-MM-dd" }}
+							{{ deal.close_date | date:"yyyy-MM-dd" }}
 							</td>
 							<td class="center">
-							{{ deal.opportunities.sfdc.Amount | currency:"USD " }}
+							{{ deal.amount | currency:"USD " }}
 							</td>
-							<td class="center">
-							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.sfdc_id}}">{{ deal.source_name }}</a>
+							<td class="left">
+							<a ng-if="source_system=='sfdc'" target="_blank" href="http://login.salesforce.com/{{deal.owner_id}}">{{ deal.owner_name }}</a>
 							</td>
 						</tr>
 						<tr dir-paginate-end ng-show="showingContact[deal.id]">
@@ -124,7 +129,12 @@
 					</div>
 
 				</table>
-				<div class="table-pagination-counter" ng-hide="!vm.deals || !vm.deals.length" >Showing {{startDealCounter}} to {{endDealCounter}} of {{totalDeals}}</div><dir-pagination-controls ng-hide="!vm.deals || !vm.deals.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+				<div class="col-md-12" style="padding-left:0px; padding-right:0px">
+					<div class="col-md-3 table-pagination-counter italic" style="padding-left:0px; padding-right:0px"  ng-hide="!vm.deals || !vm.deals.length" >Showing {{startDealCounter}} to {{endDealCounter}} of {{totalDeals}}</div>
+					<dir-pagination-controls class="pull-right" ng-hide="!vm.deals || !vm.deals.length" on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>
+				</div>
+				<div ng-if="multipleOccurs" class="col-md-12 pl-0" style="font-size:66%"><i class="fa fa-exclamation-triangle font-blue-madison"></i>&nbsp;&nbsp;Multiple occurences</div>
+				
 			</div>
 		</div>
 		<!-- END EXAMPLE TABLE PORTLET-->

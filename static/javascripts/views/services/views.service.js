@@ -66,8 +66,8 @@
       //return $http.get('/api/v1/Views/');
     }
     
-    function retrieveView(company, view_name, start_date, end_date, system_type, pageNumber, perPage, filters, superFilters) {
-        return $http.get('/api/v1/company/' + company + '/views/retrieve/?view_name=' + view_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type + '&page_number=' + pageNumber + '&per_page=' + perPage + '&filters=' + JSON.stringify(filters) + '&superfilters=' + JSON.stringify(superFilters)); 
+    function retrieveView(company, view_name, start_date, end_date, system_type, pageNumber, perPage, filters, superFilters, subview) {
+        return $http.get('/api/v1/company/' + company + '/views/retrieve/?view_name=' + view_name + '&start_date=' + start_date + '&end_date=' + end_date  + '&system_type=' + system_type + '&page_number=' + pageNumber + '&per_page=' + perPage + '&filters=' + JSON.stringify(filters) + '&superfilters=' + JSON.stringify(superFilters) + '&subview=' + subview); 
     }
     
     function calculateViews(company, chart_name, system_type, chart_title, mode) {

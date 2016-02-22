@@ -10,7 +10,7 @@
 			'AnalyticsController', AnalyticsController);
 
 	AnalyticsController.$inject = [ '$scope', 'Analytics', 'Authentication',
-	                                'Leads', 'Campaigns', 'Snapshots', '$location', 'DTOptionsBuilder',
+	                                'Leads', 'Campaigns', 'Snapshots', 'Dashboards', 'Views', '$location', 'DTOptionsBuilder',
 	                                'DTColumnDefBuilder', 'DTColumnBuilder', 'DTInstances', '$filter',
 	                                '$state', '$stateParams', '$document', '$window', 'Sticky',
 	                                '$modal', 'Messages', '$anchorScroll', '$timeout', 'usSpinnerService', '$rootScope', 'AnalyticsCharts', 'Social', 'Websites', '$q', 'Common'];
@@ -19,7 +19,7 @@
 	 * @namespace AnalyticsController
 	 */
 	function AnalyticsController($scope, Analytics, Authentication, Leads, Campaigns,
-			Snapshots, $location, DTOptionsBuilder, DTColumnDefBuilder,
+			Snapshots, Dashboards, Views, $location, DTOptionsBuilder, DTColumnDefBuilder,
 			DTColumnBuilder, DTInstances, $filter, $state, $stateParams,
 			$document, $window, Sticky, $modal, Messages, $anchorScroll, $timeout, usSpinnerService, $rootScope, AnalyticsCharts, Social, Websites, $q, Common, $interval) {
 
@@ -42,7 +42,7 @@
 		$scope.showWebsiteVisitors = false;
 		$scope.showCarousel = true;
 		$scope.showChart = false;
-		$scope.notFirstChart = false; // this is set to false only when page is loaded else always true
+		$scope.notFirstChart = true; // this is set to false only when page is loaded else always true
 		
 		$scope.data = [];
 		$scope.strict = false;
@@ -59,6 +59,7 @@
 		$scope.lineUrl = staticUrl('images/analytics-line.png');
 		$scope.rowUrl = staticUrl('images/analytics-row.png');
 		$scope.pieUrl = staticUrl('images/analytics-pie.png');
+		$scope.toolbar = staticUrl('templates/common/collab-toolbar.html');
 		
 		$scope.filters = {};
 		$scope.filterValues = {};
@@ -66,7 +67,9 @@
 		$scope.filterValuesFilled = {};
 		$scope.filterValuesFilled['campaign_guids'] = false;
 		$scope.selectedFilterValues = {};
-		$scope.selectedFilterValues['campaign_guid'] = '';
+		//$scope.selectedFilterValues['campaign_guid'] = '';
+		$scope.superFilterValues = {};
+		$scope.selectedSuperFilterValues = {};
 		
 		var account = Authentication.getAuthenticatedAccount();
 		if (account) {
@@ -89,7 +92,13 @@
 						return obj.url == $stateParams.url;
 					});
 					if (chart[0])
+					{
 					   drawChart(chart[0]['title'], chart[0]['name'], chart[0]['chart_type'], chart[0]['system_type'], chart[0]['filters']);
+					   var account = Authentication.getAuthenticatedAccount();
+						if (account) {
+						   Views.getSuperFilters(account.company, chart[0]['object'], chart[0]['system_type']).then(SuperFiltersSuccessFxn, SuperFiltersErrorFxn);	
+						}
+					}
 					else
 					   toastr.error("Oops! Could not draw chart!");	
 				}
@@ -209,6 +218,7 @@
 			
 			
 			$scope.clickOnNewChart = true; // when clicking on new chart
+			$scope.notFirstChart = true;
 			$scope.filterBySource = false; // only true when filtering on source pie chart
 
 			$scope.opts = {
@@ -235,7 +245,7 @@
 					autorefresh : true
 			};
 			
-			handleFilters(chartFilters);
+			//handleFilters(chartFilters);
 			
 			
 		} // end of function chart
@@ -614,6 +624,51 @@
 			    	
 				}
 			} // if campaign_email_performance
+			else if ($scope.chartName == "opp_funnel")
+			{
+				
+				if (account) {
+					
+					$scope.filterBySource = false;
+					$scope.filterByRevenueSource = false;
+					
+					var startDate = 0;
+					var endDate = 0;
+					$scope.filterTitle = ' (filtered for '
+						+ e.data.label + ' on ' + e.data.key //+ e.series.key + ' on ' + e.point.x
+						+ ')';
+					startDate = moment(e.data.x)
+					.startOf('day').unix();
+					endDate = moment(e.data.x).endOf('day')
+					.unix();
+					
+					$scope.object = 'opps';
+		        	$scope.section = e.data.key;
+		        	$scope.channel = 'outflow';
+		        	$scope.chart_name = $scope.chartName;
+		        	//$scope.system_type = 'MA';
+		        	var filters = JSON.parse(JSON.stringify($scope.selectedFilterValues));
+					filters = parseFilter(filters);
+		        	filters['OwnerId'] = e.data.id;
+					//filters = parseFilter(filters);
+		        	$scope.selectedSuperFilterValues = {};
+					
+					$scope.csv.functionToCall = Leads.getLeadsByFilter;
+					$scope.csv.param[0] = account.company;
+					$scope.csv.param[2] = startDate;
+					$scope.csv.param[3] = endDate;
+					$scope.csv.param[7] = $scope.systemType;
+					$scope.csv.param[8] = $scope.chartName;
+					$scope.csv.param[1] = e.data.key; //e.series.key;
+					$scope.csv.param[4] = 'easy';
+					$scope.csv.param[5] = $scope.currentPage;
+					$scope.csv.param[6] = $scope.leadsPerPage;
+					
+					Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.systemType, $scope.startDate, $scope.endDate, $scope.currentPage, $scope.leadsPerPage, filters, $scope.selectedSuperFilterValues).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+					
+			    	
+				}
+			} // if opp_funnel
 			
 		} 
 	
@@ -628,6 +683,7 @@
 		//var newDate = newValues[0];
 		//var oldDate = oldValues[0];
 		if (!newDate || !oldDate) return;
+		if ((newDate.startDate == oldDate.startDate) && (newDate.endDate == oldDate.endDate)) return;
 		/*if ((oldDate != undefined) && ($scope.showChart) && (newDate != oldDate) && $scope.clickOnNewChart) // the chart is being clicked and the dates are different - can only happen if there were diff dates chosen on a previous chart
 		*/
 		if ($scope.clickOnNewChart === true && $scope.notFirstChart)
@@ -639,8 +695,8 @@
 		var endDate = 0;
 		if ((newDate.startDate) && (newDate.endDate)
 				&& (newDate != oldDate)) {
-			startDate = moment(newDate.startDate).startOf('day');
-			endDate = moment(newDate.endDate).endOf('day');
+			startDate = moment(newDate.startDate).startOf('day').unix()* 1000; //* 1000;;
+			endDate = moment(newDate.endDate).endOf('day').unix()* 1000;
 			$scope.startDate = startDate;
 			$scope.endDate = endDate;
 			var account = Authentication.getAuthenticatedAccount();
@@ -673,6 +729,9 @@
 	    }, true);
 		
 		$scope.$watch('selectedFilterValues', function(newFilter, oldFilter) { 
+			
+			if (!newFilter) return;
+			if (oldFilter == newFilter) return;
 			if ($scope.clickOnNewChart === true && $scope.notFirstChart)
 			{
 				$scope.clickOnNewChart = false;
@@ -939,6 +998,51 @@
 			// $location.url('/');
 			$scope.stopSpin();
 			toastr.error('Website visitors could not be retrieved');
+		}
+		
+		function DrilldownDealsSuccessFxn(data, status, headers, config) {
+        	if (data.data.results)
+        	{
+        		$scope.stopSpin();
+        		$scope.totalDeals = data.data.count;
+				$scope.thisSetCount = data.data.results.length;
+				$scope.startDealCounter = ($scope.currentPage - 1) * $scope.leadsPerPage + 1;
+			    $scope.endDealCounter = ($scope.thisSetCount < $scope.leadsPerPage) ? $scope.startDealCounter + $scope.thisSetCount -1 : $scope.currentPage * $scope.leadsPerPage;
+				
+				//vm.leads = Leads.cleanLeadsBeforeDisplay(data.data.results, false, '', '');
+			    vm.deals = data.data.results;
+			    $scope.multipleOccurs = false;
+			    for (var i=0; i < vm.deals.length; i++)
+			    	if (vm.deals[i]['multiple_occurences'])
+			    	{
+			    		$scope.multipleOccurs = true;
+			    		break;
+			    	}
+				$scope.showDeals = true;
+				$scope.showLeads = false;
+				$scope.hideDetailColumn = true;
+				
+				if (data.data.portal_id) { // drilldown into HSPT
+					$scope.portal_id = data.data.portal_id;
+					$scope.source_system = 'hspt';
+					
+				}
+				
+				$scope.source_system = data.data.source_system;
+				
+				$timeout(function() {
+					$location.hash('dealdrilldown');
+					$anchorScroll();
+				}, 0);
+        	}
+        	else {
+        		toastr.error('Could not retrieve drilldown');
+        	}
+        }
+        
+        function DrilldownErrorFxn(data, status, headers, config) {
+        	$scope.stopSpin();
+			toastr.error('Could not retrieve drilldown');
 		}
 
 
@@ -1298,6 +1402,41 @@
     				resultsPosition++;
     			}
         	});
+			
+		}
+		
+		function SuperFiltersSuccessFxn(data, status, headers, config) {
+			$scope.showFilters = false;
+			if (data.data.results) {
+				for (var key in data.data.results) {
+	    			if (data.data.results.hasOwnProperty(key)) {
+	    				$scope.superFilterValues[key] = data.data.results[key];
+	    				$scope.showFilters = true;
+	    			}
+		        }
+				for (var key in $scope.superFilterValues) {
+	    			if ($scope.superFilterValues.hasOwnProperty(key)) {
+	    			   var obj = $scope.superFilterValues[key][0];
+				       if (key == 'date_types') {
+				    	   $scope.selectedSuperFilterValues[key] = obj[Object.keys(obj)[1]];
+				    	   $scope.selectedDateType = obj[Object.keys(obj)[0]];
+				           $scope.selectedDateValue = obj[Object.keys(obj)[1]];
+				       }
+	    			}
+				}
+				
+				$scope.groupDates.date = {
+						startDate : moment().subtract(6, "days").startOf("day"),
+						endDate : moment().endOf("day")
+				};
+			
+				
+				$scope.startDate = $scope.groupDates.date.startDate;
+				$scope.endDate = $scope.groupDates.date.endDate;
+			}
+		}
+		
+        function SuperFiltersErrorFxn(data, status, headers, config) {
 			
 		}
 

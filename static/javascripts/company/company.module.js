@@ -11,8 +11,8 @@
   angular
     .module('mmm.company.controllers', ['datatables']);
 
-  /*angular
-    .module('mmm.company.directives', ['ngDialog']);*/
+  //angular
+  //  .module('mmm.company.directives', []);
 
   angular
     .module('mmm.company.services', []);

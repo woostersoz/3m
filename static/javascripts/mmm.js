@@ -50,7 +50,9 @@
     'dbaq.emoji',
     'ngSanitize',
     'luegg.directives',
-    'acute.select'
+    'acute.select',
+    //'ngTagsInput',
+    'dndLists'
   ]);
 
   angular

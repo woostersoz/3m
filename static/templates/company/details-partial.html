@@ -1,0 +1,28 @@
+<div class="tab-pane active" id="new_tab">
+	<div class="note note-info italic" style="line-height:25px">
+		<p>Use this screen to set up the details for your company </p>	    
+	</div>
+	<div class="clearfix margin-bottom-20" ng-repeat="system in vm.newSystems">
+		<ul class="media-list">
+			<li class="media">
+				<div class="pull-right media-button">
+					<form name="integration_form">
+						<div class="form-group">
+							<a href="#" ng-click="addSystem(system)" class="btn add-button">
+								<span class="glyphicon glyphicon-plus"></span> Add
+							</a>
+						</div>
+					</form>
+				</div> 
+				<a class="pull-left vendor_logo" href="#"> <img class="media-object"
+					ng-src="/static/images/{{ system.code }}.gif" alt="">
+			    </a>
+				<div class="media-body">
+					<h4 class="media-heading">{{ system.name }}</h4>
+					<small class="text-muted italic">{{ system.description }}</small>
+				</div>
+			</li>
+		</ul>
+	</div>
+
+</div>

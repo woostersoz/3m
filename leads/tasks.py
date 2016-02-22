@@ -301,9 +301,9 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
             mkto_sfdc_id = ''
             mkto_sfdc_contact_id = ''
             if 'sfdcLeadId' in newLead:
-                mkto_sfdc_id = str(newLead['sfdcLeadId'])  # check if there is a corresponding lead from SFDC
+                mkto_sfdc_id = newLead['sfdcLeadId']  # check if there is a corresponding lead from SFDC
             if 'sfdcContactId' in newLead:
-                mkto_sfdc_contact_id = str(newLead['sfdcContactId'])  # check if there is a corresponding lead from SFDC
+                mkto_sfdc_contact_id = newLead['sfdcContactId']  # check if there is a corresponding contact from SFDC
             created_date = _date_from_str(newLead['createdAt'])
             addThisList = True
             existingLeadSfdc = None
@@ -922,4 +922,166 @@ def saveHsptCampaignEmailEventsToMaster(user_id=None, company_id=None, job_id=No
     #leadList = list(leads)
     #leadList = [i['source_record'] for i in leadList]
     
+def mergeMktoSfdcLeads(user_id=None, company_id=None, job_id=None, run_type=None):
     
+    #get all leads which have a Marketo ID
+    company_id_qry = 'company_id'
+    mkto_id_qry = 'mkto_id__exists'
+    leads_mkto_qry = 'leads__mkto__exists'
+    
+    querydict = {company_id_qry: company_id, mkto_id_qry: True, leads_mkto_qry: True}
+    
+    
+    leads = Lead.objects(**querydict)
+    try:
+        count = 0
+        #loop through each Mkto lead and see if it has a SFDC Lead ID or SFDC Contact ID
+        for lead in leads:
+            
+            thisId = lead['id']
+            thisMktoId = lead['mkto_id']
+            thisSourceType = lead['leads']['mkto'].get('originalSourceType', None)
+            salesforce = 'salesforce.com'
+            mkto_sfdc_id = None
+            mkto_sfdc_contact_id = None
+            
+            #print 'marketo lead id is ' + str(thisId)
+            if 'sfdcLeadId' in lead['leads']['mkto']:
+                mkto_sfdc_id = lead['leads']['mkto']['sfdcLeadId']  # check if there is a corresponding lead from SFDC
+            if 'sfdcContactId' in lead['leads']['mkto']:
+                mkto_sfdc_contact_id = lead['leads']['mkto']['sfdcContactId']  # check if there is a corresponding contact from SFDC
+            #print 'this lead has lead id ' + str(mkto_sfdc_id) + ' and contact id ' + str(mkto_sfdc_contact_id)
+            #print 'query0'
+            if mkto_sfdc_contact_id is not None:
+                #print 'entered contact with sfdc id ' + str(mkto_sfdc_contact_id)
+                existingContactSfdcQset = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=mkto_sfdc_contact_id))
+                existingContactSfdcQset = list(existingContactSfdcQset)
+                for existingContactSfdc in existingContactSfdcQset:
+                    #print 'found sfdc contact with id ' + str(existingContactSfdc['id']) + ' for Mkto id ' + str(thisId)
+                    if existingContactSfdc is not None and existingContactSfdc['id'] != thisId:
+                        print 'found2 sfdc contact with id ' + str(existingContactSfdc['id']) + ' for Mkto id ' + str(thisId)
+                        count += 1
+                        if thisSourceType == salesforce: #this was a contact from Salesforce so update the SFDC record
+                            existingContactSfdc.mkto_id = thisMktoId
+                            if 'mkto' not in existingContactSfdc.leads:
+                                existingContactSfdc.leads['mkto'] = {}
+                            existingContactSfdc.leads['mkto'] = lead.leads['mkto']
+                            if 'mkto' in lead.activities:
+                                if 'mkto' not in existingContactSfdc.activities:
+                                    existingContactSfdc.activities['mkto'] = {}
+                                existingContactSfdc.activities['mkto'] = lead.activities['mkto']
+                            if 'mkto' in lead.statuses:
+                                if 'mkto' not in existingContactSfdc.statuses:
+                                    existingContactSfdc.statuses['mkto'] = {}
+                                existingContactSfdc.statuses['mkto'] = lead.statuses['mkto']
+                            existingContactSfdc.sfdc_account_id = lead['leads']['mkto'].get('ConvertedAccountId', None)
+                            existingContactSfdc.save()
+                            if 'to_be_deleted' not in lead:
+                                lead['to_be_deleted'] = False
+                            lead['to_be_deleted'] = True
+                            lead.save()
+                            print 'MKTO lead ' + str(thisMktoId) + ' needs to be deleted due to contact ' + str(mkto_sfdc_contact_id) 
+                        else:
+                            lead.sfdc_contact_id = mkto_sfdc_contact_id
+                            lead.sfdc_id = existingContactSfdc.sfdc_id
+                            lead.sfdc_account_id = existingContactSfdc.sfdc_account_id
+                            if 'sfdc' in existingContactSfdc.leads:
+                                if 'sfdc' not in lead.leads:
+                                    lead.leads['sfdc'] = {}
+                                lead.leads['sfdc'] = existingContactSfdc.leads['sfdc']
+                            if 'sfdc' in existingContactSfdc.activities:
+                                if 'sfdc' not in lead.activities:
+                                    lead.activities['sfdc'] = {}
+                                lead.activities['sfdc'] = existingContactSfdc.activities['sfdc']
+                            if 'sfdc' in existingContactSfdc.opportunities:
+                                if 'sfdc' not in lead.opportunities:
+                                    lead.opportunities['sfdc'] = {}
+                                lead.opportunities['sfdc'] = existingContactSfdc.opportunities['sfdc']
+                            if 'sfdc' in existingContactSfdc.contacts:
+                                if 'sfdc' not in lead.contacts:
+                                    lead.contacts['sfdc'] = {}
+                                lead.contacts['sfdc'] = existingContactSfdc.contacts['sfdc']
+                            lead.save()
+                            if 'to_be_deleted' not in existingContactSfdc:
+                                existingContactSfdc['to_be_deleted'] = False
+                            existingContactSfdc['to_be_deleted'] = True
+                            existingContactSfdc.save()
+                            print 'SFDC contact '+ str(mkto_sfdc_contact_id) + ' needs to be deleted due to lead ' + str(thisMktoId)
+                        
+            elif mkto_sfdc_id is not None:
+                #print 'entered lead with sfdc id ' + str(mkto_sfdc_id)
+                existingLeadSfdcQset = Lead.objects(Q(company_id=company_id) & Q(sfdc_id=mkto_sfdc_id))
+                existingLeadSfdcQset = list(existingLeadSfdcQset)
+                for existingLeadSfdc in existingLeadSfdcQset:
+                    #print 'found sfdc lead with id ' + str(existingLeadSfdc['id']) + ' for Mkto id ' + str(thisId)
+                    if existingLeadSfdc is not None and existingLeadSfdc['id'] != thisId:
+                        count += 1
+                        print 'found2 sfdc lead with id ' + str(existingLeadSfdc['id']) + ' for Mkto id ' + str(thisId)
+                        if thisSourceType == salesforce: #this was a lead from Salesforce so update the SFDC record
+                            existingLeadSfdc.mkto_id = thisMktoId
+                            if 'mkto' not in existingLeadSfdc.leads:
+                                existingLeadSfdc.leads['mkto'] = {}
+                            existingLeadSfdc.leads['mkto'] = lead.leads['mkto']
+                            if 'mkto' in lead.activities:
+                                if 'mkto' not in existingLeadSfdc.activities:
+                                    existingLeadSfdc.activities['mkto'] = {}
+                                existingLeadSfdc.activities['mkto'] = lead.activities['mkto']
+                            if 'mkto' in lead.statuses:
+                                if 'mkto' not in existingLeadSfdc.statuses:
+                                    existingLeadSfdc.statuses['mkto'] = {}
+                                existingLeadSfdc.statuses['mkto'] = lead.statuses['mkto']
+                            existingLeadSfdc.sfdc_account_id = lead['leads']['mkto'].get('ConvertedAccountId', None)
+                            existingLeadSfdc.save()
+                            if 'to_be_deleted' not in lead:
+                                lead['to_be_deleted'] = False
+                            lead['to_be_deleted'] = True
+                            lead.save()
+                            print 'MKTO lead ' + str(thisMktoId) + ' needs to be deleted due to contact ' + str(mkto_sfdc_id) 
+                        else:
+                            lead.sfdc_id = mkto_sfdc_id
+                            lead.sfdc_contact_id = existingLeadSfdc.sfdc_contact_id
+                            lead.sfdc_account_id = existingLeadSfdc.sfdc_account_id
+                            if 'sfdc' not in lead.leads:
+                                lead.leads['sfdc'] = {}
+                            lead.leads['sfdc'] = existingLeadSfdc.leads['sfdc']
+                            if 'sfdc' in existingLeadSfdc.activities:
+                                if 'sfdc' not in lead.activities:
+                                    lead.activities['sfdc'] = {}
+                                lead.activities['sfdc'] = existingLeadSfdc.activities['sfdc']
+                            if 'sfdc' in existingLeadSfdc.opportunities:
+                                if 'sfdc' not in lead.opportunities:
+                                    lead.opportunities['sfdc'] = {}
+                                lead.opportunities['sfdc'] = existingLeadSfdc.opportunities['sfdc']
+                            if 'sfdc' in existingLeadSfdc.contacts:
+                                if 'sfdc' not in lead.contacts:
+                                    lead.contacts['sfdc'] = {}
+                                lead.contacts['sfdc'] = existingLeadSfdc.contacts['sfdc']
+                            lead.save()
+                            if 'to_be_deleted' not in existingLeadSfdc:
+                                existingLeadSfdc['to_be_deleted'] = False
+                            existingLeadSfdc['to_be_deleted'] = True
+                            existingLeadSfdc.save()
+                            print 'SFDC lead '+ str(mkto_sfdc_id) + ' needs to be deleted due to lead ' + str(thisMktoId)
+        print 'number of records merged ' + str(count)                
+                    
+    except Exception as e:
+        print 'exception while merging Mkto and SFDC leads: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))         
+        
+    
+def deleteLeads(user_id=None, company_id=None, job_id=None, run_type=None):
+    
+    #get all leads which have 'to_be_deleted' flag set to True
+    company_id_qry = 'company_id'
+    deleted_qry = 'to_be_deleted'
+    
+    querydict = {company_id_qry: company_id, deleted_qry: True}
+
+    try:   
+        count = Lead.objects(**querydict).count()
+        print 'Number of leads to be deleted: ' + str(count)
+        count = Lead.objects(**querydict).delete()
+        print 'Number of leads deleted: ' + str(count)
+    except Exception as e:
+        print 'exception while deleting leads en-masse: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))  

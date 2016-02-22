@@ -4,6 +4,7 @@ import pytz
 import os
 from collections import OrderedDict
 from operator import itemgetter
+from bson.code import Code
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
@@ -29,13 +30,15 @@ from mongoengine.django.shortcuts import get_document_or_404
 
 from leads.models import Lead, LeadWithForm
 from leads.serializers import LeadSerializer, LeadWithFormSerializer
-from leads.views import getAllLeads
+from leads.views import getLeads
 from campaigns.views import getAllCampaigns
+from opportunities.views import getOpportunities
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
 from company.models import CompanyIntegration
 from analytics.models import Snapshot, AnalyticsData, AnalyticsIds, BinderTemplate, Binder
 from accounts.views import getAccounts, getAccountsAndCounts
+from accounts.models import Account
 
 from superadmin.models import SuperIntegration, SuperAnalytics, SuperDashboards, SuperCountry, SuperViews, SuperFilters
 from superadmin.serializers import SuperAnalyticsSerializer, SuperDashboardsSerializer, SuperViewsSerializer, SuperFiltersSerializer
@@ -65,7 +68,7 @@ def retrieveViews(request, company_id):
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:
         #first see if generic view i.e. not dependent on a specific system
-        generic_views = {'all_contacts': getAllLeads, 'all_campaigns': getAllCampaigns, 'all_accounts': getAccounts} 
+        generic_views = {'contacts': getLeads, 'campaigns': getAllCampaigns, 'accounts': getAccounts, 'opps': getOpportunities} 
         if view_name in generic_views:
             result = generic_views[view_name](request, company_id)
             return result #assume that the view will convert to JSONResponse
@@ -87,7 +90,7 @@ def retrieveViews(request, company_id):
                 pass
                 #result = retrieveMktoDashboards(user_id=user_id, company_id=company_id, start_date=start_date, end_date=end_date, dashboard_name=dashboard_name)
             else:
-                result =  'Nothing to report'
+                result =  {'Error': 'No view found'}
             return JsonResponse(result, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
@@ -133,11 +136,23 @@ def getSuperFilters(request, company_id):
     company_id = request.user.company_id
     object_type = request.GET.get('object_type')
     system_type = request.GET.get('system_type')
-    existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    #existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+    existingIntegration = {}
+    existingIntegration['integrations'] = {}
+    
+    map = Code("function () {"
+             "  for (var key in this.integrations) emit(key, this.integrations[key]['filters']); } ")
+    
+    reduce = Code("function (key, values) { return null; } ")
+    
+    results = CompanyIntegration.objects(company_id=company_id).map_reduce(map, reduce, "inline")
+    results = list(results)
+    for result in results:
+        existingIntegration['integrations'][result.key] = {'filters': result.value}
     try:
         code = None
         if existingIntegration is not None:
-            for source in existingIntegration.integrations.keys():
+            for source in existingIntegration['integrations'].keys():
                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
                 if defined_system_type is not None:
                     code = source
@@ -152,9 +167,31 @@ def getSuperFilters(request, company_id):
             else:
                 if object_type not in super_filters['filters']:
                     result = []
-                else:
-                    result = {'results': super_filters['filters'][object_type]}
+                else:                    
+                    temp = super_filters['filters'].get(object_type, None)
+                    filter_obj = existingIntegration['integrations'][code].get('filters', None).get(object_type, None)
+                    for filter, values in filter_obj.items():
+                        if filter in temp:
+                            if filter == 'OwnerId': #reduce the users list to only those with opportunities
+                                temp_values = {}
+                                opp_field_qry = 'opportunities__sfdc__exists'
+                                company_field_qry = 'company_id'
+                                projection = {'$project': {'owner_id': '$opportunities.sfdc.OwnerId'  } }
+                                querydict = {opp_field_qry: True, company_field_qry: company_id}
+                                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, projection)
+                                opps = list(opps)
+                                opps_owner_ids = [opp['owner_id'] for opp in opps]
+                                print 'opp owner ids ' + str(opps_owner_ids)
+                                tempValues = [value for value in values['values'] if value['value'] in opps_owner_ids]
+                                print 'temp values2 is ' + str(tempValues)
+                                temp_values['values'] = tempValues
+                                temp_values['label'] = values['label']
+                                values = temp_values
+                            values['values'].sort()
+                            temp[filter] = values
+                    result = {'results': temp}
             #result =  'Nothing to report'
         return JsonResponse(result, safe=False)
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
+    

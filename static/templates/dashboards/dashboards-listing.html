@@ -18,11 +18,11 @@
     <ul class="analytics-charts">
 	    <li ng-repeat="dashboard in value" class="col-md-3 col-xs-6 col-sm-3  header-box">
 	      <div class="col-sm-3">
-	         <a ng-if="dashboard.status=='Active'" ui-sref="dashboards({type: dashboard.name })"><span style="font-size:24px; font-weight:700;" class="{{dashboard.src}}"></span></a>
+	         <a ng-if="dashboard.status=='Active'" ui-sref="showdashboard({name: dashboard.name })"><span style="font-size:24px; font-weight:700;" class="{{dashboard.src}}"></span></a>
 	         <span ng-if="dashboard.status!='Active'" style="font-size:24px; font-weight:700;" class="{{dashboard.src}} muted-text"></span>
 	      </div>
 	      <div class="col-sm-9 left" style="text-align:left;">
-	         <a ng-if="dashboard.status=='Active'" ui-sref="dashboards({type: dashboard.name })"><div class="chart-title"><strong>{{dashboard.title}}</strong></div></a>
+	         <a ng-if="dashboard.status=='Active'" ui-sref="showdashboard({name: dashboard.name })"><div class="chart-title"><strong>{{dashboard.title}}</strong></div></a>
 	         <div ng-if="dashboard.status!='Active'" class="chart-title muted-text">{{dashboard.title}}</div>
 	         <div class="chart-descr muted-text">{{dashboard.descr}}</div>
 	      </div>

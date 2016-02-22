@@ -1,4 +1,4 @@
-body, .label{
+body, .label, button, input, select, textarea {
 /*         position:relative; */
     font-family:Lato !important;
     font-weight:700;
@@ -82,8 +82,8 @@ select.form-control  {
 	padding-left: 6px;
 }
 
-:focus {
-	outline-color: #fff !important;
+:focus, .form-control:focus {
+	outline-color: #eef7fb !important;
 }
 
 .djng-form-control-feedback {
@@ -738,7 +738,7 @@ g.nv-series-7 path.nv-line {
 } 
 
 us-spinner {
-	color: #023d52 !important; /* #004358 !important; */
+	color: #bedb39 !important; /* #023d52 !important; /* #004358 !important; */
 } 
 
 .page-sidebar, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a, .page-sidebar .page-sidebar-menu > li > a, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu .sub-menu > li > a, .page-sidebar .page-sidebar-menu .sub-menu > li > a  {
@@ -780,28 +780,28 @@ input.ng-invalid.ng-touched, textarea.ng-invalid.ng-touched, select.ng-invalid.n
 	border: 2px solid red !important;
 }
 
-.portlet-title .search-form {
-  margin: 2px 20px 0 0;
+.search-form {
+  margin: 0px 20px 0 0;
   display: inline-block;
-  width: 30px;
+  /*width: 30px;*/
   float: left;
   background: #FFFFFF;
   padding-left:0px !important;
 }
 
-.portlet-title .search-form.open {
+.search-form.open {
 	width: 300px !important;
 }
 
-.portlet-title .search-form .input-group {
+.search-form .input-group {
   border: 1px solid #ced6de;
 }
 
-.portlet-title .search-form .input-group {
-  border-radius: 25px !important;
+.search-form .input-group {
+  border-radius: 5px !important;
 }
 
-.portlet-title .search-form .input-group .form-control {
+.search-form .input-group .form-control {
   border: 0;
   background: transparent !important;
   padding: 16px 12px;
@@ -810,18 +810,18 @@ input.ng-invalid.ng-touched, textarea.ng-invalid.ng-touched, select.ng-invalid.n
   color: #666; /* #ced6de; */
 }
 
-.portlet-title .search-form .input-group .input-group-btn {
+.search-form .input-group .input-group-btn {
   padding: 0;
   margin: 0;
 }
 
-.portlet-title .search-form .input-group .input-group-btn .btn {
+.search-form .input-group .input-group-btn .btn {
   margin: -1px; /* 3px 7px 0 0 */
   padding: 6px 6px;
   background: none;
 }
 
-.portlet-title .search-form .input-group .input-group-btn .btn > i {
+.search-form .input-group .input-group-btn .btn > i {
   color: #ced6de;
 }
 
@@ -1498,6 +1498,7 @@ ul.analytics-charts > li {
 	border-radius: 2px;
 	text-align: center;
 	margin-right: 20px;
+	box-shadow: 2px 1px 0px 1px #ccc;
 	/* width: 22%; */
 }
 
@@ -1753,5 +1754,129 @@ div.dynamic_content_max_width {
 }
 
 .main-body { /* for dashboards */
-    padding-top:50px;
+    padding-top:20px; /* 50px; */
+}
+
+.input-sm {
+	font-size:0.89em;
+}
+
+.tags-input {
+	padding: 0px !important;
+}
+
+tags-input .host {
+	margin-top: 0px !important;
+	
+}
+
+tags-input .tags {
+	border: 0px solid #a9a9a9 !important;
+	padding: 0px !important;
+	box-shadow: 0px 0px 0px !important;
+	border-radius: 5px;
+}
+
+/* Drag and drop */
+ul[dnd-list],
+ul[dnd-list] > li {
+	position: relative !important;
+}
+
+/**
+ * The dnd-list should always have a min-height,
+ * otherwise you can't drop to it once it's empty
+ */
+ul[dnd-list] {
+    min-height: 42px;
+    padding-left: 0px;
+}
+
+.dndDragging {
+	opacity:0.7;
+}
+
+/**
+ * The dndDraggingSource class will be applied to
+ * the source element of a drag operation. It makes
+ * sense to hide it to give the user the feeling
+ * that he's actually moving it.
+ */
+ul[dnd-list] .dndDraggingSource {
+    display: none;
+}
+
+/**
+ * An element with .dndPlaceholder class will be
+ * added to the dnd-list while the user is dragging
+ * over it.
+ */
+ul[dnd-list] .dndPlaceholder {
+    display: block;
+    background-color: #ddd;
+    min-height: 42px;
+    position: relative;
+}
+
+/**
+ * The dnd-lists's child elements currently MUST have
+ * position: relative. Otherwise we can not determine
+ * whether the mouse pointer is in the upper or lower
+ * half of the element we are dragging over. In other
+ * browsers we can use event.offsetY for this.
+ */
+ul[dnd-list] li {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-top-right-radius: 4px;
+    border-top-left-radius: 4px;
+    display: block;
+    padding: 10px 15px;
+    margin-bottom: -1px;
+}
+
+ul[dnd-list].target {
+	padding-top:5px;
+	padding-bottom:0px;
+	min-height: 54px;
+}
+
+ul[dnd-list].target li {
+    background-color: #bedb39;
+    border: 0px solid #ddd;
+    border-radius: 5px;
+    display: inline-block;
+    padding: 10px 10px;
+    width: auto;
+    margin-left:5px;
+    margin-right:5px;
+    margin-bottom:5px;
+    text-align: center;
+    font-size:0.89rem !important;
+}
+
+/**
+ * Show selected elements in green
+ */
+ul[dnd-list] li.selected {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+/* Drag and drop ends here */
+
+.vcenter {
+	display:inline-block;
+	vertical-align:middle;
+	float:none;
+}
+
+.mt-10 {
+	margin-top:10px;
+}
+
+.pl-0 {
+	padding-left:0px;
+}
+
 }

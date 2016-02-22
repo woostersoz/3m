@@ -1,7 +1,8 @@
 <!-- BEGIN TABLE PORTLET-->
 <div class="portlet light">
     <div class="portlet-header">
-        <div class="title col-md-12">{{ chartTitle }}</div>
+        <div class="title col-md-5">{{ chartTitle }}</div>
+        <ng-include src="toolbar"></ng-include>
         <div ncy-breadcrumb class="title col-md-9 breadcrumb animate-show-hide"></div>
         <div class="title col-md-3 breadcrumb">
            <a href="#" ui-sref="charts-listing" class="pull-right" style="font-weight:700;">Back to Charts</a>
@@ -27,7 +28,7 @@
 
     <div ng-if="showChart">
 		
-		<div class="input-group col-sm-7 pull-left" id="filters">
+		<div class="input-group col-sm-7 pull-left hidden" id="filters">
 			<select name="google_profiles" class="input-small form-control" style="clear:none; margin-right:5px"
 					ng-options="item.profile_id as item.account_name + '- ' + item.profile_name for item in filterValues['google_profiles']"
 					ng-model="selectedFilterValues['google_profile']" ng-show="filters['google_profiles']" ng-required="filters['google_profiles']">
@@ -54,31 +55,19 @@
 					<option selected value="">Select Campaign</option>
 			</select>
 		</div>
-		<div class="col-sm-5 pull-right chart-tools">
-		    <a ng-show="slackActive" href="#" class="btn btn-sm pull-right"
-				ng-click="postToSlack()" title="Post to Slack">
-				<span class="fa fa-slack"></span>
-				Post to Slack
-			</a>
-			<a href="#" class="btn btn-sm pull-right"
-				ng-click="postToChannel()" title="Post to Channel">
-				<span class="fa fa-volume-up"></span>
-				Post
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="snapshot()" title="Take Snapshot">
-				<span class="glyphicon glyphicon-camera"></span>
-				Snapshot
-			</a>
-			<a href="#"  class="btn btn-sm pull-right"
-				ng-click="createNote()" title="Add Sticky">
-				<span class="glyphicon glyphicon-comment"></span>
-				Sticky
-			</a> 
-			
+		
+		<div class="col-sm-5" ng-repeat="(key, values) in superFilterValues" ng-if="key=='Type'">
+		   <select name="test-{{key}}" class="input-small form-control" style="clear:none; margin-right:5px"
+					ng-options="item.value as item.label for item in values.values"
+					ng-model="selectedFilterValues[key]">
+					<option value="" selected>Select {{values.label}}</option>
+			</select>
 		</div>
 
 		<div class="clearfix">&nbsp;</div>
+		<div style="text-align:center; margin-left:auto; margin-right:auto">
+		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
+		</div>
 		<completearea>
 		<div class="chartTop">
 		<div sticky ng-repeat="note in notes" class="sticky draggable" note="note" ondelete="deleteNote(id)">
@@ -91,17 +80,27 @@
 		</nvd3>
 		</div>
 		</completearea>
-		<div style="text-align:center; margin-left:auto; margin-right:auto">
-		   <div us-spinner="{radius:15, width:4, length:8}" spinner-key="spinner-1"></div>
-		</div>
+		
 	</div>
 
 </div>
 <h5 class="x-small block " style="clear:both">Generated on: {{ now | amDateFormat:'dddd, MMMM Do YYYY, h:mm:ss a z' }}</h5>
 
-<div style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
-<div style="margin-left:-20px; margin-right:-20px" ng-show="showTweets" class="animate-show-hide"><ng-include src="'/static/templates/social/analytics-social.html'"></ng-include></div>
-<div style="margin-left:-20px; margin-right:-20px" ng-show="showWebsiteVisitors" class="animate-show-hide"><ng-include src="'/static/templates/websites/analytics-websites.html'"></ng-include></div>
-<div style="margin-left:-20px; margin-right:-20px" ng-show="showCampaigns" class="animate-show-hide"><ng-include src="'/static/templates/campaigns/analytics-campaigns.html'"></ng-include></div>
-	    	    
+<div ng-switch="showLeads">
+<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showLeads" class="animate-show-hide"><ng-include src="'/static/templates/leads/analytics-leads.html'"></ng-include></div>
+</div>
+<div ng-switch="showTweets">
+<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showTweets" class="animate-show-hide"><ng-include src="'/static/templates/social/analytics-social.html'"></ng-include></div>
+</div>
+<div ng-switch="showWebsiteVisitors">
+<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showWebsiteVisitors" class="animate-show-hide"><ng-include src="'/static/templates/websites/analytics-websites.html'"></ng-include></div>
+</div>
+<div ng-switch="showCampaigns">
+<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showCampaigns" class="animate-show-hide"><ng-include src="'/static/templates/campaigns/analytics-campaigns.html'"></ng-include></div>
+</div>
+<div ng-switch="showDeals">
+<div ng-switch-when="true" style="margin-left:-20px; margin-right:-20px" ng-show="showDeals" class="animate-show-hide"><ng-include src="'/static/templates/opportunities/analytics-opps.html'"></ng-include></div>
+</div>	    	    
+
+
 </div>
