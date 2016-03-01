@@ -177,7 +177,6 @@ def getLeads(request, id):
 @api_view(['GET'])
 #@renderer_classes((JSONRenderer,))    
 def filterLeads(request, id):
-    user_id = request.user.id
     company_id = request.user.company_id
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -203,7 +202,7 @@ def filterLeads(request, id):
                 if defined_system_type is not None:
                     code = source
                     client_secret = existingIntegration['integrations'][code]['client_secret']
-                    print 'cs is ' + client_secret
+                    #print 'cs is ' + client_secret
             #print 'found code' + str(code)
                   
         if code is  None:
@@ -222,7 +221,7 @@ def filterLeads(request, id):
         #if not export to CSV or other format
         if export_type not in export_types:    
             return JsonResponse(result)
-        else:
+        else: #there's only one type of export for now - CSV
             exportToCsv.delay('lead', code, result, 'chart', chart_name, user_id, company_id)
             return JsonResponse({'Success' : 'File export started'})
     except Exception as e:
@@ -388,7 +387,8 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
         #local_end_date = get_current_timezone().localize(local_end_date_naive, is_dst=None)
     #print 'filter start us ' + str(local_start_date) + ' and edn is ' + str(local_end_date)
     #code = _get_code(company_id, system_type)
-     
+    export_types = ['csv']
+    #print 'export type is ' + str(export_type)
     try:
         leads = []
         
@@ -437,14 +437,19 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             if ids is None:
                 return []
             
-            leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
-            #print 'start5 is ' + str(time.time())
-            #now do the calculations
-            total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
-            #print 'start6 is ' + str(time.time())
-        
-            serializer = LeadSerializer(leads, many=True)   
-            return {'count' : total, 'results': serializer.data}   
+            collection = Lead._get_collection()
+            if export_type not in export_types:
+                leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+                total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() 
+                serializer = LeadSerializer(leads, many=True)   
+                return {'count' : total, 'results': serializer.data}  
+            else:
+                leads_cursor = collection.find({'mkto_id' : {'$in': ids}, 'company_id': int(company_id)})
+                leads = list(leads_cursor)
+                total = len(leads)
+                result = [lead.to_mongo().to_dict() for lead in leads]  
+                #print 'result is ' + str(result)
+                return {'count' : total, 'results': result} 
     
         else: #not done. need to loop through leads to find which leads truly meet the criteria
             system_type_qry = 'system_type'
@@ -458,14 +463,13 @@ def filterLeadsMkto(user_id, company_id, start_date, end_date, lead_type, series
             print 'lead tupe is ' + lead_type
             ids = analyticsIds['results'].get(lead_type, None)
             print 'ids is ' + str(ids)
-            leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
-            #print 'start5 is ' + str(time.time())
-            #now do the calculations
-            total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
-            #print 'start6 is ' + str(time.time())
-        
-        serializer = LeadSerializer(leads, many=True)   
-        return {'count' : total, 'results': serializer.data}   
+            if export_type not in export_types:
+                leads = Lead.objects(company_id=company_id, mkto_id__in=ids).skip(offset).limit(items_per_page).order_by('source_first_name', 'source_last_name') 
+                total = Lead.objects(company_id=company_id, mkto_id__in=ids).count() #len(leads)
+                serializer = LeadSerializer(leads, many=True)   
+                return {'count' : total, 'results': serializer.data}   
+            else:
+                return {'results': ids}
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
 

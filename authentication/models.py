@@ -5,6 +5,7 @@ import datetime
 class Company (Document):
     name = StringField(max_length=255)
     company_id = IntField(unique=True)
+    weekly_email = BooleanField(default=False)
     meta = {'collection': 'company' }
     def __unicode__(self):
         return self.company_id
@@ -23,7 +24,7 @@ class CustomUser(User):
  
     created_at = DateTimeField(default=datetime.datetime.utcnow())
     updated_at = DateTimeField(default=datetime.datetime.utcnow())
-    company = ReferenceField(Company)
+    company = IntField()
     image_url = StringField(max_length=2000)
     #objects = AccountManager()
 
@@ -64,11 +65,16 @@ class CustomUser(User):
     
      
     def get_company(self):
-        return self.company.company_id 
+        return self.company #.company_id 
      
     @property
     def company_id(self):
-        return self.company.company_id 
+        return self.company #.company_id 
+    
+    @property
+    def company_name(self):
+        company = Company.objects(company_id = self.company).first()
+        return company['name']
      
     def get_timezone(self):
         return self.timezone

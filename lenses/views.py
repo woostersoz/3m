@@ -31,7 +31,7 @@ from mongoengine.django.shortcuts import get_document_or_404
 from leads.models import Lead, LeadWithForm
 from leads.serializers import LeadSerializer, LeadWithFormSerializer
 from leads.views import getLeads
-from campaigns.views import getAllCampaigns
+from campaigns.views import getCampaigns
 from opportunities.views import getOpportunities
 from integrations.views import Marketo, Salesforce #, get_sfdc_test
 from analytics.serializers import SnapshotSerializer, BinderTemplateSerializer, BinderSerializer
@@ -68,7 +68,7 @@ def retrieveViews(request, company_id):
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:
         #first see if generic view i.e. not dependent on a specific system
-        generic_views = {'contacts': getLeads, 'campaigns': getAllCampaigns, 'accounts': getAccounts, 'opps': getOpportunities} 
+        generic_views = {'contacts': getLeads, 'campaigns': getCampaigns, 'accounts': getAccounts, 'opps': getOpportunities} 
         if view_name in generic_views:
             result = generic_views[view_name](request, company_id)
             return result #assume that the view will convert to JSONResponse
@@ -169,26 +169,30 @@ def getSuperFilters(request, company_id):
                     result = []
                 else:                    
                     temp = super_filters['filters'].get(object_type, None)
-                    filter_obj = existingIntegration['integrations'][code].get('filters', None).get(object_type, None)
-                    for filter, values in filter_obj.items():
-                        if filter in temp:
-                            if filter == 'OwnerId': #reduce the users list to only those with opportunities
-                                temp_values = {}
-                                opp_field_qry = 'opportunities__sfdc__exists'
-                                company_field_qry = 'company_id'
-                                projection = {'$project': {'owner_id': '$opportunities.sfdc.OwnerId'  } }
-                                querydict = {opp_field_qry: True, company_field_qry: company_id}
-                                opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, projection)
-                                opps = list(opps)
-                                opps_owner_ids = [opp['owner_id'] for opp in opps]
-                                print 'opp owner ids ' + str(opps_owner_ids)
-                                tempValues = [value for value in values['values'] if value['value'] in opps_owner_ids]
-                                print 'temp values2 is ' + str(tempValues)
-                                temp_values['values'] = tempValues
-                                temp_values['label'] = values['label']
-                                values = temp_values
-                            values['values'].sort()
-                            temp[filter] = values
+                    filters = existingIntegration['integrations'][code].get('filters', None)
+                    if filters is not None:
+                        filter_obj = filters.get(object_type, None)
+                        if filter_obj is None:
+                            return JsonResponse({'results': temp}, safe=False)
+                        for filter, values in filter_obj.items():
+                            if filter in temp:
+                                if filter == 'OwnerId': #reduce the users list to only those with opportunities
+                                    temp_values = {}
+                                    opp_field_qry = 'opportunities__sfdc__exists'
+                                    company_field_qry = 'company_id'
+                                    projection = {'$project': {'owner_id': '$opportunities.sfdc.OwnerId'  } }
+                                    querydict = {opp_field_qry: True, company_field_qry: company_id}
+                                    opps = Account.objects(**querydict).aggregate({'$unwind': '$opportunities.sfdc'}, projection)
+                                    opps = list(opps)
+                                    opps_owner_ids = [opp['owner_id'] for opp in opps]
+                                    print 'opp owner ids ' + str(opps_owner_ids)
+                                    tempValues = [value for value in values['values'] if value['value'] in opps_owner_ids]
+                                    print 'temp values2 is ' + str(tempValues)
+                                    temp_values['values'] = tempValues
+                                    temp_values['label'] = values['label']
+                                    values = temp_values
+                                values['values'].sort()
+                                temp[filter] = values
                     result = {'results': temp}
             #result =  'Nothing to report'
         return JsonResponse(result, safe=False)

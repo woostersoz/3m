@@ -534,6 +534,66 @@ def retrieveSfdcOppHistory(user_id=None, company_id=None, job_id=None, run_type=
         print 'exception while retrieving SFDC opportunity history: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))   
         
+@app.task    
+def retrieveSfdcOppStageHistory(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None): #needs to be changed - satya
+    try:
+        #delete later
+        #job_id_new = job_id
+        #job_id = ObjectId("56a690e98afb006883048e7e")
+
+        #set variables
+        sfdc = Salesforce()
+        #for leads
+        if run_type == 'initial':
+            opps = TempData.objects(Q(record_type='opportunity') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        else:
+            opps = TempDataDelta.objects(Q(record_type='opportunity') & Q(source_system='sfdc') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        
+        oppListTemp = list(opps)
+        if not oppListTemp:
+            print 'no opps found'
+            return
+        oppList = [i['source_record'] for i in oppListTemp]
+ 
+        batch_size = 500  #10 Activity Types at a time
+        activitiesList = []
+        
+        for i in range(0, len(oppList), batch_size):
+            opp_list = '('
+            for opp in oppList[i:i+batch_size]:
+                opp_list += '\'' + opp['Id'] + '\'' + ', '
+            opp_list = opp_list[:-2]
+            opp_list += ')'
+            activitiesList.extend(sfdc.get_stage_history_for_opportunity(user_id, company_id, opp_list, _str_from_date(sinceDateTime)))
+        
+        print 'got back stage history for SFDC opportunities ' + str(len(activitiesList))
+        #delete later
+        #job_id = job_id_new
+        saveSfdcOppStageHistory(user_id=user_id, company_id=company_id, activityList=activitiesList, job_id=job_id, run_type=run_type)
+        
+        try:
+            message = 'Opportunity stage history retrieved from Salesforce'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Opportunities'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+        except Exception as e:
+            send_notification(dict(
+                 type='error',
+                 success=False,
+                 message=str(e)
+                ))    
+        return opp_list
+    except Exception as e:
+        print 'exception while retrieving SFDC opportunity stage history: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))   
+        
 @app.task        
 def retrieveHsptActivities(user_id=None, company_id=None, job_id=None): #needs to be changed - satya
     pass        
@@ -867,4 +927,72 @@ def saveSfdcOppHistoryToMaster(user_id=None, company_id=None, job_id=None, run_t
          type='error',
          success=False,
          message=str(e)
-        ))                     
+        ))             
+        
+def saveSfdcOppStageHistory(user_id=None, company_id=None, activityList=None, job_id=None, run_type=None):    
+    print 'saving sfdc stage history for opportunities'
+    if run_type == 'initial':
+        for activity in activityList:
+            saveTempData(company_id=company_id, record_type="opp_stage_history", source_system="sfdc", source_record=activity, job_id=job_id)
+    else:
+        for activity in activityList:
+            saveTempDataDelta(company_id=company_id, record_type="opp_stage_history", source_system="sfdc", source_record=activity, job_id=job_id)
+    
+
+def saveSfdcOppStageHistoryToMaster(user_id=None, company_id=None, job_id=None, run_type=None): 
+    #job_id = ObjectId("56b2b92c8afb0070a795c4b2")
+
+    if run_type == 'initial':   
+        #activities = TempData.objects(Q(company_id=company_id) & Q(record_type='activity') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') 
+        collection = TempData._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'opp_stage_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+        
+    else:
+        collection = TempDataDelta._get_collection()
+        activities = collection.find({'company_id': int(company_id), 'record_type': 'opp_stage_history', 'source_system': 'sfdc', 'job_id': job_id}, projection={'source_record': True}, batch_size=1000)
+    
+    try:
+        print 'got history ' + str(activities.count())
+        for activity in activities: 
+            skipThis = False
+            newActivity = activity['source_record']
+            addThisActivity = True
+            print 'act is ' + str(newActivity)
+            newOppId = newActivity["OpportunityId"]
+            if newOppId is not None:
+                print 'trying to get opp'
+                existingAccount = Account.objects(Q(company_id = company_id) & Q(opportunities__sfdc__Id = newOppId)).first()
+                print 'account is ' + str(existingAccount)
+            else:
+                continue
+            if existingAccount is None:
+                continue
+            
+            for existingOpp in existingAccount['opportunities']['sfdc']: #loop through each opp to find the right one
+                if existingOpp['Id'] == newOppId:
+                    if 'stage_activities' not in existingOpp: #if no prior activities
+                        existingOpp['stage_activities'] = [] #create list
+                        existingOpp['stage_activities'].append(newActivity) #save activity
+                        print 'saved virgin stage activity for opp'
+                    else:
+                        for existingActivity in existingOpp['stage_activities']: #check if this activity already exists
+                            if existingActivity['Id'] == newActivity['Id']: #it exists, so skip the activity
+                                skipThis = True
+                                print 'skipping opp stage activity'
+                                break
+                        if skipThis:
+                            break # get out of this for loop
+                        else:
+                            existingOpp['stage_activities'].append(newActivity)
+                            print 'saved stage activity for opp'
+                    existingAccount.save()
+                            
+            
+
+    except Exception as e:
+        print 'exception while saving SFDC Opp stage history to master' + str(e)
+        send_notification(dict(
+         type='error',
+         success=False,
+         message=str(e)
+        ))                   

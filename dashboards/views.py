@@ -47,7 +47,7 @@ from accounts.models import Account
 from accounts.serializers import AccountSerializer
 from opportunities.serializers import OpportunitySerializer
 from  opportunities.views import _map_sfdc_userid_name
-from mmm.views import _str_from_date, _date_from_str
+from mmm.views import _str_from_date, _date_from_str, exportToCsv
 
 def encodeKey(key): 
     return key.replace("\\", "\\\\").replace("\$", "\\u0024").replace(".", "\\u002e")
@@ -107,12 +107,15 @@ def retrieveDashboards(request, company_id):
     dashboard_name = request.GET.get('dashboard_name')
     system_type = request.GET.get('system_type')
     filters = request.GET.get('filters')
-    filters = json.loads(filters)
+    if filters is not None:
+        filters = json.loads(filters)
     superfilters = request.GET.get('superfilters')
-    super_filters = json.loads(superfilters)
+    if superfilters is not None:
+        super_filters = json.loads(superfilters)
     
     user_id = request.user.id
-    company_id = request.user.company_id
+    company_id = company_id #request.user.company_id
+    print 'company id is ' + str(company_id)
     existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
     try:   
         code = None
@@ -191,6 +194,10 @@ def retrieveSfdcDashboards(user_id=None, company_id=None, dashboard_name=None, s
 def drilldownDashboards(request, company_id):
     
     system_type = request.GET.get('system_type')
+    chart_name = request.GET.get('dashboard_name') #watch this hack here
+    export_type = request.GET.get('export_type')
+    
+    export_types = ['csv']
     
     user_id = request.user.id
     company_id = request.user.company_id
@@ -217,7 +224,12 @@ def drilldownDashboards(request, company_id):
         else:
             result =  'Nothing to report'
         #result['source_system'] = code
-        return JsonResponse(result, safe=False)
+        if export_type not in export_types: 
+            return JsonResponse(result, safe=False)
+        else: #there's only one type of export for now - CSV
+            print 'code ' + str(code) + ' result ' + str(result)
+            exportToCsv.delay('lead', code, result, 'dashboard', chart_name, user_id, company_id)
+            return JsonResponse({'Success' : 'File export started'})
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
 
@@ -747,6 +759,15 @@ def _filter_by_continent(continents, country):
             return continent
     return None    
 
+#system-independent dashboards
+def weekly_dashboard(user_id, company_id, start_date, end_date): #not used currently
+    try:
+        pass
+    
+    except Exception as e:
+        print 'exception while getting weekly dashboard is ' + str(e) 
+        return JsonResponse({'Error' : str(e)})   
+
 #start of Marketo dashboards
 # dashboard - 'Funnel"
 def mkto_funnel(user_id, company_id, start_date, end_date, dashboard_name):
@@ -1270,6 +1291,9 @@ def drilldownMktoDashboards(request, company_id):
     items_per_page = int(request.GET.get('per_page'))
     dashboard_name = request.GET.get('dashboard_name')
     offset = (page_number - 1) * items_per_page
+    export_type = request.GET.get('export_type')
+    
+    export_types = ['csv']
     
     user_id = request.user.id
     company_id = request.user.company_id
@@ -1341,11 +1365,15 @@ def drilldownMktoDashboards(request, company_id):
                 elif section == 'sales':
                     leads = Lead.objects(Q(company_id=company_id) & (Q(sfdc_id__in=people['sales']) | Q(sfdc_contact_id__in=people['sales']))).hint('co_sfdc_ids')
                     leads_list = list(leads)
-                print 'got leads ' + str(time.time())
-                serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
-                print 'got results ' + str(time.time()) 
-                results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc'  }   
-                return results
+                if export_type not in export_types:
+                    #print 'got leads ' + str(time.time())
+                    serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
+                    #print 'got results ' + str(time.time()) 
+                    results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc'  }   
+                    return results
+                else:
+                    result = [lead.to_mongo().to_dict() for lead in leads_list]
+                    return {'count' : len(leads_list), 'results': result}  
             #Deals
             elif object == 'opps':
                 projection = {'$project': {'_id': '$opportunities.sfdc.Id', 'created_date': '$opportunities.sfdc.CreatedDate', 'close_date': '$opportunities.sfdc.CloseDate', 'account_name': '$source_name', 'name': '$opportunities.sfdc.Name', 'amount': '$opportunities.sfdc.Amount', 'account_id': '$sfdc_id', 'closed': '$opportunities.sfdc.IsClosed', 'won': '$opportunities.sfdc.IsWon', 'owner_id': '$opportunities.sfdc.OwnerId', 'stage': '$opportunities.sfdc.StageName' }}
@@ -1394,11 +1422,15 @@ def drilldownMktoDashboards(request, company_id):
                 leads_list.extend(list(leads))
                 print 'ending leads DB read2 ' + str(time.time())
                 #return results
-                serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
-                print 'got results ' + str(time.time()) 
-                results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc' }   
-                print 'ending leads ' + str(time.time())
-                return results
+                if export_type not in export_types:
+                    serializer = LeadSerializer(leads_list[offset:offset + items_per_page], many=True) 
+                    print 'got results ' + str(time.time()) 
+                    results = {'results': serializer.data, 'count' : len(leads_list), 'source_system': 'sfdc' }   
+                    print 'ending leads ' + str(time.time())
+                    return results
+                else:
+                    result = people['mktg'] + people['sales']
+                    return {'count' : len(leads_list), 'results': result}  
             #opportunities
             elif object == 'opps':
                 projection = {'$project': {'_id': '$opportunities.sfdc.Id', 'created_date': '$opportunities.sfdc.CreatedDate', 'close_date': '$opportunities.sfdc.CloseDate', 'account_name': '$source_name', 'name': '$opportunities.sfdc.Name', 'amount': '$opportunities.sfdc.Amount', 'account_id': '$sfdc_id', 'closed': '$opportunities.sfdc.IsClosed', 'won': '$opportunities.sfdc.IsWon', 'owner_id': '$opportunities.sfdc.OwnerId', 'stage': '$opportunities.sfdc.StageName' }}
@@ -1496,6 +1528,7 @@ def drilldownSfdcDashboards(request, company_id):
         
         local_start_date = get_current_timezone().localize(start_date, is_dst=None)
         local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+        print 'local start is ' + str(local_start_date)
         
         days_list = []
         delta = local_end_date - local_start_date

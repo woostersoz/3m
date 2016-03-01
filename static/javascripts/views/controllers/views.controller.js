@@ -425,6 +425,8 @@
 					   $scope.data = Leads.cleanDuplicateLeadsBeforeDisplay(data.data.results);
 					   $scope.duplicate = true;
 				}
+				else if (data.data.type && data.data.type == 'campaigns')
+					   $scope.data = Campaigns.cleanCampaignsBeforeDisplay(data.data.results);
 				else
 				   $scope.data = data.data.results;
 				$scope.source_system = data.data.source_system;

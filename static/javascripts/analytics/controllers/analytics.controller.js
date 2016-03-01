@@ -140,9 +140,9 @@
 	    }
 	    
 	    // object for holding CSV download parameters
-	    $scope.csv = {}
-	    $scope.csv.param = []
-	    $scope.downloadLeadsCsv = downloadLeadsCsv;
+	    //$scope.csv = {}
+	    //$scope.csv.param = []
+	    //$scope.downloadLeadsCsv = downloadLeadsCsv;
 
 		// below for collaboration in chart
 		$scope.channelInModal = true;
@@ -1048,12 +1048,12 @@
 
 		
 		
-		function downloadLeadsCsv() {
+		/*function downloadLeadsCsv() {
 			if ($scope.csv.param[$scope.csv.param.length - 1] != 'csv') // add this parameter to indicate to the backend that this is a CSV
 			   $scope.csv.param[$scope.csv.param.length] = 'csv';
 			$scope.csv.functionToCall.apply(this, $scope.csv.param).then(CsvDownloadSuccessFxn, CsvDownloadErrorFxn);
 			
-			/*$scope.csv.functionToCall($scope.csv.param[0], $scope.csv.param[1], $scope.csv.param[2], $scope.csv.param[3], $scope.csv.param[4], $scope.csv.param[5], $scope.csv.param[6], $scope.csv.param[7]).success(function(data, status, headers, config) {
+			$scope.csv.functionToCall($scope.csv.param[0], $scope.csv.param[1], $scope.csv.param[2], $scope.csv.param[3], $scope.csv.param[4], $scope.csv.param[5], $scope.csv.param[6], $scope.csv.param[7]).success(function(data, status, headers, config) {
 				var csv = data.results.map(function(d) {
 					return d.join();
 				}).join('\n');
@@ -1067,7 +1067,7 @@
 				toastr.success('CSV downloaded');
 			}).error(function(data, status, headers, config) {
 				toastr.error('Error while downloading CSV');
-			});*/
+			});
 			
 			
 		}
@@ -1079,7 +1079,7 @@
 	    function CsvDownloadErrorFxn(data, status, headers, config) {
 	    	toastr.error('Export to CSV could not be scheduled');
 	    }
-
+*/
 		function snapshot() {
 			if (nv.tooltip && nv.tooltip.cleanup)
 			   nv.tooltip.cleanup(); //hide the tooltip first to not dirty the HTML

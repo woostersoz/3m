@@ -12,7 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework.response import Response
 from django.utils.encoding import smart_str
 
-from integrations.views import Marketo, Salesforce, Hubspot, Google, Sugar  # , get_sfdc_test
+from integrations.views import Marketo, Salesforce, Hubspot, Google, Sugar, Pardot  # , get_sfdc_test
 from leads.models import Lead
 from collab.signals import send_notification
 from collab.models import Notification 
@@ -26,6 +26,7 @@ from mongoengine.queryset.visitor import Q
 from mmm.views import _str_from_date
 from mmm.views import saveTempData, saveTempDataDelta, _date_from_str
 from itertools import izip_longest
+from operator import itemgetter
 
 @app.task
 def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
@@ -40,7 +41,7 @@ def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None,
 #                 leadList.extend(results)
 #                 print 'going to save Mkto Leads ' + str(len(results))
 #                 saveMktoLeads(user_id=user_id, company_id=company_id, leadList=leadList, newList=listList[i], job_id=job_id)
-        mkto = Marketo(company_id)
+        #mkto = Marketo(company_id)
         #results = mkto.get_leads_by_changes_today(current_date_string)
         #allActivities = retrieveMktoActivities(user_id, company_id) #all activties in the last 24 hours
         
@@ -98,42 +99,73 @@ def retrieveMktoLeads(user_id=None, company_id=None, job_id=None, run_type=None,
         return leadList
     except Exception as e:
         print 'Error while retrieving leads from Marketo ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))       
+        
+@app.task
+def retrieveMktoLeadsByProgram(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
+    try:
+        leadList = []
+        mkto = Marketo(company_id)
+        
+        if run_type == 'initial':
+            allCampaigns = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        else:
+            allCampaigns = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='mkto') & Q(job_id=job_id)) #Q(job_id=job_id) & 
+        
+        #print "got back Mkto activities: " + str(len(allActivities)) 
+        programIds = [str(e['source_record']['id']) for e in allCampaigns if e['source_record']['createdAt'] >= _str_from_date(sinceDateTime, 'with_zeros')] #or e['source_record']['updatedAt'] >= _str_from_date(sinceDateTime, 'with_zeros')
+        programIds = list(set(programIds))
+        print 'found programs after start date ' + str(len(programIds))
+        #batch_size = 300  #100 Lead IDs at a time
+        leadList = []
+        for programId in programIds:
+            temp_leads = mkto.get_leads_by_programId(programId)
+            for lead in temp_leads:
+                if 'membership' in lead:
+                    lead['membership']['program_id'] = programId
+            leadList.extend(temp_leads)
+            print "got back leads from Mkto: " + str(len(leadList)) 
+        #leadList = mkto.get_leads_by_changes(leadIds) - this bombs because of too many IDs being passed
+        
+        #save the leads to the temp collection
+        saveMktoLeadsByProgram(user_id=user_id, company_id=company_id, leadList=leadList, newList=None, job_id=job_id, run_type=run_type)
+        
+        try:
+            message = 'Leads retrieved from Marketo programs'
+            notification = Notification()
+            #notification.company_id = company_id
+            notification.owner = user_id
+            notification.module = 'Leads'
+            notification.type = 'Background task' 
+            notification.method = os.path.basename(__file__)
+            notification.message = message
+            notification.success = True
+            notification.read = False
+            notification.save()
+        except Exception as e:
+            send_notification(dict(
+                 type='error',
+                 success=False,
+                 message=str(e)
+                ))          
+        return leadList
+    except Exception as e:
+        print 'Error while retrieving leads from Marketo programs ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
+  
+@app.task    
+def retrievePrdtLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
+    try:
+        prdt = Pardot(company_id)
+        leadList = prdt.get_leads_by_changes(_str_from_date(sinceDateTime))
+        #save the leads to the temp collection
+        savePrdtLeads(user_id=user_id, company_id=company_id, leadList=leadList, newList=None, job_id=job_id, run_type=run_type)
+        print 'pardot leads ' + str(leadList)
+    except Exception as e:
+        print 'Error while retrieving prospects from Pardot ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))   
 
-# @app.task
-# def retrieveMktoLeadsDaily(user_id=None, company_id=None, job_id=None):
-#     try:
-#         current_date_string = _str_from_date(datetime.utcnow())
-#         mkto = Marketo(company_id)
-#         #results = mkto.get_leads_by_changes_today(current_date_string)
-#         allActivities = retrieveMktoActivitiesDaily(user_id, company_id) #all activties in the last 24 hours
-#         print "got back Mkto activities: " #+ str(allActivities) 
-#         leadIds = [str(e['leadId']) for e in allActivities]
-#         leadList = mkto.get_leads_by_changes(leadIds)
-#         print "got back leads from Mkto: " #+ str(leadList) 
-#         saveMktoLeads(user_id=user_id, company_id=company_id, leadList=leadList, newList=None, job_id=job_id)
-#         try:
-#             message = 'Daily leads retrieved from Marketo'
-#             notification = Notification()
-#             #notification.company_id = company_id
-#             notification.owner = user_id
-#             notification.module = 'Leads'
-#             notification.type = 'Background task' 
-#             notification.method = os.path.basename(__file__)
-#             notification.message = message
-#             notification.success = True
-#             notification.read = False
-#             notification.save()
-#         except Exception as e:
-#             send_notification(dict(
-#                  type='error',
-#                  success=False,
-#                  message=str(e)
-#                 ))          
-#         return leadList
-#     except Exception as e:
-#         send_notification(dict(type='error', success=False, message=str(e)))    
-#         
+
 @app.task    
 def retrieveSfdcLeads(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
@@ -275,6 +307,20 @@ def saveMktoLeads(user_id=None, company_id=None, leadList=None, newList=None, jo
     except Exception as e:
         print 'error while saving Mkto leads to temp ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))   
+        
+def saveMktoLeadsByProgram(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
+    try:
+        print 'saving Mkto Leads from programs'
+        if run_type == 'initial':
+            for lead in leadList:
+                saveTempData(company_id=company_id, record_type="lead_by_program", source_system="mkto", source_record=lead, job_id=job_id)
+        else:
+            for lead in leadList:
+                saveTempDataDelta(company_id=company_id, record_type="lead_by_program", source_system="mkto", source_record=lead, job_id=job_id)
+                
+    except Exception as e:
+        print 'error while saving Mkto leads from program to temp ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))  
 
 
 #     for list in newList:
@@ -386,6 +432,113 @@ def saveMktoLeadsToMaster(user_id=None, company_id=None, job_id=None, run_type=N
         print 'error while saving Mkto leads to master ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))         
 
+def saveMktoLeadsByProgramToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #delete later
+    #job_id = ObjectId("56d399ddf6fd2a7976ac264e")
+    
+    if run_type == 'initial':
+        leads = TempData.objects(Q(company_id=company_id) & Q(record_type='lead_by_program') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    else:
+        leads = TempDataDelta.objects(Q(company_id=company_id) & Q(record_type='lead_by_program') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
+    
+    leadListTemp = list(leads)
+    leadList = [i['source_record'] for i in leadListTemp]
+   
+    try: 
+        for newLead in leadList: 
+            # company_id = request.user.company_id
+            mkto_id = str(newLead['id']) 
+            print 'mkto id is ' + mkto_id
+            mkto_sfdc_id = ''
+            mkto_sfdc_contact_id = ''
+            if 'sfdcLeadId' in newLead:
+                mkto_sfdc_id = newLead['sfdcLeadId']  # check if there is a corresponding lead from SFDC
+            if 'sfdcContactId' in newLead:
+                mkto_sfdc_contact_id = newLead['sfdcContactId']  # check if there is a corresponding contact from SFDC
+            created_date = _date_from_str(newLead['createdAt'])
+            
+            existingLeadSfdc = None
+            existingContactSfdc = None
+            existingLead = None
+            existingLead = Lead.objects(Q(company_id=company_id) & Q(mkto_id=mkto_id)).first()
+            
+            if existingLead is not None: # and 'mkto' in existingLead.leads:  # we found this lead already in the DB
+                existingLead = _add_membership(existingLead, newLead)
+                
+
+            elif existingLead is None:  # this lead does not exist 
+                
+                if mkto_sfdc_contact_id is not None: # but has a SFDC contact id
+                    existingContactSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_contact_id=mkto_sfdc_contact_id)).first()
+                    if existingContactSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
+                        existingContactSfdc = _add_membership(existingContactSfdc, newLead) 
+            
+                
+                elif mkto_sfdc_id is not None:  # but has a SFDC lead id
+                    existingLeadSfdc = Lead.objects(Q(company_id=company_id) & Q(sfdc_id=mkto_sfdc_id)).first()
+                    if existingLeadSfdc is not None:  # we found a SFDC lead record which is matched to this new Mkto lead
+                        existingLeadSfdc = _add_membership(existingLeadSfdc, newLead) 
+#                         if newList is not None:
+#                             currentLists = []
+#                             currentLists.append(newList)
+#                             existingLeadSfdc.update(lists__mkto=currentLists)
+                
+            if existingLeadSfdc is None and existingContactSfdc is None and existingLead is None:  # no matches found so save new record
+                lead = Lead()
+                lead.mkto_id = mkto_id
+                lead.company_id = company_id
+                lead.source_first_name = newLead['firstName']
+                lead.source_last_name = newLead['lastName']
+                lead.source_email = newLead['email']
+                lead.source_company = newLead['company']
+                lead.source_created_date = created_date
+                lead.source_status = newLead['leadStatus']
+                lead.source_stage = newLead['leadRevenueStageId']
+                lead.source_source = newLead['leadSource']
+                lead.sfdc_account_id =  newLead.get('sfdcAccountId', None)
+                lead.leads["mkto"] = newLead
+                lead.memberships["mkto"] = []
+                lead.memberships["mkto"].append(newLead['membership'])
+                del lead.leads["mkto"]['membership']
+                lead.save()
+                print 'new new'
+#                 if newList is not None:
+#                     currentLists = []
+#                     currentLists.append(newList)
+#                     lead.update(lists__mkto=currentLists)
+                
+    except Exception as e:
+        print 'error while saving Mkto membership to master ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))         
+
+def _add_membership(existingLead, newLead):
+    try:
+#         if not 'memberships' in existingLead:
+#             existingLead['memberships'] = {}
+#             existingLead.save()
+        #print 'existing lead is ' + str(existingLead)
+        if 'mkto' not in existingLead.memberships:
+            currentMemberships = []
+            currentMemberships.append(newLead['membership'])
+            print 'new 1'
+            existingLead.update(memberships__mkto = currentMemberships)
+            print 'new 2'
+        else:
+            print 'old 1'
+            membershipFound = False
+            for membership in existingLead['memberships']['mkto']:
+                if membership['program_id'] == newLead['membership']['program_id'] and membership['progressionStatus'] == newLead['membership']['progressionStatus']:
+                    membershipFound = True
+                    break
+            if not membershipFound:
+                existingLead['memberships']['mkto'].append(newLead['membership'])
+                existingLead.save()
+                print 'old 2'
+        return existingLead
+    except Exception as e:
+        print 'error in sub while saving Mkto lead membership to master ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))    
+        
 #save the data in the temp table
 def saveSfdcLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
     if run_type == 'initial':
@@ -922,6 +1075,21 @@ def saveHsptCampaignEmailEventsToMaster(user_id=None, company_id=None, job_id=No
     #leadList = list(leads)
     #leadList = [i['source_record'] for i in leadList]
     
+#save the data in the temp table
+def savePrdtLeads(user_id=None, company_id=None, leadList=None, newList=None, job_id=None, run_type=None):
+    try:
+        print 'saving Prdt Leads'
+        if run_type == 'initial':
+            for lead in leadList['prospect']: #watch out for the 'prospect' entry for Pardot
+                saveTempData(company_id=company_id, record_type="lead", source_system="prdt", source_record=lead, job_id=job_id)
+        else:
+            for lead in leadList['prospect']:
+                saveTempDataDelta(company_id=company_id, record_type="lead", source_system="prdt", source_record=lead, job_id=job_id)
+                
+    except Exception as e:
+        print 'error while saving Prdt leads to temp ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))   
+    
 def mergeMktoSfdcLeads(user_id=None, company_id=None, job_id=None, run_type=None):
     
     #get all leads which have a Marketo ID
@@ -1082,6 +1250,33 @@ def deleteLeads(user_id=None, company_id=None, job_id=None, run_type=None):
         print 'Number of leads to be deleted: ' + str(count)
         count = Lead.objects(**querydict).delete()
         print 'Number of leads deleted: ' + str(count)
+    except Exception as e:
+        print 'exception while deleting leads en-masse: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e)))  
+        
+def deleteDuplicateMktoIdLeads(user_id=None, company_id=None, job_id=None, run_type=None):
+    
+    #get all leads which have 'to_be_deleted' flag set to True
+    company_id_qry = 'company_id'
+    deleted_qry = 'to_be_deleted'
+    
+    
+    querydict = {company_id_qry: company_id}
+    
+    
+    try:   
+        dupe_leads = Lead.objects(**querydict).aggregate({'$group': {'_id': '$mkto_id', 'count': {'$sum': 1} } }, {'$match': {'_id': {'$ne': None}, 'count': {'$gt': 1} } }, {'$project': {'mkto_id': '$_id', '_id': 0} })
+        dupe_leads = list(dupe_leads)
+        print 'dupe leads are ' + str(len(dupe_leads))
+        for lead in dupe_leads:
+            print 'doing mkto id ' + str(lead['mkto_id'])
+            all_leads = Lead.objects(Q(company_id=company_id) & Q(mkto_id=lead['mkto_id']))
+            print 'found ' + str(len(list(all_leads))) + ' leads for mkto id ' + str(lead['mkto_id'])
+            all_leads = sorted(list(all_leads), key=itemgetter('updated_date'), reverse=True)
+            print 'latest updated date ' + str(all_leads[0]['updated_date'])
+            all_leads.pop(0)
+            for remaining_lead in all_leads:
+                Lead.objects(Q(company_id=company_id) & Q(id=remaining_lead['id'])).delete()
     except Exception as e:
         print 'exception while deleting leads en-masse: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e)))  

@@ -12,6 +12,10 @@ a {
 	cursor:pointer;
 }
 
+.page-container {
+	background-color: #f9f9f9 !important;
+}
+
 .no-posts-here, .no-symbols-here {
   text-align: center;
 }
@@ -59,8 +63,8 @@ div.child_row_slider {
 /* styles for forms */
 
 .portlet-body {
-	padding-left: 20px !important;
-	padding-right: 20px !important;
+	padding-left: 0px !important;
+	padding-right: 0px !important;
 }
 
 .form-group {
@@ -743,7 +747,7 @@ us-spinner {
 
 .page-sidebar, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a, .page-sidebar .page-sidebar-menu > li > a, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu .sub-menu > li > a, .page-sidebar .page-sidebar-menu .sub-menu > li > a  {
 	background-color: #032838 !important; /* #004358 !important; /*#1f8a70  */
-	color: #b8b8b8 !important; /* efefef */
+	color: #f9f9f9 !important; /* efefef */
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > i[class^="icon-"], .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > i[class*="icon-"], .page-sidebar .page-sidebar-menu > li > a:hover > i[class^="icon-"], .page-sidebar .page-sidebar-menu > li > a:hover > i[class*="icon-"] {
@@ -1372,7 +1376,7 @@ ul.analytics-charts > li {
 }
 
 .page-sidebar .page-sidebar-menu > li > a > .title {
-	color: #b8b8b8;
+	color: #f9f9f9;
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .title, .page-sidebar .page-sidebar-menu > li > a:hover > .title, .page-sidebar .page-sidebar-menu > li > a:hover > .title {
@@ -1380,11 +1384,11 @@ ul.analytics-charts > li {
 }
 
 .page-sidebar .page-sidebar-menu li > a > .arrow:before, .page-sidebar .page-sidebar-menu li > a > .arrow.open:before {
-  color: #b8b8b8;
+  color: #f9f9f9;
 }
 
 .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu li > a > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu li > a > .arrow.open:before, .page-sidebar .page-sidebar-menu li > a > .arrow:before, .page-sidebar .page-sidebar-menu li > a > .arrow.open:before {
-  color: #b8b8b8 !important;
+  color: #f9f9f9 !important; /* b8b8b8 */
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu > li > a:hover, .page-sidebar li  a:hover, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow:before, .page-sidebar .page-sidebar-menu > li > a:hover > .arrow:before {
@@ -1404,6 +1408,7 @@ ul.analytics-charts > li {
 
 .page-sidebar .page-sidebar-menu li > a.active > .title, .page-sidebar .page-sidebar-menu > li.open > a > .title, .page-sidebar .page-sidebar-menu > li.open > a.active > .title  {
 	color: #fff !important;
+	font-weight:900;
 }
 
 .page-sidebar .page-sidebar-menu .sub-menu li {
@@ -1504,6 +1509,10 @@ ul.analytics-charts > li {
 
 .dataTable tr th, .dataTable tr td {
 	border:1px solid #eee !important;
+}
+
+td {
+	word-wrap:break-word !important;
 }
 
 .actionTable tr th:first-child {

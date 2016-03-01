@@ -6,6 +6,7 @@ from celery import shared_task
 from mmm.celery import app
 import datetime, calendar
 from datetime import timedelta, datetime
+from bson.objectid import ObjectId
 
 from django.http import HttpResponse, JsonResponse
 from rest_framework.response import Response
@@ -23,7 +24,7 @@ from company.models import TempData, TempDataDelta
 def retrieveMktoCampaigns(user_id=None, company_id=None, job_id=None, run_type=None, sinceDateTime=None):
     try:
         mkto = Marketo(company_id)
-        campaignList = mkto.get_campaigns()
+        campaignList = mkto.get_programs()
         saveMktoCampaigns(user_id=user_id, company_id=company_id, campaignList=campaignList, job_id=job_id, run_type=run_type)
         try:
             message = 'Campaigns retrieved from Marketo'
@@ -45,6 +46,7 @@ def retrieveMktoCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
                 ))    
         return campaignList
     except Exception as e:
+        print 'error while retrieving marketo campaigns: ' + str(e)
         send_notification(dict(
              type='error',
              success=False,
@@ -77,6 +79,7 @@ def retrieveSfdcCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
                 ))    
         return campaignList
     except Exception as e:
+        print 'error while retrieving sfdc campaigns: ' + str(e)
         send_notification(dict(
              type='error',
              success=False,
@@ -231,7 +234,7 @@ def retrieveHsptCampaigns(user_id=None, company_id=None, job_id=None, run_type=N
                 ))    
         return campaignList
     except Exception as e:
-        print 'error while retrieveing campaigns ' + str(e)
+        print 'error while retrieving hspt campaigns: ' + str(e)
         send_notification(dict(
              type='error',
              success=False,
@@ -248,6 +251,7 @@ def saveMktoCampaigns(user_id=None, company_id=None, campaignList=None, job_id=N
             saveTempDataDelta(company_id=company_id, record_type="campaign", source_system="mkto", source_record=campaign, job_id=job_id)
     
 def saveMktoCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #job_id = ObjectId("56d25c6af6fd2a15df46cd60")
     if run_type == 'initial':
         campaigns = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='mkto') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -259,8 +263,8 @@ def saveMktoCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
     try: 
         for newCampaign in campaignList: 
             #company_id = request.user.company_id
-            derived_id = 'mkto_' + str(newCampaign['id']) 
-            Campaign.objects(Q(derived_id = derived_id) & Q(company_id=company_id)).modify(upsert=True, new=True, set__campaigns__mkto = newCampaign, set_on_insert__derived_id = derived_id, set_on_insert__company_id = company_id)
+            guid = 'mkto_' + str(newCampaign['id']) 
+            Campaign.objects(Q(guid = guid) & Q(company_id=company_id)).modify(upsert=True, new=True, set__campaigns__mkto = newCampaign, set__updated_date = datetime.utcnow, set_on_insert__source_system = 'mkto', set_on_insert__guid = guid, set_on_insert__company_id = company_id)
     
 #             mktoCampaigns = []  
 #             mktoCampaigns.append(campaign)            
@@ -270,7 +274,8 @@ def saveMktoCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
 #             campaign.campaigns["mkto"] = oldCampaign
 #             campaign.save()
     except Exception as e:
-            send_notification(dict(
+        print 'error while saving mkto campaign: ' + str(e)
+        send_notification(dict(
              type='error',
              success=False,
              message=str(e)
@@ -287,6 +292,7 @@ def saveSfdcCampaigns(user_id=None, company_id=None, campaignList=None, job_id=N
             saveTempDataDelta(company_id=company_id, record_type="campaign", source_system="sfdc", source_record=campaign, job_id=job_id)
        
 def saveSfdcCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_type=None):    
+    #job_id = ObjectId("56d25c6af6fd2a15df46cd60")
     if run_type == 'initial':
         campaigns = TempData.objects(Q(company_id=company_id) & Q(record_type='campaign') & Q(source_system='sfdc') & Q(job_id=job_id) ).only('source_record') #& Q(job_id=job_id) 
     else:
@@ -298,8 +304,8 @@ def saveSfdcCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
     try: 
         for newCampaign in campaignList: #['records']: 
             #company_id = request.user.company_id
-            derived_id = 'sfdc_' + str(newCampaign['Id']) 
-            Campaign.objects(Q(derived_id = derived_id) & Q(company_id=company_id)).modify(upsert=True, new=True, set__campaigns__sfdc = newCampaign, set_on_insert__derived_id = derived_id, set_on_insert__company_id = company_id)
+            guid = 'sfdc_' + str(newCampaign['Id']) 
+            Campaign.objects(Q(guid = guid) & Q(company_id=company_id)).modify(upsert=True, new=True, set__campaigns__sfdc = newCampaign, set__updated_date = datetime.utcnow, set_on_insert__source_system = 'sfdc', set_on_insert__guid = guid, set_on_insert__company_id = company_id)
 
 #         for oldCampaign in campaignList['records']: 
 # #             mktoCampaigns = []  
@@ -310,6 +316,7 @@ def saveSfdcCampaignsToMaster(user_id=None, company_id=None, job_id=None, run_ty
 #             campaign.campaigns["sfdc"] = oldCampaign
 #             campaign.save()
     except Exception as e:
+        print 'error while saving sfdc campaign: ' + str(e)
         send_notification(dict(
          type='error',
          success=False,

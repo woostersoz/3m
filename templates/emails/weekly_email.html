@@ -1,0 +1,11 @@
+{% load filters %}
+{% block subject %}Your weekly dose of metrics from Claritix{% endblock %}
+{% block html %}
+<p> Results from {{start_date}} to {{end_date}}</p>
+
+<ul>
+  <li>Number of contacts added: {{contacts_added}}</li>
+  <li>Number of deals closed:  {{deals_closed}}</li>
+  <li>Value of deals closed: {{closed_deal_value  | currency}}</li>
+</ul>
+{% endblock %}

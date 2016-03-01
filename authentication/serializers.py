@@ -2,16 +2,19 @@ from django.contrib.auth import update_session_auth_hash
 
 from rest_framework import serializers
 from rest_framework_mongoengine.serializers import serializers as drfme_serial, DocumentSerializer
-
+#from mongoengine import fields, ReferenceField, IntField
 
 from authentication.models import CustomUser, Company
 
+# class IntReferenceField(ReferenceField):
+#     pk_field_class = fields.IntField
 
 class CustomUserSerializer(DocumentSerializer):
     password = drfme_serial.CharField(allow_blank=True, write_only=True)
     confirm_password = drfme_serial.CharField(allow_blank=True, write_only=True)
 
     class Meta:
+        #company = IntReferenceField(Company)
         model = CustomUser
         #fields = ('id', 'email', 'username', 'created_at', 'updated_at',
         #         'first_name', 'last_name', 'password', 'confirm_password', 'company', 'timezone', 'is_admin', 'is_superadmin',  )

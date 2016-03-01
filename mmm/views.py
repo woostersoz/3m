@@ -2,9 +2,11 @@ from __future__ import absolute_import
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic.base import TemplateView
 from django.utils.decorators import method_decorator
+
 import pytz, string, unicodedata, nltk
 from django.utils import timezone
 from django.core.mail import send_mail
+
 from datetime import timedelta, date, datetime
 from itertools import tee, izip, islice
 from nltk import bigrams
@@ -62,6 +64,8 @@ def _str_from_date(dateTime, format=None): # returns a timezone like string from
         return datetime.strftime(dateTime, '%Y-%m-%d')
     elif format == 'short_with_time':
         return datetime.strftime(dateTime, '%Y-%m-%d %H:%M:%S')
+    elif format == 'with_zeros':
+        return datetime.strftime(dateTime, '%Y-%m-%d %H:%M:%SZ+0000')
     else:
         return datetime.strftime(dateTime, '%Y-%m-%dT%H:%M:%SZ') # found in status record
 
@@ -361,40 +365,66 @@ def exportToPdf(company_id, user_id, template_name, source_type, content_type, p
 
 @app.task
 def exportToCsv(object_type, system_code, data, source_type, chart_name, user_id, company_id):
+    print 'in export to csv'
     if object_type is None or system_code is None or data is None:
+        print 'returning due to none'
         return 
     try:
         if object_type == 'lead':
             result = exportLeadsToCsv(system_code, data, chart_name, user_id, company_id)
             print 'got result ' + str(result)
             file_name = result['file_name']
-            content_type = result['content_type']
-            export_file = open(file_name, 'rb')
-            exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=chart_name, source_type=source_type, type=content_type, file_name=os.path.basename(file_name))
-            exportFile.file.put(export_file, content_type=content_type)
-            exportFile.save()
-            try:
-                message = 'CSV file successfully exported'
-                notification = Notification()
-                #notification.company_id = company_id
-                notification.owner = user_id
-                notification.module = 'Exports'
-                notification.type = 'Background task' 
-                notification.method = os.path.basename(__file__)
-                notification.message = message
-                notification.success = True
-                notification.read = False
-                notification.save()
-                user = CustomUser.objects(id=user_id).first()
-                if user is not None:
-                    html_msg = '<p>Hola ' + user['first_name'] + '</p><p>Your export of data from ' + chart_name + ' is ready. It is available in My Exports with the file name ' + os.path.basename(file_name) + '.</p><p>Cheers</p><p>The Claritix crew<p>'
-                    send_mail('[Claritix] Your CSV export is baked and ready', '', 'admin@claritix.io', [user['email']], html_message=html_msg)
-            except Exception as e:
-                send_notification(dict(
-                     type='error',
-                     success=False,
-                     message=str(e)
-                    ))          
+            if file_name != '':
+                content_type = result['content_type']
+                export_file = open(file_name, 'rb')
+                exportFile = ExportFile(company_id=company_id, owner_id=user_id, source=chart_name, source_type=source_type, type=content_type, file_name=os.path.basename(file_name))
+                exportFile.file.put(export_file, content_type=content_type)
+                exportFile.save()
+                try:
+                    message = 'CSV file successfully exported'
+                    notification = Notification()
+                    #notification.company_id = company_id
+                    notification.owner = user_id
+                    notification.module = 'Exports'
+                    notification.type = 'Background task' 
+                    notification.method = os.path.basename(__file__)
+                    notification.message = message
+                    notification.success = True
+                    notification.read = False
+                    notification.save()
+                    user = CustomUser.objects(id=user_id).first()
+                    if user is not None:
+                        html_msg = '<p>Hola ' + user['first_name'] + '</p><p>Your download of data from ' + chart_name + ' is ready. It is available in My Exports with the file name ' + os.path.basename(file_name) + '.</p><p>Cheers</p><p>The Claritix crew<p>'
+                        send_mail('[Claritix] Your CSV export is baked and ready', '', 'admin@claritix.io', [user['email']], html_message=html_msg)
+                except Exception as e:
+                    send_notification(dict(
+                         type='error',
+                         success=False,
+                         message=str(e)
+                        ))      
+            else:
+                try:
+                    message = 'CSV download failed'
+                    notification = Notification()
+                    #notification.company_id = company_id
+                    notification.owner = user_id
+                    notification.module = 'Exports'
+                    notification.type = 'Background task' 
+                    notification.method = os.path.basename(__file__)
+                    notification.message = message
+                    notification.success = True
+                    notification.read = False
+                    notification.save()
+                    user = CustomUser.objects(id=user_id).first()
+                    if user is not None:
+                        html_msg = '<p>Hola ' + user['first_name'] + '</p><p>Your download of data from ' + chart_name + ' failed. Please contact the Claritix team so that we can look into this.</p><p>Cheers</p><p>The Claritix crew<p>'
+                        send_mail('[Claritix] Oh no! Your CSV download failed', '', 'admin@claritix.io', [user['email']], html_message=html_msg)
+                except Exception as e:
+                    send_notification(dict(
+                         type='error',
+                         success=False,
+                         message=str(e)
+                        ))        
         else:
             return
     except Exception as e:
@@ -405,6 +435,8 @@ def exportToCsv(object_type, system_code, data, source_type, chart_name, user_id
 def exportLeadsToCsv(system_code, data, chart_name, user_id, company_id):
     if system_code == 'hspt':
         result = exportHsptLeadsToCsv(data, chart_name, user_id, company_id)
+    elif system_code == 'mkto':
+        result = exportMktoLeadsToCsv(data, chart_name, user_id, company_id)
     else:
         return 
     return result
@@ -477,6 +509,62 @@ def exportHsptLeadsToCsv(data, chart_name, user_id, company_id):
         print 'exception while trying to create CSV file: ' + str(e)
         send_notification(dict(type='error', success=False, message=str(e))) 
         
+def exportMktoLeadsToCsv(data, chart_name, user_id, company_id):
+    ids = data.get('results', None)
+    leads = Lead.objects().filter(company_id=company_id, mkto_id__in=ids).order_by('mkto_id').hint('co_mkto_id')
+    leads = list(leads)
+    
+    leads = [lead.to_mongo().to_dict() for lead in leads]  
+                
+    if leads is None or len(leads) == 0:
+        print 'input is none'
+        return {'file_name': '', 'content_type' : 'text/csv'}
+    
+    try:
+        print 'input not none ' + str(leads)
+        #open a temp file for writing
+        end_date_string = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime())
+        base_file_name = end_date_string + '_' + chart_name + '_leads' + '_cx.csv'
+        file_name = '/tmp/' +  base_file_name
+        csv_out = open(file_name, 'wb')
+        fieldnames = ['Marketo ID', 'First Name', 'Last Name', 'Email', 'Company', 'Status', 'Source', 'Original Source Type', 'Created Date', 'SFDC Lead ID', 'SFDC Contact ID', 'SFDC Account ID', ]
+        
+        #create writer
+        csv_writer = csv.DictWriter(csv_out, fieldnames=fieldnames, restval='', extrasaction='ignore')
+        csv_writer.writeheader()
+        
+        for lead in leads:
+            created_date = ''
+            
+            print 'lead is ' + str(lead['mkto_id'])
+            
+            mkto_id_url = "http://app-sj09.marketo.com/leadDatabase/loadLeadDetail?leadId="  +  str(lead['mkto_id']) 
+            mkto_id = '=HYPERLINK("' + mkto_id_url + '", "' + str(lead['mkto_id']) + '")'
+            #print '1'
+            if 'createdAt' in lead['leads']['mkto'] and lead['leads']['mkto']['createdAt'] is not None:
+                created_date = lead['leads']['mkto']['createdAt']
+            
+            #print '2'
+            if not 'leads' in lead or not 'mkto' in lead.get('leads', ''):
+                lead['leads'] = {}
+                lead['leads']['mkto'] = {}
+            for key, value in lead['leads']['mkto'].items():
+                if lead['leads']['mkto'][key] is None:
+                    lead['leads']['mkto'][key] = ''
+            csv_writer.writerow({'Marketo ID' : mkto_id, 'First Name': lead.get('source_first_name', '').encode('utf-8'), 'Last Name': lead.get('source_last_name', '').encode('utf-8'), 'Email': lead.get('source_email', '').encode('utf-8'),  
+                                 'Company': lead['leads']['mkto'].get('company', '').encode('utf-8'), 'Status': lead['leads']['mkto'].get('leadStatus', '').encode('utf-8'), 'Source': lead['leads']['mkto'].get('leadSource', '').encode('utf-8'),
+                                 'Original Source Type': lead['leads']['mkto'].get('originalSourceType', '').encode('utf-8'), 'Created Date': created_date, 
+                                 'SFDC Lead ID': lead['leads']['mkto'].get('sfdcLeadId', '').encode('utf-8'), 'SFDC Contact ID': lead['leads']['mkto'].get('sfdcContactId', '').encode('utf-8'), 'SFDC Account ID': lead['leads']['mkto'].get('sfdcAccountId', '').encode('utf-8'),
+                                 })
+            #print '4'
+        
+        csv_out.close()
+        
+        return {'file_name': file_name, 'content_type' : 'text/csv'}
+    except Exception as e:
+        print 'exception while trying to create CSV file: ' + str(e)
+        send_notification(dict(type='error', success=False, message=str(e))) 
+        
 class ManageExports(viewsets.ModelViewSet):  
     
     serializer_class = ExportFilesSerializer
@@ -512,4 +600,3 @@ class SingleExport(viewsets.ModelViewSet):
         except Exception as e:
                 return Response(str(e))    
             
-    

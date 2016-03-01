@@ -1,5 +1,6 @@
 import datetime, json, urllib
 from datetime import timedelta, date, datetime
+import pytz
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, JsonResponse
@@ -23,6 +24,7 @@ from celery import task
 from pickle import NONE
 from mongoengine.django.shortcuts import get_document_or_404
 from mongoengine.queryset.visitor import Q
+from bson.code import Code
 
 from integrations.views import Marketo, Salesforce
 from campaigns.serializers import CampaignSerializer
@@ -65,21 +67,180 @@ class CampaignsViewSet(drfme_generics.ListCreateAPIView): #deprecated
 
 @api_view(['GET'])
 #@renderer_classes((JSONRenderer,))    
-def getAllCampaigns(request, id):
+def getCampaigns(request, id):
     try:
         company_id = request.user.company_id
+        system_type = request.GET.get('system_type')
         page_number = int(request.GET.get('page_number'))
         items_per_page = int(request.GET.get('per_page'))
-        offset = (page_number - 1) * items_per_page
-        total = Campaign.objects.filter(company_id=company_id).count()
+        start_date = int(request.GET.get('start_date'))
+        end_date = int(request.GET.get('end_date'))
+        sub_view = request.GET.get('subview')
+        filters = request.GET.get('filters')
+        filters = json.loads(filters)
+        superfilters = request.GET.get('superfilters')
+        super_filters = json.loads(superfilters)
+        #print 'super filters are ' + str(super_filters)
+        date_field = None
+        querydict_filters = {}
         
-        queryset = Campaign.objects.filter(company_id=company_id).skip(offset).limit(items_per_page)
+        offset = (page_number - 1) * items_per_page
+        
+#         existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+#         code = None
+#         if existingIntegration is not None:
+#             for source in existingIntegration.integrations.keys():
+#                 defined_system_type = SuperIntegration.objects(Q(code = source) & Q(system_type = system_type)).first()
+#                 if defined_system_type is not None:
+#                     code = source
+#                     
+#         if code is None:
+#             return JsonResponse({'Error' : 'Marketing Automation system not found'})
+        
+        #projection = {'$project': {'_id': '$campaigns.' + code + '.id', 'created_date': '$campaigns.' + code + '.createdAt', 'name': '$campaigns.' + code + '.name', 'description': '$campaigns.' + code + '.description', 'url': '$campaigns.' + code + '.url', 'type': '$campaigns.' + code + '.type', 'channel': '$campaigns.' + code + '.channel', } }
+        match = {'$match' : { }}
+        date_field = None
+        collection = Campaign._get_collection()
+        company_field_qry = 'company_id'
+        querydict = {company_field_qry: company_id}
+        code = ''
+        
+        if super_filters is not None:
+            if 'date_types' in super_filters: # need to filter by a certain type of date
+                date_field = super_filters['date_types']
+                if date_field is not None:
+                    if start_date is not None:
+                        start_date = datetime.fromtimestamp(float(start_date) / 1000)
+                    if end_date is not None:
+                        end_date = datetime.fromtimestamp(float(end_date) / 1000)
+    
+                    local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+                    utc_day_start = local_start_date.astimezone(pytz.timezone('UTC'))
+                    utc_day_start_string = datetime.strftime(utc_day_start, '%Y-%m-%dT%H:%M:%SZ+0000')
+                    utc_day_start_string_crm = datetime.strftime(utc_day_start, '%Y-%m-%dT%H:%M:%S.000+0000')
+                    
+                    local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+                    utc_day_end = local_end_date.astimezone(pytz.timezone('UTC'))
+                    utc_day_end_string = datetime.strftime(utc_day_end, '%Y-%m-%dT%H:%M:%SZ+0000')
+                    utc_day_end_string_crm = datetime.strftime(utc_day_end, '%Y-%m-%dT%H:%M:%S.000+0000')
+                    #print 'utc start string is ' + str(utc_day_start_string)
+                    #print 'utc end string is ' + str(utc_day_end_string)
+                    #remove the date_types item 
+                    #super_filters.pop('date_types')
+                
+                    date_field_original = date_field
+                    date_field = date_field.replace('.', '__')
+                    date_field_start_qry =  date_field + '__gte'
+                    date_field_end_qry = date_field + '__lte'
+        
+        if filters is not None:
+            for key, value in filters.items():
+                if value is not None and value != '':
+                    querydict_filters['campaigns__' + code + '__' + key] = value #creates an additional querydict that can be added to the main qd
+                    match['$match']['campaigns.' + code + '.' + key] = value
+                    
+        if sub_view == 'allcampaigns':
+            if date_field is None:
+                total = collection.find({'company_id': int(company_id)}).count() #.hint('company_id_1')
+                queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+            else:
+                total = collection.find({'company_id': int(company_id), date_field_original: {'$gte':utc_day_start_string, '$lte':utc_day_end_string}}).count() #.hint('company_id_1')
+                querydict[date_field_start_qry] = utc_day_start_string 
+                querydict[date_field_end_qry] = utc_day_end_string
+                queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+        elif sub_view == 'onlyma' or sub_view == 'onlycrm':
+            if sub_view == 'onlyma':
+                code = _get_system(company_id, 'MA')
+            else:
+                code = _get_system(company_id, 'CRM')
+            if code is None:
+                return JsonResponse({'Error' : 'No source system found'})
+            querydict['source_system'] = code
+            if date_field is None:
+                total = collection.find({'company_id': int(company_id), 'source_system': code}).count() #.hint('company_id_1')
+                queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+            else:
+                if sub_view == 'onlycrm' and code == 'sfdc':
+                    if date_field_original == 'campaigns.mkto.createdAt':
+                        date_field_original = 'campaigns.sfdc.CreatedDate'
+                        date_field_start_qry = 'campaigns__sfdc__CreatedDate__gte'
+                        date_field_end_qry = 'campaigns__sfdc__CreatedDate__lte'
+                    elif date_field_original == 'campaigns.mkto.updatedAt':
+                        date_field_original = 'campaigns.sfdc.LastModifiedDate'
+                        date_field_start_qry = 'campaigns__sfdc__LastModifiedDate__gte'
+                        date_field_end_qry = 'campaigns__sfdc__LastModifiedDate__lte'
+                total = collection.find({'company_id': int(company_id), 'source_system': code, date_field_original: {'$gte':utc_day_start_string, '$lte':utc_day_end_string}}).count() #.hint('company_id_1')
+                querydict[date_field_start_qry] = utc_day_start_string 
+                querydict[date_field_end_qry] = utc_day_end_string
+                queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+        elif sub_view == 'crmfromma' or sub_view == 'crmnotma':
+            code = _get_system(company_id, 'CRM')
+            if code is None:
+                return JsonResponse({'Error' : 'No source system found'})
+            querydict['source_system'] = code
+            mapping = CompanyIntegration.objects(company_id=company_id).only('mapping').first()
+            print 'mapping is ' + str(mapping)
+            if mapping is None or len(mapping) == 0:
+                return JsonResponse({'Error' : 'No mapping found in company settings'})
+            ma_user = None
+            ma_code = _get_system(company_id, 'MA')
+            if ma_code == 'mkto': 
+                ma_user = mapping['mapping'].get('mkto_sync_user', None)
+            if ma_user is None or ma_code is None:
+                return JsonResponse({'Error' : 'No marketing automation details found'})
+            if code == 'sfdc':
+                if sub_view == 'crmfromma':
+                    user_field_qry = 'campaigns.sfdc.CreatedById'
+                    querydict['campaigns__sfdc__CreatedById'] = ma_user
+                else:
+                    user_field_qry = 'campaigns.sfdc.CreatedById__ne'
+                    querydict['campaigns__sfdc__CreatedById__ne'] = ma_user
+                if date_field is None:
+                    total = collection.find({'company_id': int(company_id), 'source_system': code, user_field_qry: ma_user}).count() #.hint('company_id_1')
+                    queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+                else:
+                    if date_field_original == 'campaigns.mkto.createdAt':
+                        date_field_original = 'campaigns.sfdc.CreatedDate'
+                        date_field_start_qry = 'campaigns__sfdc__CreatedDate__gte'
+                        date_field_end_qry = 'campaigns__sfdc__CreatedDate__lte'
+                    elif date_field_original == 'campaigns.mkto.updatedAt':
+                        date_field_original = 'campaigns.sfdc.LastModifiedDate'
+                        date_field_start_qry = 'campaigns__sfdc__LastModifiedDate__gte'
+                        date_field_end_qry = 'campaigns__sfdc__LastModifiedDate__lte'
+                    total = collection.find({'company_id': int(company_id), 'source_system': code, user_field_qry: ma_user, date_field_original: {'$gte':utc_day_start_string, '$lte':utc_day_end_string}}).count() #.hint('company_id_1')
+                    querydict[date_field_start_qry] = utc_day_start_string 
+                    querydict[date_field_end_qry] = utc_day_end_string
+                    queryset = Campaign.objects(**querydict).skip(offset).limit(items_per_page)
+            
         
         serializer = CampaignSerializer(queryset, many=True)   
         type = 'campaigns'
         return JsonResponse({'count' : total, 'results': serializer.data, 'type': type})    
     except Exception as e:
         return JsonResponse({'Error' : str(e)})
+
+def _get_system(company_id=None, system_type=None): 
+    '''Find the appropriate system code e.g. mkto or sfdc for a given system type e.g. ma or crm '''
+    
+    if company_id is None or system_type is None:
+        return None
+    
+    map = Code("function () {"
+             "  for (var key in this.integrations) emit(key, null); } ")
+    
+    reduce = Code("function (key, values) { return null; } ")
+    
+    results = CompanyIntegration.objects(company_id=company_id).map_reduce(map, reduce, "inline")
+    results = list(results)
+    
+    systems = SuperIntegration.objects(system_type=system_type).only('code')
+    systems = list(systems)
+    for system in systems:
+        for result in results:
+            if result.key == system['code']:
+                return system['code']
+    
+    return None
 
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))    

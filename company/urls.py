@@ -29,7 +29,7 @@ urlpatterns = patterns('',
     url(r'^(?P<company_id>[a-z:\\.0-9]+)/integrations/', include('integrations.urls', namespace="integrations")),   
     url(r'^(?P<id>[a-z:\\.0-9]+)/social/', include('social.urls', namespace="social")),   
     url(r'^(?P<id>[a-z:\\.0-9]+)/count/$', views.getCount, name='count_objects'),  
-    url(r'^(?P<id>[a-z:\\.0-9]+)/collab/', include('collab.urls', namespace="collab")),
+    url(r'^(?P<company_id>[a-z:\\.0-9]+)/collab/', include('collab.urls', namespace="collab")),
     url(r'^(?P<company_id>[a-z:\\.0-9]+)/superadmin/', include('superadmin.urls', namespace="superadmin")),
     url(r'^(?P<id>[a-z:\\.0-9]+)/timezones/$', views.getTimezones, name='get_timezones'),
 )

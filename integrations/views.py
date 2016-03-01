@@ -57,8 +57,10 @@ import urlparse, urllib
 import sugarcrm
 
 #Slack
-
 from slackclient import SlackClient
+
+#Pardot
+from pypardot.client import PardotAPI
 
 from company.models import CompanyIntegration,  UserOauth
 from company.serializers import CompanyIntegrationSerializer
@@ -91,7 +93,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
              }
          
             method_map = { "mkto" : self.setup_mkto, "sfdc": self.setup_sfdc, "hspt": self.setup_hspt, "bufr": self.setup_bufr, "goog": self.setup_goog, "fbok": self.setup_fbok, "twtr": self.setup_twtr,
-                           "sugr": self.setup_sugr, "slck": self.setup_slck}
+                           "sugr": self.setup_sugr, "slck": self.setup_slck, "prdt": self.setup_prdt}
             
             #if this method is called directly from some other screen than Integrations all values except code may be empty so retrieve from DB
             if company_info['code'] is not None and company_info['host'] is None:
@@ -101,6 +103,7 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
                     company_info['client_id'] = existingIntegration.integrations[company_info['code']]["client_id"]
                     company_info['client_secret'] = existingIntegration.integrations[company_info['code']]["client_secret"]
                     company_info['redirect_uri'] = existingIntegration.integrations[company_info['code']]["redirect_uri"]
+                    company_info['key'] = existingIntegration.integrations[company_info['code']]["key"]
             
             result = method_map[company_info['code']](**company_info)
             #print "resultxx is " + str(result)
@@ -129,6 +132,27 @@ class AuthorizeViewSet(viewsets.ViewSet, APIView):
             
             if error:   
                 return "Error: Marketo instance not validated"
+        except Exception as e:
+            return Response(str(e))
+        
+    def setup_prdt(self, **kwargs):
+        try:
+            error = False
+            prdt = Pardot(self.request)
+            client = prdt.create_client(kwargs['client_id'], kwargs['client_secret'], kwargs['key'])
+            client.authenticate()
+            print 'prdt client authenticated'
+            if self.saveAccessToken(client.api_key, kwargs['code'], kwargs['company_id'], None, None, None, None): #and\
+                #if self.saveUserOauth(client.token, kwargs['code'], kwargs['user_id']): 
+                self.request.session['prdt_access_token'] = client.api_key
+                return "Success: Pardot instance validated with token " + client.api_key
+                #else:
+                    #error = True
+            else: 
+                error = True
+            
+            if error:   
+                return "Error: Pardot instance not validated"
         except Exception as e:
             return Response(str(e))
         
@@ -859,6 +883,34 @@ class Marketo:
 
         except Exception as e:
             raise Exception("Could not retrieve leads from Marketo: " + str(e))
+        
+    def get_leads_by_programId(self, programId=None): #used for cron jobs
+        try:
+            self.get_creds()
+            mc = self.create_client(self.host, self.client_id, self.client_secret)
+
+            fieldList = None
+#            names = []
+            names = ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt', 'sfdcLeadId', 'leadStatus', 'leadRevenueStageId', 'originalSourceInfo', 'sfdcAccountId', 'company', 'sfdcContactId', 'originalSourceType', 'leadSource']
+
+#             company_id = self.company_id  
+#             existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+#             if existingIntegration is not None: 
+#                 integration = existingIntegration.integrations['mkto']
+#                 if 'metadata' in integration:
+#                     if 'lead' in integration['metadata']:
+#                         metadata = integration['metadata']['lead'] 
+#                         for i in range(len(metadata)):
+#                             names.append(metadata[i]['rest']['name'])
+#                         
+            #fieldList = ', ' .join(names)
+            if names:
+                return mc.execute(method = 'get_leads_by_programId', programId = programId, batchSize = None, fields=names) #
+            else:
+                raise Exception("Could not retrieve field list for Marketo")
+
+        except Exception as e:
+            raise Exception("Could not retrieve leads from Marketo: " + str(e))
 
     def get_leads_by_listId(self, listId = None): #needed to delete leads from the CX Leads list in MKTO
         try:
@@ -892,6 +944,14 @@ class Marketo:
             self.get_creds()
             mc = self.create_client(self.host, self.client_id, self.client_secret)
             return mc.execute(method = 'get_campaigns')
+        except Exception as e:
+            raise Exception("Could not retrieve campaigns from Marketo: " + str(e))
+        
+    def get_programs(self):
+        try:
+            self.get_creds()
+            mc = self.create_client(self.host, self.client_id, self.client_secret)
+            return mc.execute(method = 'get_programs')
         except Exception as e:
             raise Exception("Could not retrieve campaigns from Marketo: " + str(e))
     
@@ -1481,6 +1541,22 @@ class Salesforce:
         except Exception as e:
             print 'exception while retrieving SFDC opportunity history: ' + str(e)
             raise Exception("Could not retrieve history for opportunity from Salesforce: " + str(e))
+        
+    def get_stage_history_for_opportunity(self, user_id, company_id, opp_list, sinceDateTime):
+        try:
+            existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+            if existingIntegration is not None: 
+                integration = existingIntegration.integrations['sfdc']
+            else:
+                return []
+                #raise Exception('No integration found for SFDC')
+            query = 'SELECT Id, OpportunityId, StageName, CreatedDate from OpportunityHistory where CreatedDate > ' + sinceDateTime  + ' and OpportunityId in ' + opp_list #Amount, CloseDate, ExpectedRevenue, ForecastCategory, IsDeleted, Probability, StageName
+            client = self.create_client(integration['host'], integration['client_id'], integration['client_secret'], integration['redirect_uri'], auth_token=integration['access_token'])
+            return client.query_all(query)['records']
+            
+        except Exception as e:
+            print 'exception while retrieving SFDC opportunity stage history: ' + str(e)
+            raise Exception("Could not retrieve stage history for opportunity from Salesforce: " + str(e))
         
     #Park the below code for now - use it later when trying to get the auth token, not during authorization
 #     def retrieve_auth_token(self): 
@@ -2447,3 +2523,38 @@ class Slack:
             }
         response = s.get(url, params=data)
         return response.json()
+    
+class Pardot:
+    
+    def __init__(self, company_id):
+        self.company_id = company_id
+        
+    def create_client(self, email, password, user_key):
+        pc = PardotAPI(email=email, password=password, user_key=user_key)
+        return pc
+    
+    def get_creds(self):
+        company_id = self.company_id
+        #print 'company is ' + str(company_id)
+        existingIntegration = CompanyIntegration.objects(company_id = company_id ).first()
+        prdtIntegration = existingIntegration.integrations['prdt']
+        if prdtIntegration is not None:
+            #self.host = prdtIntegration['host']
+            self.email = prdtIntegration['client_id']
+            self.password = prdtIntegration['client_secret']
+            self.user_key = prdtIntegration['key']
+            #print 'host is ' + str(self.client_id) + " //// " +  str(self.client_secret)
+        else:
+            raise Exception("No integration details for Pardot")
+        
+    def get_leads_by_changes(self, sinceDateTime):
+        
+        try:
+            self.get_creds()
+            pc = self.create_client(self.email, self.password, self.user_key)
+    
+            return pc.prospects.query(created_after=sinceDateTime) #
+
+
+        except Exception as e:
+            raise Exception("Could not retrieve leads from Pardot: " + str(e))

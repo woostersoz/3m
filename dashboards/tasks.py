@@ -256,9 +256,9 @@ def mkto_funnel(user_id, company_id, chart_name, mode, start_date):
         functions = ['mktg', 'sales']
         
         #precollect all MQLs created by Marketing i.e. were synched to CRM and did not originate from CRM
-        mkto_leads_mql_mktg = collection.find({'company_id' : int(company_id), 'activities.mkto.activityTypeId' : sync_to_sfdc_activity_type_id, 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}}) #, 'source_created_date': {'$gte' : utc_day_start}})
-        mkto_leads_mql_mktg_list = list(mkto_leads_mql_mktg)
-        mkto_leads_mql_mktg2 = collection.find({'company_id' : int(company_id), 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}, 'source_created_date': {'$gte' : utc_day_start}}) #, 'source_created_date': {'$gte' : utc_day_start}})
+        #mkto_leads_mql_mktg = collection.find({'company_id' : int(company_id), 'activities.mkto.activityTypeId' : sync_to_sfdc_activity_type_id, 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}}, batch_size=1000) #, 'source_created_date': {'$gte' : utc_day_start}})
+        #mkto_leads_mql_mktg_list = list(mkto_leads_mql_mktg)
+        mkto_leads_mql_mktg2 = collection.find({'company_id' : int(company_id), 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}, 'source_created_date': {'$gte' : utc_day_start}}, batch_size=1000).hint('mkto_created') #, 'source_created_date': {'$gte' : utc_day_start}})
         mkto_leads_mql_mktg_list2 = list(mkto_leads_mql_mktg2)
         #print 'found  mql leads ' + str(len(mkto_leads_mql_mktg_list))
         
@@ -282,8 +282,8 @@ def mkto_funnel(user_id, company_id, chart_name, mode, start_date):
             
             #get all leads which were created before the start of today regardless of in MA or CRM
             print 'getting existed count'
-            existed_count_mktg = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}, 'source_created_date': {'$lt' : utc_day_start}}).hint('mkto_created').count()
-                
+            existed_count_mktg = collection.find({'company_id' : int(company_id), 'mkto_id' : {'$exists': True}, 'leads.mkto.originalSourceType' : {'$ne': 'salesforce.com'}, 'source_created_date': {'$lt' : utc_day_start}}, projection={'_id': True}).hint('mkto_created').count() #, batch_size=1000
+            #existed_count_mktg = existed_count_mktg_cusor.count() 
             #get all leads that were created in this time period by source and stage regardless of in MA or CRM
             print 'getting all leads created today'
             querydict = {company_id_qry: company_id, created_date_start_qry: utc_day_start, created_date_end_qry: utc_day_end} # start_date_created_field_qry: local_start_date, end_date_created_field_qry: local_end_date
@@ -989,12 +989,12 @@ def sfdc_opp_funnel(user_id, company_id, chart_name, mode, start_date):
         #get all activities from Opportunities history
         unwind1 = '$opportunities.sfdc'
         unwind2 = '$opportunities.sfdc.activities'
-        match = {'opportunities.sfdc.activities.Field' : 'StageName'}
+        match = {'opportunities.sfdc.activities' : {'$exists': True}}
         #match2 = {'count' : {'$gt': 1}} #temp to get opps with more than 1 status change activity
-        group = {'_id': '$opportunities.sfdc.activities.OpportunityId', 'count': {'$sum': 1},  'activities': {'$push': {'oppId': '$opportunities.sfdc.activities.OpportunityId', 'id': '$opportunities.sfdc.activities.Id', 'oldValue': '$opportunities.sfdc.activities.OldValue', 'newValue': '$opportunities.sfdc.activities.NewValue', 'date': '$opportunities.sfdc.activities.CreatedDate', 'oppCreatedDate': '$opportunities.sfdc.CreatedDate', 'oppOwnerId': '$opportunities.sfdc.OwnerId', 'oppType': '$opportunities.sfdc.Type'}}}
-        oppActivities = Account.objects(**querydict).aggregate({'$unwind': unwind1},{'$unwind': unwind2}, {'$match': match}, {'$group': group}) #, {'$match': match2}
+        group = {'_id': '$opportunities.sfdc.Id', 'count': {'$sum': 1},  'activities': {'$push': {'oppId': '$opportunities.sfdc.activities.OpportunityId', 'id': '$opportunities.sfdc.activities.Id', 'field': '$opportunities.sfdc.activities.Field', 'oldValue': '$opportunities.sfdc.activities.OldValue', 'newValue': '$opportunities.sfdc.activities.NewValue', 'date': '$opportunities.sfdc.activities.CreatedDate', 'oppCreatedDate': '$opportunities.sfdc.CreatedDate', 'oppOwnerId': '$opportunities.sfdc.OwnerId', 'oppType': '$opportunities.sfdc.Type'}}}
+        oppActivities = Account.objects(**querydict).aggregate({'$unwind': unwind1},{'$unwind': unwind2}, {'$match': match}, {'$group': group}) # , {'$match': match2}
         oppActivities = list(oppActivities)
-        print 'opp activities are ' + str(oppActivities)
+        #print 'opp activities are ' + str(oppActivities)
         #return
     
         #daily loop begins
@@ -1030,102 +1030,71 @@ def sfdc_opp_funnel(user_id, company_id, chart_name, mode, start_date):
             utc_day_start_string = datetime.strftime(utc_day_start, '%Y-%m-%dT%H-%M-%S.000+0000')
             utc_day_end_string = datetime.strftime(utc_day_end, '%Y-%m-%dT%H-%M-%S.000+0000')
             
+            
             for opp in oppActivities: #remember this is grouped by Opp ID
+                #print 'into opps'
+                if opp['_id'] is None: #if there's no ID to group by, move to the next opp
+                    continue
+#                 if opp['_id'] == '0065000000ZoIawAAF':
+#                     print 'into opp'
+                #first get the initial stage history record (because that's not captured in the field change history further below
+                unwind3 = '$opportunities.sfdc.stage_activities'
+                match2 = {'opportunities.sfdc.stage_activities' : {'$exists': True}}
+                #print 'match is ' + str(match2)
+                group2 = {'_id': '$opportunities.sfdc.Id', 'count': {'$sum': 1},  'stage_activities': {'$push': {'oppId': '$opportunities.sfdc.stage_activities.OpportunityId', 'id': '$opportunities.sfdc.stage_activities.Id', 'stage': '$opportunities.sfdc.stage_activities.StageName', 'date': '$opportunities.sfdc.stage_activities.CreatedDate', 'oppCreatedDate': '$opportunities.sfdc.CreatedDate', 'oppOwnerId': '$opportunities.sfdc.OwnerId', 'oppType': '$opportunities.sfdc.Type'}}}
+                oppStageActivities = Account.objects(Q(company_id = company_id) & Q(opportunities__sfdc__Id = opp['_id'])).aggregate({'$unwind': unwind1},{'$unwind': unwind3}, {'$match': match2}, {'$group': group2}) #, {'$match': match2}
+                oppStageActivities = list(oppStageActivities)
+                #print 'got stage acts' + str(len(oppStageActivities))
+#                 if opp['_id'] == '0065000000ZoIawAAF':
+#                     print 'got oppStageActs ' + str(len(oppStageActivities))
+                doneStageActivity = False
+                for oppStageActivity in oppStageActivities:
+                    #print 'into stage acts'
+                    stage_activities = oppStageActivity.get('stage_activities', None)
+                    for stage_activity in stage_activities:
+#                         if opp['_id'] == '0065000000ZoIawAAF':
+#                             print 'stage name is ' + str(stageName['value'])
+#                             print 'stage activity is ' + str(stage_activity)
+                        if stage_activity['date'] == stage_activity['oppCreatedDate'] and stage_activity['date'] >= utc_day_start_string and stage_activity['date'] <= utc_day_end_string: # and stage_activity['stage'] == stageName['value']:
+#                             if opp['_id'] == '0065000000ZoIawAAF':
+#                                 print 'in activity with ID ' + str(stage_activity['id'])
+                            stage_activity['oldValue'] = None
+                            stage_activity['newValue'] = encodeKey(stage_activity['stage'])
+                            inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type = _populate_opp_funnel_objects(stage_activity, {}, False, inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type)
+                            doneStageActivity = True
+                            #print 'found stage history for opp ' + str(opp['_id'])
+                            break
+                        if doneStageActivity: #process only one stage activity
+                            #print 'breaking stage history for opp ' + str(opp['_id'])
+                            break
+                #print 'processing changes for opp ' + str(opp['_id'])
+                #field change history - does not capture the first stage when the opp is created - dealt with above
                 activities = opp.get('activities', None) #now we have all activities for one opp
+                #print 'got activities ' + str(len(activities))
                 for i in range(len(activities)): #loop through each activity to see if it occurred on this day
                     activity = activities[i]
+                    #print 'activity is ' + str(activity)
+                    if activity['field'] != 'StageName':
+                        continue
+                    older_activity = {}
                     older_activity_found = False
                     activity['oldValue'] = encodeKey(activity['oldValue'])
                     activity['newValue'] = encodeKey(activity['newValue'])
                     
                     if activity['date'] >= utc_day_start_string and activity['date'] <= utc_day_end_string: #this activity took place on this day
                         if i+1 < len(activities): #if there's one more activity after this, take that
+                            #print 'in here?'
                             older_activity = activities[i+1]
-                            older_activity['oldValue'] = encodeKey(older_activity['oldValue'])
-                            older_activity['newValue'] = encodeKey(older_activity['newValue'])
-                            if older_activity['newValue'] == activity['oldValue'] and older_activity['date'] <= activity['date']: #ensure that the older activity is the correct one
-                                older_activity_found = True
+                            #print 'older act is ' + str(older_activity)
+                            if older_activity['field'] == 'StageName':
+                                older_activity['oldValue'] = encodeKey(older_activity['oldValue'])
+                                older_activity['newValue'] = encodeKey(older_activity['newValue'])
+                                if older_activity['newValue'] == activity['oldValue'] and older_activity['date'] <= activity['date']: #ensure that the older activity is the correct one
+                                    older_activity_found = True
                     
-                        #outflow_opps_count[activity['oldValue']] += 1
-                        outflow_opps_ids[activity['oldValue']].add(activity['oppId'])
-                        #inflow_opps_count[activity['newValue']] += 1
-                        inflow_opps_ids[activity['newValue']].add(activity['oppId'])
-                        #by owner
-                        if activity['oppOwnerId'] not in outflow_opps_count_by_owner:
-                            outflow_opps_count_by_owner[activity['oppOwnerId']] = {}
-                        if activity['oppType'] not in outflow_opps_count_by_owner[activity['oppOwnerId']]:
-                            outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
-                        if activity['oldValue'] not in outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']]:
-                            outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = 0
-                        #by type
-                        if activity['oppType'] not in outflow_opps_count_by_type:
-                            outflow_opps_count_by_type[activity['oppType']] = {}
-                        if activity['oldValue'] not in outflow_opps_count_by_type[activity['oppType']]:
-                            outflow_opps_count_by_type[activity['oppType']][activity['oldValue']] = 0
-                        #outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oldValue']] += 1
-                        
-                        if activity['oppOwnerId'] not in outflow_opps_ids_by_owner:
-                            outflow_opps_ids_by_owner[activity['oppOwnerId']] = {}
-                        if activity['oppType'] not in outflow_opps_ids_by_owner[activity['oppOwnerId']]:
-                            outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
-                        if activity['oldValue'] not in outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']]:
-                            outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = set()
-                        outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']].add(activity['oppId'])
-                        
-                        if activity['oppType'] not in outflow_opps_ids_by_type:
-                            outflow_opps_ids_by_type[activity['oppType']] = {}
-                        if activity['oldValue'] not in outflow_opps_ids_by_type[activity['oppType']]:
-                            outflow_opps_ids_by_type[activity['oppType']][activity['oldValue']] = set()
-                        outflow_opps_ids_by_type[activity['oppType']][activity['oldValue']].add(activity['oppId'])
-                        
-                        if activity['oppOwnerId'] not in inflow_opps_count_by_owner:
-                            inflow_opps_count_by_owner[activity['oppOwnerId']] = {}
-                        if activity['oppType'] not in inflow_opps_count_by_owner[activity['oppOwnerId']]:
-                            inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
-                        if activity['newValue'] not in inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']]:
-                            inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']] = 0
-                        #inflow_opps_count_by_owner[activity['oppOwnerId']][activity['newValue']] += 1
-                        if activity['oppType'] not in inflow_opps_count_by_type:
-                            inflow_opps_count_by_type[activity['oppType']] = {}
-                        if activity['newValue'] not in inflow_opps_count_by_type[activity['oppType']]:
-                            inflow_opps_count_by_type[activity['oppType']][activity['newValue']] = 0
-                        
-                        if activity['oppOwnerId'] not in inflow_opps_ids_by_owner:
-                            inflow_opps_ids_by_owner[activity['oppOwnerId']] = {}
-                        if activity['oppType'] not in inflow_opps_ids_by_owner[activity['oppOwnerId']]:
-                            inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
-                        if activity['newValue'] not in inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']]:
-                            inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']] = set()
-                        inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']].add(activity['oppId'])
-                        
-                        if activity['oppType'] not in inflow_opps_ids_by_type:
-                            inflow_opps_ids_by_type[activity['oppType']] = {}
-                        if activity['newValue'] not in inflow_opps_ids_by_type[activity['oppType']]:
-                            inflow_opps_ids_by_type[activity['oppType']][activity['newValue']] = set()
-                        inflow_opps_ids_by_type[activity['oppType']][activity['newValue']].add(activity['oppId'])
-                            
-                        if activity['oppOwnerId'] not in duration_by_owner:
-                            duration_by_owner[activity['oppOwnerId']] = {}
-                        if activity['oppType'] not in duration_by_owner[activity['oppOwnerId']]:
-                            duration_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
-                        if activity['oldValue'] not in duration_by_owner[activity['oppOwnerId']][activity['oppType']]:
-                            duration_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = 0
-                            
-                        if activity['oppType'] not in duration_by_type:
-                            duration_by_type[activity['oppType']] = {}
-                        if activity['oldValue'] not in duration_by_type[activity['oppType']]:
-                            duration_by_type[activity['oppType']][activity['oldValue']] = 0
-                            
-                        if older_activity_found: #if an older activity was found
-                            durn = max(0, (_date_from_str(activity['date']) - _date_from_str(older_activity['date'])).days)     
-                        else:
-                            durn = max(0, (_date_from_str(activity['date']) - _date_from_str(activity['oppCreatedDate'])).days)   
-                            
-                        duration[activity['oldValue']] += durn
-                        duration_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] += durn
-                        duration_by_type[activity['oppType']][activity['oldValue']] += durn
+                        inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type = _populate_opp_funnel_objects(activity, older_activity, older_activity_found, inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type)
             
-            print 'done with all days'
+            #print 'done with all days'
             #add the counts based on the lengths of the IDs lists
             for key in inflow_opps_count.keys():
                 if key in inflow_opps_ids:
@@ -1208,7 +1177,7 @@ def sfdc_opp_funnel(user_id, company_id, chart_name, mode, start_date):
                 analyticsIds.results = {}
                 analyticsIds.save()
                  
-            print 'results are ' + str(results)
+            #print 'results are ' + str(results)
             analyticsData.results = results['data']
             analyticsIds.results['inflow'] = results['ids']['inflow']
             analyticsIds.results['outflow'] = results['ids']['outflow']
@@ -1218,7 +1187,7 @@ def sfdc_opp_funnel(user_id, company_id, chart_name, mode, start_date):
             analyticsIds.results['outflow_by_type'] = results['ids']['outflow_by_type']
             analyticsIds.results['deals'] = [] #results['ids']['deals']
             results = {}
-            print 'saving' 
+            #print 'saving' 
             try:
                 AnalyticsData.objects(id=analyticsData.id).update(results = analyticsData.results)
                 print 'saved AD'
@@ -1226,11 +1195,108 @@ def sfdc_opp_funnel(user_id, company_id, chart_name, mode, start_date):
             except Exception as e:
                 print 'exception while saving analytics data: ' + str(e)
                 continue
-            print 'saved'
+            #print 'saved'
         
     except Exception as e:
-        print 'exception is ' + str(e) + ' and type is ' + str(type(e))
+        print 'exception while SFDC Opp Funnel is ' + str(e)
         return JsonResponse({'Error' : str(e)})
+        
+#subroutine for SFDC Opp Funnel dashboard
+
+def _populate_opp_funnel_objects(activity, older_activity, older_activity_found, inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type):
+    try:
+        #outflow_opps_count[activity['oldValue']] += 1
+        if activity['oldValue'] is not None: #if stage history, this will be None
+            outflow_opps_ids[activity['oldValue']].add(activity['oppId'])
+        #inflow_opps_count[activity['newValue']] += 1
+        inflow_opps_ids[activity['newValue']].add(activity['oppId'])
+        #by owner
+        if activity['oppOwnerId'] not in outflow_opps_count_by_owner:
+            outflow_opps_count_by_owner[activity['oppOwnerId']] = {}
+        if activity['oppType'] not in outflow_opps_count_by_owner[activity['oppOwnerId']]:
+            outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']]:
+                outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = 0
+        #by type
+        if activity['oppType'] not in outflow_opps_count_by_type:
+            outflow_opps_count_by_type[activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in outflow_opps_count_by_type[activity['oppType']]:
+                outflow_opps_count_by_type[activity['oppType']][activity['oldValue']] = 0
+        #outflow_opps_count_by_owner[activity['oppOwnerId']][activity['oldValue']] += 1
+        
+        if activity['oppOwnerId'] not in outflow_opps_ids_by_owner:
+            outflow_opps_ids_by_owner[activity['oppOwnerId']] = {}
+        if activity['oppType'] not in outflow_opps_ids_by_owner[activity['oppOwnerId']]:
+            outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']]:
+                outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = set()
+            outflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']].add(activity['oppId'])
+        
+        if activity['oppType'] not in outflow_opps_ids_by_type:
+            outflow_opps_ids_by_type[activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in outflow_opps_ids_by_type[activity['oppType']]:
+                outflow_opps_ids_by_type[activity['oppType']][activity['oldValue']] = set()
+            outflow_opps_ids_by_type[activity['oppType']][activity['oldValue']].add(activity['oppId'])
+        
+        if activity['oppOwnerId'] not in inflow_opps_count_by_owner:
+            inflow_opps_count_by_owner[activity['oppOwnerId']] = {}
+        if activity['oppType'] not in inflow_opps_count_by_owner[activity['oppOwnerId']]:
+            inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
+        if activity['newValue'] not in inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']]:
+            inflow_opps_count_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']] = 0
+        #inflow_opps_count_by_owner[activity['oppOwnerId']][activity['newValue']] += 1
+        if activity['oppType'] not in inflow_opps_count_by_type:
+            inflow_opps_count_by_type[activity['oppType']] = {}
+        if activity['newValue'] not in inflow_opps_count_by_type[activity['oppType']]:
+            inflow_opps_count_by_type[activity['oppType']][activity['newValue']] = 0
+        
+        if activity['oppOwnerId'] not in inflow_opps_ids_by_owner:
+            inflow_opps_ids_by_owner[activity['oppOwnerId']] = {}
+        if activity['oppType'] not in inflow_opps_ids_by_owner[activity['oppOwnerId']]:
+            inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
+        if activity['newValue'] not in inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']]:
+            inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']] = set()
+        inflow_opps_ids_by_owner[activity['oppOwnerId']][activity['oppType']][activity['newValue']].add(activity['oppId'])
+        
+        if activity['oppType'] not in inflow_opps_ids_by_type:
+            inflow_opps_ids_by_type[activity['oppType']] = {}
+        if activity['newValue'] not in inflow_opps_ids_by_type[activity['oppType']]:
+            inflow_opps_ids_by_type[activity['oppType']][activity['newValue']] = set()
+        inflow_opps_ids_by_type[activity['oppType']][activity['newValue']].add(activity['oppId'])
+            
+        if activity['oppOwnerId'] not in duration_by_owner:
+            duration_by_owner[activity['oppOwnerId']] = {}
+        if activity['oppType'] not in duration_by_owner[activity['oppOwnerId']]:
+            duration_by_owner[activity['oppOwnerId']][activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in duration_by_owner[activity['oppOwnerId']][activity['oppType']]:
+                duration_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] = 0
+            
+        if activity['oppType'] not in duration_by_type:
+            duration_by_type[activity['oppType']] = {}
+        if activity['oldValue'] is not None:
+            if activity['oldValue'] not in duration_by_type[activity['oppType']]:
+                duration_by_type[activity['oppType']][activity['oldValue']] = 0
+            
+        if older_activity_found: #if an older activity was found
+            durn = max(0, (_date_from_str(activity['date']) - _date_from_str(older_activity['date'])).days)     
+        else:
+            durn = max(0, (_date_from_str(activity['date']) - _date_from_str(activity['oppCreatedDate'])).days)   
+        
+        if activity['oldValue'] is not None:
+            duration[activity['oldValue']] += durn
+            duration_by_owner[activity['oppOwnerId']][activity['oppType']][activity['oldValue']] += durn
+            duration_by_type[activity['oppType']][activity['oldValue']] += durn
+        
+        return inflow_opps_ids, outflow_opps_ids, inflow_opps_ids_by_owner, inflow_opps_count_by_owner, outflow_opps_ids_by_owner, outflow_opps_count_by_owner, inflow_opps_ids_by_type, inflow_opps_count_by_type, outflow_opps_ids_by_type, outflow_opps_count_by_type, duration, duration_by_owner, duration_by_type
+        
+    except Exception as e:
+        print 'exception is ' + str(e)
+        return JsonResponse({'Error while populating opp funnel objects' : str(e)})
         
 #begin HSPT dashboards
 def hspt_social_roi(user_id, company_id, chart_name, mode, start_date):

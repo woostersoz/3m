@@ -16,6 +16,8 @@ from django.core.mail import send_mail, mail_admins
 from django.conf import settings
 from celery import task
 
+from templated_email import send_templated_mail
+
 from authentication.models import CustomUser, Company
 from leads.models import Lead
 from campaigns.models import Campaign
@@ -27,9 +29,9 @@ from collab.signals import send_notification
 from collab.models import Notification 
 from mmm.views import _str_from_date
 
-from leads.tasks import retrieveMktoLeads, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, retrieveSugrLeads, saveSugrLeadsToMaster, tempDataCleanup, mergeMktoSfdcLeads, deleteLeads
+from leads.tasks import retrieveMktoLeads, retrieveMktoLeadsByProgram, retrieveHsptLeads, retrieveSfdcLeads, saveMktoLeadsToMaster, saveMktoLeadsByProgramToMaster, saveSfdcLeadsToMaster, saveHsptLeadsToMaster, retrieveSugrLeads, saveSugrLeadsToMaster, tempDataCleanup, mergeMktoSfdcLeads, retrievePrdtLeads, deleteLeads, deleteDuplicateMktoIdLeads
 from contacts.tasks import retrieveSfdcContacts, saveSfdcContactsToMaster
-from activities.tasks import retrieveMktoActivities, retrieveMktoLeadCreatedActivities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, saveMktoActivitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, retrieveSfdcOppHistory, saveSfdcOppHistoryToMaster
+from activities.tasks import retrieveMktoActivities, retrieveMktoLeadCreatedActivities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, saveMktoActivitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, retrieveSfdcOppHistory, saveSfdcOppHistoryToMaster, retrieveSfdcOppStageHistory, saveSfdcOppStageHistoryToMaster
 from opportunities.tasks import retrieveMktoOpportunities, retrieveSfdcOpportunities, saveSfdcOpportunitiesToMaster, retrieveHsptOpportunities, saveHsptOpportunitiesToMaster
 from campaigns.tasks import retrieveHsptCampaigns, saveHsptCampaignsToMaster, retrieveMktoCampaigns, saveMktoCampaignsToMaster, retrieveSfdcCampaigns, saveSfdcCampaignsToMaster
 from accounts.tasks import retrieveSfdcAccounts, saveSfdcAccountsToMaster
@@ -95,6 +97,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         #sinceDateTime = datetime.now() - timedelta(days=30)
         print 'start date is ' + str(sinceDateTime)
         print 'run type is ' + run_type
+        print 'company id is ' + str(company_id)
 
         #create an entry in the Job Monitor
         superJobMonitor = SuperJobMonitor(company_id=company_id, type=run_type, started_date=datetime.utcnow())
@@ -161,23 +164,24 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
 #                             
         # find out which systems are integrated and therefore which  tasks should be run
         task_map = {
-#                     "mkto" : [retrieveMktoLeadCreatedActivities, retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns], #IMPORTANT - Lead Created Activities has to be before Leads
-#                     #"hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
-#                     "sfdc" : [retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcOpportunities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, retrieveSfdcOppHistory],
-#                     #  "sugr" : [retrieveSugrLeads],                    
-#                     "bufr" : [retrieveBufrTwInteractions], 
-#                     "goog" : [retrieveGoogWebsiteTraffic], \
-#                     "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
+                    #"mkto" : [retrieveMktoCampaigns, retrieveMktoLeadsByProgram], #retrieveMktoLeadCreatedActivities, retrieveMktoLeads, retrieveMktoActivities, retrieveMktoCampaigns, retrieveMktoLeadsByProgram], #IMPORTANT - Lead Created Activities has to be before Leads
+                    #"hspt" : [retrieveHsptCampaigns], # , ], # retrieveHsptLeads, retrieveHsptOpportunities, retrieveHsptWebsiteTraffic, ,   
+                     "prdt" : [retrievePrdtLeads],
+#                    "sfdc" : [retrieveSfdcCampaigns] #retrieveSfdcLeads, retrieveSfdcContacts, retrieveSfdcCampaigns, retrieveSfdcAccounts, retrieveSfdcOpportunities, retrieveSfdcLeadHistory, retrieveSfdcContactHistory, retrieveSfdcOppHistory, retrieveSfdcOppStageHistory],
+                    #  "sugr" : [retrieveSugrLeads],                    
+#                    "bufr" : [retrieveBufrTwInteractions], 
+#                    "goog" : [retrieveGoogWebsiteTraffic], \
+#                    "fbok" : [retrieveFbokPageStats, retrieveFbokAdStats]#, retrieveFbokPostStats] # , ]
                     }
 #         # for future use - retrieveMktoContacts, retrieveMktoOpportunities, retrieveSfdcActivities, 
         final_task_map = {
-#                      "mkto" : [saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster],#mergeMktoSfdcLeads, deleteLeads #
-#                     #"hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
-#                      "sfdc" : [saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, saveSfdcOppHistoryToMaster],  # 
-#                     # "sugr" : [saveSugrLeadsToMaster], 
-#                      "bufr" : [saveBufrTwInteractionsToMaster], 
-#                      "goog": [saveGoogleWebsiteTrafficToMaster], 
-#                      "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
+#                     "mkto" : [saveMktoCampaignsToMaster, saveMktoLeadsByProgramToMaster], #saveMktoLeadsToMaster, saveMktoActivitiesToMaster, saveMktoCampaignsToMaster, saveMktoLeadsByProgramToMaster],#mergeMktoSfdcLeads, deleteLeads, deleteDuplicateMktoIdLeads #
+                    #"hspt" : [saveHsptCampaignsToMaster ], #saveHsptLeadsToMaster, saveHsptOpportunitiesToMaster, saveHsptWebsiteTrafficToMaster, , ], # ,
+#                     "sfdc" : [saveSfdcCampaignsToMaster], #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcCampaignsToMaster, saveSfdcAccountsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcLeadHistoryToMaster, saveSfdcContactHistoryToMaster, saveSfdcOppHistoryToMaster, saveSfdcOppStageHistoryToMaster],  # 
+                    # "sugr" : [saveSugrLeadsToMaster], 
+#                     "bufr" : [saveBufrTwInteractionsToMaster], 
+#                     "goog": [saveGoogleWebsiteTrafficToMaster], 
+#                     "fbok": [saveFbokPageStatsToMaster, saveFbokAdStatsToMaster]#, saveFbokPostStatsToMaster] #
                     }
 #         #
 # #         #saveSfdcLeadsToMaster, saveSfdcContactsToMaster, saveSfdcOpportunitiesToMaster, saveSfdcCampaignsToMaster, 
@@ -274,7 +278,7 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         # call dashboard calculate tasks
         dashboards = [\
 #                     {'chart_name': 'social_roi', 'system_type': 'MA', 'chart_title':'Social Performance', 'mode': run_type, 'start_date': sinceDateTime}, \
-                    {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
+#                     {'chart_name': 'funnel', 'system_type': 'MA', 'chart_title':'Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'opp_funnel', 'system_type': 'CRM', 'chart_title':'Opportunity Funnel', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'waterfall_chart', 'system_type': 'MA', 'chart_title':'Waterfall Chart', 'mode': run_type, 'start_date': sinceDateTime}, \
 #                     {'chart_name': 'form_fills', 'system_type': 'MA', 'chart_title':'Form Fills', 'mode': run_type, 'start_date': sinceDateTime}, \
@@ -323,3 +327,66 @@ def companyDataExtract(user_id=None, company_id=None, run_type=None, sinceDateTi
         print str(e)
         return False
         
+@app.task
+def companyWeeklyEmail(company_id=None, run_type=None, start_date=None, end_date=None):
+    #print 'starting weekly email task'
+    if company_id is None or start_date is None or end_date is None:
+        print 'cannot have null values'
+        return
+    try:
+        #get the company integration record first
+        #existingIntegration = CompanyIntegration.objects(company_id=company_id).first() 
+        #if existingIntegration is None:
+        #    mail_admins('Could not find integration record for company ' + company_id , 'Check settings')
+        #    return False 
+        
+        # set up the Request and Cookie
+        user = _get_superadmin()
+        if user is None:
+            mail_admins('Could not find super admin!', 'Check settings')
+            return False
+            
+        # remotely login the user
+        host = settings.BASE_URL
+        url = host + '/api/v1/auth/login/'
+        creds = {'email': 'super@claritix.io', 'password':'sudha123'}
+        s = requests.Session()
+        resp = s.post(url, data=json.dumps(creds))
+        if not resp.status_code == 200:
+            mail_admins('Could not login super admin!', 'Check credentials')
+            return False
+            
+        #do cookie thing - refer to SuperAdmin Cron Job Task for details
+        cookies = dict(sessionid = resp.cookies['sessionid'])
+        url = host + '/api/v1/users/'
+        resp = s.get(url, cookies=cookies)
+        
+        #get weekly dashboard data (currently from Duration dashboard)
+        url = host + '/api/v1/company/' + str(company_id) + '/dashboards/retrieve/'
+        params = {'dashboard_name': 'funnel', 'start_date': start_date, 'end_date': end_date, 'system_type': 'MA', 'filters': {}, 'superfilters': {}}
+        resp = s.get(url, params=params)
+        if not resp.status_code == 200:
+            print 'incorrect status code while getting weekly dashboard data was ' + str(resp.status_code)
+            raise ValueError('Incorrect response code ' + str(resp.status_code))
+        else: #we got back the dashbnoard data
+            #print 'response from db was ' + str(resp.content)
+            dashboard_values = resp.json()
+            context = {'start_date': dashboard_values['start_date'], 'end_date': dashboard_values['end_date'], 'contacts_added': dashboard_values['created_count'], 'deals_closed': dashboard_values['leads_inflow_count']['closedwon'], 'closed_deal_value': dashboard_values['closed_deal_value']}
+            #get all the users for this company
+            url = host + '/api/v1/company/' + str(company_id) + '/users/'
+            resp = s.get(url)
+            users = resp.json()
+            user_emails = []
+            #print 'users are ' + str(users)
+            for user in users:
+                user_emails.append(user['email'])
+            print 'user emails are ' + str(user_emails)
+            user_emails = ['satya@claritix.io', 'rg@claritix.io']
+            print 'user emails2 are ' + str(user_emails)
+            from_email = 'admin@claritix.io'
+            send_templated_mail(template_name='weekly_email', from_email=from_email, recipient_list=user_emails, context=context)
+            
+        
+    except Exception as e:
+        print 'Exception while processing weekly email: ' + str(e)
+        return False

@@ -30,7 +30,9 @@ class LoginView(views.APIView):
         if account is not None:
             if account.is_active:
                 login(request, account)
-                account.company = account.company.company_id # hack to return only the company ID instead of entire object
+                #account.company = account.company.company_id # hack to return only the company ID instead of entire object
+                #company = Company.objects(company_id = account.company).first()
+                #account.company_name = company['name']
                 serialized = CustomUserSerializer(account)
                 request.session['django_timezone'] = account.timezone
                 return Response(serialized.data)
@@ -84,7 +86,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def list(self, request, id):
         #print 'in list'
-        company_id = request.user.company_id #TO-DO - check if company ID sent is the same as user's company ID
+        company_id = id #request.user.company_id #TO-DO - check if company ID sent is the same as user's company ID
         company = Company.objects.filter(company_id=company_id).first()
         queryset = CustomUser.objects.filter(company=company.id)
         serializer = CustomUserSerializer(queryset, many=True)

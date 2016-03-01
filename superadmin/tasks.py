@@ -1,5 +1,6 @@
 import requests, json, time, datetime
 from datetime import timedelta
+from dateutil import relativedelta
 
 from rest_framework_mongoengine import generics as drfme_generics
 from rest_framework.response import Response
@@ -13,7 +14,7 @@ from company.models import CompanyIntegration
 # from leads.tasks import retrieveMktoLeadsDaily
 # from contacts.tasks import retrieveSfdcContactsDaily
 from integrations.views import get_metadata
-from company.tasks import companyDataExtract, _get_superadmin
+from company.tasks import companyDataExtract, _get_superadmin, companyWeeklyEmail
 from mmm.views import _str_from_date
 
 from django.db.models import Q
@@ -258,3 +259,62 @@ def dailyCronJob():
     except Exception as e:
         logs.append(str(e))
         print 'exception is ' + str(e)
+        
+@app.task
+def weeklyEmailCronJob():
+    print 'in email cron'
+    try:
+        logs = [] #holds all error messages for the job
+        # first get the superadmin user and the companies
+        user = _get_superadmin()
+        if user is None:
+            mail_admins('Could not find super admin!', 'Check settings')
+            return # no superadmin found
+        # remotely login the user
+        host = settings.BASE_URL
+        url = host + '/api/v1/auth/login/'
+        creds = {'email': 'super@claritix.io', 'password':'sudha123'}
+        s = requests.Session()
+        resp = s.post(url, data=json.dumps(creds))
+        print 'resp is ' + str(resp.status_code)
+        if not resp.status_code == 200:
+            mail_admins('Could not login super admin!', 'Check credentials')
+            logs.append('Could not login super admin!')
+            return
+        else:
+            logs.append('Superadmin logged in')
+        
+        cookies = dict(sessionid = resp.cookies['sessionid'])
+        url = host + '/api/v1/users/'
+        resp = s.get(url, cookies=cookies)
+        #print 'resp2 is ' + str(resp.status_code)
+            
+        #print str(logs)
+        
+        querydict = {'company_id__ne' : 0}
+        companies = Company.objects(**querydict)
+        print 'found companies ' + str(len(companies))
+        #now loop through each company find which systems are connected 
+        for company in companies:
+            if not company.weekly_email:
+                continue
+            company_id = company.company_id
+            company_name = company.name
+            print 'in company ' + company.name 
+        
+            # get dates from last Sunday to this Saturday
+            today = datetime.datetime.now()
+            start = today - datetime.timedelta((today.weekday() + 1) % 7) #this will give Mon = 0 all the way to Sat = 6
+            sat = start + relativedelta.relativedelta(weekday=relativedelta.SA(-1))
+            sun = sat + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+            
+            #convert date strings to timestamps
+            start_date = time.mktime(sun.timetuple()) * 1000
+            end_date = time.mktime(sat.timetuple()) * 1000
+            print 'start date ' + str(start_date)
+            print 'end date ' + str(end_date)
+            companyWeeklyEmail(company_id=company_id, start_date=start_date, end_date=end_date)
+                
+    except Exception as e:
+        logs.append(str(e))
+        print 'exception during weekly cron job is ' + str(e)

@@ -123,19 +123,30 @@ def getOpportunities(request, id):
             if 'date_types' in super_filters: # need to filter by a certain type of date
                 date_field = super_filters['date_types']
                 if start_date is not None:
-                    utc_day_start_epoch =  datetime.fromtimestamp(float(start_date / 1000))
+                    start_date = datetime.fromtimestamp(float(start_date) / 1000)
+        
+                    
+                    #utc_day_start_epoch =  datetime.fromtimestamp(float(start_date / 1000))
                     #utc_day_start_epoch = str('{0:f}'.format(utc_day_start_epoch).rstrip('0').rstrip('.'))
                     #print 'utc start epoch is ' + str(utc_day_start_epoch)
        
                     #local_start_date = get_current_timezone().localize(local_start_date_naive, is_dst=None)
                 #print 'start2 is ' + str(time.time())
                 if end_date is not None:
-                    utc_day_end_epoch = datetime.fromtimestamp(float(end_date / 1000))
+                    end_date = datetime.fromtimestamp(float(end_date) / 1000)
+                    #utc_day_end_epoch = datetime.fromtimestamp(float(end_date / 1000))
                     #utc_day_end_epoch = str('{0:f}'.format(utc_day_end_epoch).rstrip('0').rstrip('.'))
-                    print 'utc end epoch is ' + str(utc_day_end_epoch)
-                utc_day_start_string = datetime.strftime(utc_day_start_epoch, '%Y-%m-%dT%H-%M-%S.000+0000')
-                utc_day_end_string = datetime.strftime(utc_day_end_epoch, '%Y-%m-%dT%H-%M-%S.000+0000')
-                #print 'utc start string is ' + str(utc_day_start_string)
+                    #print 'utc end epoch is ' + str(utc_day_end_epoch)
+                #utc_day_start_string = datetime.strftime(utc_day_start_epoch, '%Y-%m-%dT%H-%M-%S.000+0000')
+                #utc_day_end_string = datetime.strftime(utc_day_end_epoch, '%Y-%m-%dT%H-%M-%S.000+0000')
+                local_start_date = get_current_timezone().localize(start_date, is_dst=None)
+                utc_day_start = local_start_date.astimezone(pytz.timezone('UTC'))
+                utc_day_start_string = datetime.strftime(utc_day_start, '%Y-%m-%dT%H-%M-%S.000+0000')
+                
+                local_end_date = get_current_timezone().localize(end_date, is_dst=None)
+                utc_day_end = local_end_date.astimezone(pytz.timezone('UTC'))
+                utc_day_end_string = datetime.strftime(utc_day_end, '%Y-%m-%dT%H-%M-%S.000+0000')
+                print 'utc start string is ' + str(utc_day_start_string)
                 #print 'utc end string is ' + str(utc_day_end_string)
                 #remove the date_types item 
                 #super_filters.pop('date_types')

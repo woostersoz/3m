@@ -248,7 +248,7 @@
 				    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
 				    	currRecord['sfdc']['id'] = currRecord['sfdc']['Id'];
 				    	currRecord['sfdc']['SourceStatus'] = results[i]['source_status'];
-				    	currRecord['mkto']['sourceChannelDetail'] = results[i]['source_source'];
+				    	currRecord['sfdc']['sourceChannelDetail'] = results[i]['source_source'];
 				    	leads.push(currRecord['sfdc']);
 				    }
 				    //else

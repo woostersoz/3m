@@ -70,24 +70,33 @@
     	var campaigns = [];
 		for (var i=0; i < results.length; i++)
 	    {
-		    /*currRecord = results[i].campaigns;
+		    currRecord = results[i].campaigns;
 		    if (currRecord['mkto'])
 		    {
-		    	for (var key in currRecord['mkto']) // convert first letter to lower case
+		    	/*for (var key in currRecord['mkto']) // convert first letter to lower case
 		    	{
 		    		currRecord['mkto'][key.ucfirst()] = currRecord['mkto'][key];	
-		    	}
-		    	currRecord['mkto']['CreatedDate'] = currRecord['mkto']['CreatedAt']
+		    	}*/
+		    	currRecord['mkto']['createdDate'] = moment(currRecord['mkto']['createdAt'], "YYYY-MM-DDTHH:mm:ssZ+0000").format();
 		    	currRecord['mkto']['sourceSystem'] = 'MKTO';
 		    	campaigns.push(currRecord['mkto']);
 		    }	
 		    else if (currRecord['sfdc'])
 		    {
+		    	currRecord['sfdc']['name'] = currRecord['sfdc']['Name'];
+		    	currRecord['sfdc']['description'] = currRecord['sfdc']['Description'];
+		    	currRecord['sfdc']['type'] = currRecord['sfdc']['Type'];
+		    	currRecord['sfdc']['status'] = currRecord['sfdc']['Status'];
+		    	currRecord['sfdc']['num_leads'] = currRecord['sfdc']['NumberOfLeads'];
+		    	currRecord['sfdc']['num_contacts'] = currRecord['sfdc']['NumberOfContacts'];
+		    	currRecord['sfdc']['num_opps'] = currRecord['sfdc']['NumberOfOpportunities'];
+		    	currRecord['sfdc']['url'] = "http://login.salesforce.com/" + currRecord['sfdc']['Id'];
+		    	currRecord['sfdc']['createdDate'] = moment(currRecord['sfdc']['CreatedDate'], "YYYY-MM-DDTHH:mm:ss.000+0000").format();
 		    	currRecord['sfdc']['sourceSystem'] = 'SFDC';
 		    	campaigns.push(currRecord['sfdc']);
 		    }
 		    else
-		    	toastr.error('Something fishy going on!');*/
+		    	toastr.error('Something fishy going on!');
 			
 			
 	    	

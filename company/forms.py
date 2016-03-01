@@ -19,10 +19,11 @@ class BaseForm(Bootstrap3Form):
     form_name='integration_form'
     
     host = forms.URLField(label="Host", required=True)
-    client_id = forms.CharField(label="Client ID", required=True)
-    client_secret = forms.CharField(label="Client Secret", required=True)
+    client_id = forms.CharField(label="Client ID/User", required=True)
+    client_secret = forms.CharField(label="Client Secret/Password", required=True)
     access_token = forms.CharField(label="reset", required=False, widget=forms.HiddenInput())
     redirect_uri = forms.URLField(label="Redirect URI", required=True)
+    key = forms.CharField(label="User Key", required=False)
     
 class IntegrationBaseForm(NgModelFormMixin, NgFormValidationMixin, BaseForm):    
     class Meta:

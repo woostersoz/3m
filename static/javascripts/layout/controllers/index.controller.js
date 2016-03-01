@@ -40,6 +40,10 @@
     $scope.slackActive = false;
     $scope.slackSocket = '';
     $scope.authorize = authorize;
+    $scope.downloadLeadsCsv = downloadLeadsCsv;
+    // object for holding CSV download parameters
+    $scope.csv = {}
+    $scope.csv.param = []
      
     activate();
     if (Authentication.getAuthenticatedAccount()) 
@@ -376,6 +380,24 @@
 	        // $location.url('/');
 	        toastr.error('Authorization could not be completed');
 	      }
+	    
+	    /* Common CSV functions here */
+	    
+	    function downloadLeadsCsv() {
+			if ($scope.csv.param[$scope.csv.param.length - 1] != 'csv') // add this parameter to indicate to the backend that this is a CSV
+			   $scope.csv.param[$scope.csv.param.length] = 'csv';
+			$scope.csv.functionToCall.apply(this, $scope.csv.param).then(CsvDownloadSuccessFxn, CsvDownloadErrorFxn);
+		}
+	
+	    function CsvDownloadSuccessFxn(data, status, headers, config) {
+	    	toastr.info('Export to CSV is scheduled. Check My Exports for details');
+	    }
+	    
+	    function CsvDownloadErrorFxn(data, status, headers, config) {
+	    	toastr.error('Export to CSV could not be scheduled');
+	    }
+	    
+	    /* end of CSV functions */
     
     
     

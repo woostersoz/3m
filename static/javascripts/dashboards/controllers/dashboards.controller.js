@@ -371,14 +371,32 @@
 			filters = parseFilter(filters);
 			$scope.stopSpin();
 			$scope.startSpin();
+			
+			$scope.csv.param[0] = account.company;
+			$scope.csv.param[1] = $scope.chart_name;
+			$scope.csv.param[2] = $scope.object;
+			$scope.csv.param[3] = $scope.section;
+			$scope.csv.param[4] = $scope.channel;
+			$scope.csv.param[5] = $scope.system_type;
+			$scope.csv.param[6] = $scope.start_date;
+			$scope.csv.param[7] = $scope.end_date;
+			$scope.csv.param[8] = $scope.currentPageNumber; 
+			$scope.csv.param[9] = $scope.leadsPerPage;
         	
         	if (account)
         		{
         		   $scope.filterTitle = ' for ' + $scope.section.toUpperCase() + ' - ' + Common.capitalizeFirstLetter($scope.channel) + ' between ' + moment.unix($scope.start_date / 1000 ).format("YYYY-MM-DD") + ' and ' + moment.unix($scope.end_date / 1000).format("YYYY-MM-DD");
         		   if ($scope.object == 'contacts' || $scope.object == 'leads' || $scope.object == 'customers')
-        		     Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+        		   {
+        			   $scope.csv.functionToCall = Dashboards.drilldownContacts;
+        			   Dashboards.drilldownContacts(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage).then(DrilldownContactsSuccessFxn, DrilldownErrorFxn);
+        		   }
         		   else if ($scope.object == 'deals'|| $scope.object == 'opps' )
+        		   {
+        			   $scope.csv.functionToCall = Dashboards.drilldownDeals;
         			   Dashboards.drilldownDeals(account.company, $scope.chart_name, $scope.object, $scope.section, $scope.channel, $scope.system_type, $scope.start_date, $scope.end_date, $scope.currentPageNumber, $scope.leadsPerPage, filters, $scope.selectedSuperFilterValues).then(DrilldownDealsSuccessFxn, DrilldownErrorFxn);
+        			   
+        		   }
         		}
         }
         

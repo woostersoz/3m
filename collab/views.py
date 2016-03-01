@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.views.generic import TemplateView, View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.conf import settings
 #from django.contrib.auth.decorators import login_required
 
 from rest_framework import status, views, permissions, viewsets
@@ -109,11 +110,11 @@ def getCount(request, **kwargs):
     
 #chat rooms begin here
 @api_view(['GET'])
-def rooms(request, id):
+def rooms(request, company_id):
     """
     Homepage - lists all rooms
     """
-    company_id = request.user.company_id
+    #company_id = request.user.company
     company = Company.objects(company_id=company_id).first()
     company_id = company.id
     rooms = []
@@ -125,11 +126,11 @@ def rooms(request, id):
     #return JsonResponse(context)
 
 @api_view(['GET'])
-def getUserRooms(request, id):
+def getUserRooms(request, company_id):
     try:
         #print 'in user room'
         user_id = request.user.id
-        company_id = request.user.company_id
+        #company_id = request.user.company
         company = Company.objects(company_id=company_id).first()
         company_id = company.id
         chatUsersRoomIds = ChatUser.objects(Q(user=user_id) & Q(company=company_id))
@@ -141,11 +142,11 @@ def getUserRooms(request, id):
         return Response('Error: ' + str(e))    
     
 @api_view(['GET'])
-def getUserNotJoinedRooms(request, id):
+def getUserNotJoinedRooms(request, company_id):
     try:
         #print 'in user room'
         user_id = request.user.id
-        company_id = request.user.company_id
+        #company_id = request.user.company
         company = Company.objects(company_id=company_id).first()
         company_id = company.id
         #print ' user id is ' + str(user_id)
@@ -162,15 +163,16 @@ def getUserNotJoinedRooms(request, id):
         return Response(str(e)) 
 
 @api_view(['GET'])
-def getUserSlackMembership(request, id):
+def getUserSlackMembership(request, company_id):
     try:
         #print 'in user room'
         user_id = request.user.id
-        company_id = request.user.company_id
+        #company_id = request.user.company
         slck_auth_needed = False
         slck_user_auth_needed = False
 #         company = Company.objects(company_id=company_id).first()
 #         company_id = company.id
+        print 'company id is ' + str(company_id)
         existingIntegration= CompanyIntegration.objects(company_id=company_id).first()
         if existingIntegration is None or 'slck' not in existingIntegration['integrations']:
             return JsonResponse({'slck_auth_needed' : True})
@@ -196,11 +198,11 @@ def getUserSlackMembership(request, id):
         return Response('Error: ' + str(e))   
 
 @api_view(['GET'])
-def getUserSlackMessages(request, id):
+def getUserSlackMessages(request, company_id):
     try:
         #print 'in user room'
         user_id = request.user.id
-        company_id = request.user.company_id
+        #company_id = request.user.company 
         slack_id = request.GET.get("id")
         slack_type = request.GET.get("type")
 #         company = Company.objects(company_id=company_id).first()
@@ -256,7 +258,7 @@ def user_create_slack_message(request): #this is only for messages with attachme
         message = post_data['message']
         #company_id = post_data['company_id'] 
         user_id = request.user.id
-        company_id = request.user.company_id
+        company_id = request.user.company 
         if 'snapshot_id' in post_data:
             snapshot_id = post_data['snapshot_id']
         else:
@@ -280,15 +282,15 @@ def user_create_slack_message(request): #this is only for messages with attachme
             if snapshot is None:
                 raise ValueError('Snapshot not found!')
             attachment = {
-                          "fallback": "New Claritix" + snapshot['chart_name'] + " chart snapshot - http://app.claritix.io/snapshots/" + snapshot_id,
+                          "fallback": "New Claritix" + snapshot['chart_name'] + " chart snapshot - " + settings.BASE_URL + "/snapshots/" + snapshot_id,
                           "pretext": "New Claritix chart snapshot",
                           "title": "Claritix snapshot - " +  snapshot['chart_name'] + " as of " + strftime('%Y-%m-%d %H:%M:%S', snapshot['updated_date'].timetuple()),
-                          "title_link": "http://app.claritix.io/snapshots/" + snapshot_id,
+                          "title_link": settings.BASE_URL + "/snapshots/" + snapshot_id,
                           "text": "Click above link to view the snapshot within Claritix",
                           "color": "#0491c3",
                           "author_name": "Claritix",
                           "author_link": "http://claritix.io",
-                          "author_icon": "http://app.claritix.io/static/images/logo-icon-16x16.png"
+                          "author_icon": settings.BASE_URL + "/static/images/logo-icon-16x16.png"
                           }
             attachments.append(attachment)
         print 'attachme ' + str(attachments)
@@ -303,7 +305,7 @@ def user_create_slack_message(request): #this is only for messages with attachme
 
     
 @api_view(['GET'])
-def room(request, id):
+def room(request, company_id):
     """
     Show a room
     """
@@ -398,7 +400,7 @@ def user_create_message(request):
         return JsonResponse({'Error' : str(e)})
 
 @api_view(['GET'])      
-def room_get_messages(request, id):
+def room_get_messages(request, company_id):
     try:
         room_id = request.GET.get('roomId')
         user_id = request.user.id

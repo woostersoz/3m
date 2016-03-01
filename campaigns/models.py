@@ -19,9 +19,10 @@ class Campaign(Document):
     guid = StringField()
     channel = StringField()
     emails = ListField()
+    campaigns = DictField()
     updated_date = DateTimeField(default=datetime.datetime.utcnow)
 
-    meta = {'collection': 'campaign', 'indexes': ['id', 'company_id', 'guid', 'name', {'fields' : ('company_id', 'guid'), 'unique': True, 'name': 'co_guid'}], 'ordering':['-updated_date']}
+    meta = {'collection': 'campaign', 'indexes': ['id', 'company_id', 'guid', 'name',  {'fields' : ('company_id', 'guid'), 'unique': True, 'name': 'co_guid'}], 'ordering':['-updated_date']}
 
 class EmailEvent(Document):
 
